@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
 
 import type { Document } from "@/model/generated/Document";
+import { useCanvasTool } from "@/app/useCanvasTool";
 import { useDocumentStore } from "@/store/documentStore";
 import {
   RELATION_LABELS,
@@ -77,6 +78,8 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
   const select = useDocumentStore((s) => s.select);
   const selection = useDocumentStore((s) => s.selection);
   const { fitView } = useReactFlow();
+  const tool = useCanvasTool((s) => s.tool);
+  const hand = tool === "hand";
 
   const [menu, setMenu] = useState<MenuState | null>(null);
 
@@ -369,7 +372,7 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
   );
 
   return (
-    <div className="graph-canvas">
+    <div className="graph-canvas" data-tool={tool}>
       <EdgeMarkers />
       <ReactFlow
         nodes={nodes}
@@ -393,14 +396,23 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
          */
         connectOnClick={false}
         /*
-         * Arrastrar sobre el lienzo vacio selecciona por rectangulo, que es
-         * lo que se espera en una herramienta de dibujo. Para desplazar el
-         * lienzo quedan la rueda del raton, el boton central y la barra
-         * espaciadora, que es el reparto de draw.io y Figma.
+         * Con el puntero, arrastrar sobre el lienzo vacio selecciona por
+         * rectangulo; con la mano, desplaza desde cualquier sitio, tambien
+         * encima de un nodo. La barra espaciadora hace de mano temporal y el
+         * boton central desplaza siempre.
          */
-        selectionOnDrag
-        panOnDrag={MIDDLE_BUTTON}
+        selectionOnDrag={!hand}
+        panOnDrag={hand ? true : MIDDLE_BUTTON}
+        nodesDraggable={!hand}
+        elementsSelectable={!hand}
         panActivationKeyCode="Space"
+        /*
+         * La rueda desplaza y Ctrl+rueda hace zoom, como en Figma: con un
+         * panel tactil, dos dedos mueven el lienzo. Shift+rueda desplaza en
+         * horizontal.
+         */
+        panOnScroll
+        zoomOnScroll={false}
         selectionKeyCode="Shift"
         multiSelectionKeyCode={["Control", "Meta"]}
         snapToGrid

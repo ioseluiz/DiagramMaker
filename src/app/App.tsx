@@ -7,6 +7,7 @@ import { RecoveryToast } from "./RecoveryToast";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 import { useAutosave } from "./useAutosave";
+import { useCanvasToolShortcuts } from "./useCanvasTool";
 import "./App.css";
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
   const checkRecovery = useDocumentStore((s) => s.checkRecovery);
 
   useAutosave();
+  useCanvasToolShortcuts();
 
   useEffect(() => {
     // Arrancar con un lienzo en blanco en vez de una pantalla vacia.

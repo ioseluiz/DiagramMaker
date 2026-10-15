@@ -86,9 +86,18 @@ La paleta de formas depende del tipo de diagrama, que se elige en la barra de
 herramientas: en un entidad-relación ofrece tablas, grupos y notas; en el
 resto, el juego general de ocho formas.
 
-En el lienzo, arrastrar sobre el fondo selecciona por rectángulo. Para
-desplazarlo: rueda del ratón, botón central o barra espaciadora. El clic
-derecho abre un menú contextual sobre nodos, relaciones y el propio lienzo.
+### Manejo del lienzo
+
+| Gesto | Acción |
+| ----- | ------ |
+| `V` / `H` | Alternar entre puntero y mano |
+| Arrastrar con el puntero | Seleccionar por rectángulo |
+| Arrastrar con la mano | Desplazar, también sobre un nodo |
+| Barra espaciadora + arrastrar | Desplazar sin cambiar de herramienta |
+| Botón central + arrastrar | Desplazar |
+| Rueda | Desplazar · `Shift` horizontal · `Ctrl` zoom |
+| Clic derecho | Menú contextual sobre nodo, relación o lienzo |
+| `Ctrl` + clic | Añadir a la selección |
 
 ## Requisitos
 

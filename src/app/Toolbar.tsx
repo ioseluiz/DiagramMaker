@@ -9,6 +9,7 @@ import {
 } from "@/store/documentStore";
 import { addNode, addTable, setDiagramKind } from "@/store/operations";
 import { useTheme, type ThemePreference } from "@/theme/useTheme";
+import { useCanvasTool, type CanvasTool } from "./useCanvasTool";
 import { useState } from "react";
 
 import { ExportDialog } from "./ExportDialog";
@@ -78,6 +79,8 @@ export function Toolbar() {
 
   const { createNew, openFile, saveFile } = useDocumentCommands();
   const { preference, setPreference } = useTheme();
+  const tool = useCanvasTool((s) => s.tool);
+  const setTool = useCanvasTool((s) => s.setTool);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
 
@@ -97,6 +100,27 @@ export function Toolbar() {
 
   return (
     <header className="toolbar">
+      <div className="toolbar__group">
+        <button
+          type="button"
+          className="toolbar__tool"
+          aria-pressed={tool === "select"}
+          onClick={() => setTool("select")}
+          title="Seleccionar (V)"
+        >
+          <ToolIcon tool="select" />
+        </button>
+        <button
+          type="button"
+          className="toolbar__tool"
+          aria-pressed={tool === "hand"}
+          onClick={() => setTool("hand")}
+          title="Desplazar (H) · la barra espaciadora hace de mano temporal"
+        >
+          <ToolIcon tool="hand" />
+        </button>
+      </div>
+
       <div className="toolbar__group">
         <button type="button" onClick={() => createNew()} title="Nuevo (Ctrl+N)">
           Nuevo
@@ -202,6 +226,36 @@ export function Toolbar() {
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {importing && <ImportDialog onClose={() => setImporting(false)} />}
     </header>
+  );
+}
+
+/** Puntero y mano, en la misma rejilla de 24x24 que el resto de iconos. */
+function ToolIcon({ tool }: { tool: CanvasTool }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.5,
+    strokeLinejoin: "round" as const,
+    strokeLinecap: "round" as const,
+  };
+
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+      className="toolbar__icon"
+    >
+      {tool === "select" ? (
+        <path d="M6 3 L6 19 L10 15 L13 21 L15.5 19.8 L12.6 14 L18 14 Z" {...common} />
+      ) : (
+        <path
+          d="M9 11 L9 6.5 A1.5 1.5 0 0 1 12 6.5 L12 11 M12 11 L12 5.5 A1.5 1.5 0 0 1 15 5.5 L15 11 M15 11 L15 7.5 A1.5 1.5 0 0 1 18 7.5 L18 14.5 A6 6 0 0 1 6.5 17 L5 13.5 A1.5 1.5 0 0 1 7.6 12 L9 14.5 L9 11 Z"
+          {...common}
+        />
+      )}
+    </svg>
   );
 }
 

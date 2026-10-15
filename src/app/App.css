@@ -804,3 +804,19 @@
     transparent calc(50% + 1px)
   );
 }
+
+/* --- Herramientas del lienzo -------------------------------------------- */
+
+.toolbar .toolbar__tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+.toolbar .toolbar__tool[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}

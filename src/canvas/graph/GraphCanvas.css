@@ -76,3 +76,21 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/* --- Herramienta mano --------------------------------------------------- */
+
+.graph-canvas[data-tool="hand"] .react-flow__pane,
+.graph-canvas[data-tool="hand"] .react-flow__node {
+  cursor: grab;
+}
+
+.graph-canvas[data-tool="hand"] .react-flow__pane.dragging,
+.graph-canvas[data-tool="hand"] .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+/* Con la mano activa, los conectores no deben ofrecerse. */
+.graph-canvas[data-tool="hand"] .shape-node__handle,
+.graph-canvas[data-tool="hand"] .table-node__port {
+  display: none;
+}
