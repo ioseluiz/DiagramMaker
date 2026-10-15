@@ -12,6 +12,7 @@ import { useTheme, type ThemePreference } from "@/theme/useTheme";
 import { useState } from "react";
 
 import { ExportDialog } from "./ExportDialog";
+import { ImportDialog } from "./ImportDialog";
 import { RecentMenu } from "./RecentMenu";
 import { useDocumentCommands } from "./useDocumentCommands";
 
@@ -66,6 +67,7 @@ export function Toolbar() {
   const { createNew, openFile, saveFile } = useDocumentCommands();
   const { preference, setPreference } = useTheme();
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const addShape = (shape: NodeShape) => {
     const position = nextPosition(doc?.nodes.length ?? 0);
@@ -91,6 +93,13 @@ export function Toolbar() {
           title="Guardar (Ctrl+S)"
         >
           Guardar{dirty ? " •" : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => setImporting(true)}
+          title="Importar desde DBML"
+        >
+          Importar
         </button>
         <button
           type="button"
@@ -155,6 +164,7 @@ export function Toolbar() {
       </label>
 
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
+      {importing && <ImportDialog onClose={() => setImporting(false)} />}
     </header>
   );
 }

@@ -16,7 +16,9 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use diagrammaker_lib::model::NodeShape;
-use diagrammaker_lib::model::shape_geometry::{ALL_SHAPES, Primitive, primitives};
+use diagrammaker_lib::model::shape_geometry::{
+    ALL_SHAPES, Primitive, primitives, table_height, table_primitives,
+};
 use serde::{Deserialize, Serialize};
 
 /// Tamanos de prueba. Incluyen casos degenerados a proposito: una caja
@@ -33,6 +35,37 @@ struct Case {
 
 fn golden_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/shape-primitives.json")
+}
+
+fn table_golden_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/table-primitives.json")
+}
+
+/// Numeros de columnas a probar: ninguna, una, varias y mas de las que caben.
+const TABLE_ROWS: [usize; 4] = [0, 1, 4, 12];
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct TableCase {
+    rows: usize,
+    width: f64,
+    height: f64,
+    primitives: Vec<Primitive>,
+}
+
+fn current_tables() -> Vec<TableCase> {
+    TABLE_ROWS
+        .iter()
+        .map(|&rows| {
+            let width = 220.0;
+            let height = table_height(rows);
+            TableCase {
+                rows,
+                width,
+                height,
+                primitives: table_primitives(rows, width, height),
+            }
+        })
+        .collect()
 }
 
 fn shape_name(shape: NodeShape) -> String {
@@ -82,5 +115,30 @@ fn las_primitivas_de_forma_coinciden_con_el_fichero_dorado() {
         cases, expected,
         "las primitivas cambiaron. Si es intencionado, regenera con \
          UPDATE_GOLDEN=1 y revisa que src/model/shapeGeometry.ts siga igual."
+    );
+}
+
+#[test]
+fn las_primitivas_de_tabla_coinciden_con_el_fichero_dorado() {
+    let path = table_golden_path();
+    let cases = current_tables();
+    let serialized = format!(
+        "{}
+",
+        serde_json::to_string_pretty(&cases).unwrap()
+    );
+
+    if std::env::var("UPDATE_GOLDEN").is_ok() || !path.exists() {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, &serialized).unwrap();
+        return;
+    }
+
+    let expected: Vec<TableCase> =
+        serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+
+    assert_eq!(
+        cases, expected,
+        "la geometria de las tablas cambio. Si es intencionado, regenera con          UPDATE_GOLDEN=1 y revisa que src/model/shapeGeometry.ts y          src/model/tableMetrics.ts sigan igual."
     );
 }

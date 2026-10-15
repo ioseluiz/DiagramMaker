@@ -48,6 +48,12 @@ export interface DocumentActions {
   edit(label: string, recipe: (draft: Document) => void, coalesce?: boolean): void;
 
   newDocument(kind: DiagramKind): Promise<void>;
+  /**
+   * Sustituye el documento por otro, descartando el historial. Es lo que
+   * ocurre al importar: deshacer hasta antes de la importacion volveria a un
+   * documento que ya no tiene nada que ver.
+   */
+  replaceDocument(document: Document): void;
   open(path: string): Promise<void>;
   save(path?: string): Promise<void>;
   validate(): Promise<void>;
@@ -122,6 +128,10 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
     } finally {
       set({ busy: false });
     }
+  },
+
+  replaceDocument(document) {
+    set({ ...FRESH, history: initHistory(document), dirty: true });
   },
 
   async open(path) {

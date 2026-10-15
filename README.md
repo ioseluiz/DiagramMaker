@@ -17,16 +17,17 @@ Construido con Rust + Tauri 2 y React.
 
 ## Estado
 
-**F2 — exportación.** El diagrama ya sale de la aplicación: SVG vectorial, PNG
-a la resolución que elijas y PDF con el texto seleccionable. Lo siguiente es
-importar DBML y dibujar diagramas entidad-relación (F3).
+**F3 — entidad-relación.** Pegas código DBML de dbdiagram.io y sale un
+diagrama de tablas editable, colocado automáticamente. Y desde cualquier
+diagrama ER puedes volver a generar el DBML. Lo siguiente es arquitectura/C4
+con importador de Mermaid (F4).
 
 | Fase | Alcance                                              |
 | ---- | ---------------------------------------------------- |
 | F0   | Andamiaje, CI, instaladores ✅                       |
 | F1   | IR del documento, lienzo, undo/redo, persistencia ✅ |
 | F2   | Exportación SVG / PNG / PDF ✅                       |
-| F3   | Entidad-relación + importador DBML                   |
+| F3   | Entidad-relación + importador DBML ✅                |
 | F4   | Arquitectura / C4 + `flowchart` de Mermaid           |
 | F5   | Secuencia (renderizador de carriles propio)          |
 | F6   | Clases, casos de uso, actividad, estado              |
@@ -52,6 +53,14 @@ importar DBML y dibujar diagramas entidad-relación (F3).
   borra nada; para eso está «Descartar».
 - Exportación a SVG, PNG (1× a 4×) y PDF, con margen configurable y fondo
   opcionalmente transparente. También copia el SVG al portapapeles.
+- **Diagramas entidad-relación**: tablas con columnas, tipos, claves primarias
+  y ajenas, unicidad y nulabilidad, agrupadas en contenedores.
+- **Importador de DBML** (sintaxis de dbdiagram.io): `Table` con sus ajustes,
+  `Ref` sueltas y en línea, `Enum`, `TableGroup`, `Project` y notas. Lo que no
+  entiende lo reporta con línea y columna en vez de adivinarlo, y sigue
+  leyendo el resto. El resultado se coloca solo con ELK.
+- **Generador de DBML**: desde cualquier diagrama ER sale el código, y vuelve
+  a entrar produciendo el mismo diagrama (hay pruebas de ida y vuelta).
 
 ### Atajos
 
@@ -139,8 +148,8 @@ src-tauri/src/
   commands.rs     superficie IPC (#[tauri::command])
   error.rs        AppError -> { kind, message } hacia el frontend
   model/          el IR del documento (F1)
-  parse/          importadores DBML / Mermaid / PlantUML (F3-F6)
-  emit/           generadores de código (F3-F6)
+  parse/dbml/     importador de DBML: lexer + parser con diagnósticos
+  emit/dbml.rs    generador de DBML (ida y vuelta probada)
   render/         svg.rs (único generador), raster.rs (PNG), pdf.rs
   io/             .dgm versionado, recientes y copia de recuperación
 
@@ -151,7 +160,7 @@ src/
   canvas/graph/   adapter.ts (IR <-> React Flow), ShapeBody, ShapeNode
   canvas/export/  recolección de la geometría medida para exportar
   canvas/lane/    renderizador de secuencia (F5)
-  layout/         worker de elkjs (F3)
+  layout/         auto-layout con elkjs
   theme/          tokens de color y preferencia de tema
   app/            shell de la ventana
 ```

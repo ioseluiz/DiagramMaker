@@ -9,6 +9,7 @@
 pub mod diagnostic;
 pub mod document;
 pub mod edge;
+pub mod er;
 pub mod geometry;
 pub mod node;
 pub mod shape_geometry;
@@ -18,6 +19,7 @@ pub mod validate;
 pub use diagnostic::{Diagnostic, Report, Severity, Span};
 pub use document::{DiagramKind, Document, LayoutMode, Meta, SCHEMA_VERSION};
 pub use edge::{Edge, EdgeKind, Endpoint, Routing, Side};
+pub use er::{Cardinality, ErColumn, ErTable};
 pub use geometry::{Point, Rect, Size};
 pub use node::{Node, NodeData, NodeShape};
 pub use shape_geometry::{Primitive, primitives};

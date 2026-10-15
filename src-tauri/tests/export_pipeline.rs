@@ -342,3 +342,160 @@ fn el_fondo_transparente_deja_pixeles_sin_pintar() {
 
     assert!(transparentes > 1_000, "el fondo no quedo transparente");
 }
+
+/* --- Entidad-relacion: del codigo DBML al PNG ---------------------------- */
+
+const ESQUEMA_DBML: &str = r#"
+Project tienda {
+  Note: 'Esquema de ejemplo'
+}
+
+Table users as U {
+  id integer [pk, increment]
+  email varchar(255) [not null, unique]
+  rol varchar [default: 'cliente']
+  creado timestamp [default: `now()`]
+}
+
+Table orders {
+  id integer [pk]
+  user_id integer [not null, ref: > U.id]
+  total decimal(10,2) [not null]
+  estado varchar(20)
+}
+
+Table order_lines {
+  id integer [pk]
+  order_id integer [ref: > orders.id]
+  producto varchar(120)
+  cantidad integer
+}
+"#;
+
+/// Coloca las tablas en columnas. En la aplicacion lo hace ELK desde el
+/// frontend, que es quien mide el texto; aqui basta con una rejilla.
+fn place_tables(doc: &mut diagrammaker_lib::model::Document) {
+    use diagrammaker_lib::model::shape_geometry::table_height;
+
+    let mut x = 40.0;
+    for node in &mut doc.nodes {
+        let rows = node.er().map(|t| t.columns.len()).unwrap_or(0);
+        node.geometry = Some(diagrammaker_lib::model::Rect::new(
+            x,
+            60.0,
+            240.0,
+            table_height(rows),
+        ));
+        x += 330.0;
+    }
+}
+
+fn er_sample() -> RenderInput {
+    let imported = diagrammaker_lib::parse::dbml::import(ESQUEMA_DBML, 0);
+    assert!(
+        imported.ok(),
+        "el DBML de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    place_tables(&mut doc);
+
+    // Las tablas rotulan sus filas desde el propio documento, asi que solo
+    // hacen falta etiquetas para las cardinalidades de las aristas.
+    let mut labels = HashMap::new();
+    let mut edges = HashMap::new();
+
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+            },
+        );
+        labels.insert(edge.id.clone(), label("", 11.0, LabelPlacement::Center));
+    }
+
+    RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+    }
+}
+
+#[test]
+fn el_svg_de_un_er_dibuja_tablas_con_sus_columnas() {
+    let out = svg::render(&er_sample());
+
+    for text in ["users", "orders", "order_lines", "email", "varchar(255)"] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    // Las marcas de restriccion se dibujan junto al tipo.
+    assert!(out.contains("PK"), "faltan las claves primarias");
+    assert!(out.contains("FK"), "faltan las claves ajenas");
+
+    // Regresion: con el texto bien pero sin las reglas horizontales, una tabla
+    // parece correcta de un vistazo y no lo esta. `users` tiene 4 columnas:
+    // una raya bajo la cabecera y tres entre filas.
+    let users = group_of(&out, "translate(40 60)");
+    assert_eq!(
+        users.matches("<path").count(),
+        4,
+        "faltan las lineas de separacion de la tabla:
+{users}"
+    );
+}
+
+/// Extrae el `<g>` que empieza por la transformacion indicada.
+fn group_of<'a>(svg: &'a str, transform: &str) -> &'a str {
+    let start = svg
+        .find(&format!(r#"<g transform="{transform}">"#))
+        .unwrap_or_else(|| panic!("no hay ningun grupo con `{transform}`"));
+    let rest = &svg[start..];
+    let end = rest.find("</g>").expect("grupo sin cerrar") + 4;
+    &rest[..end]
+}
+
+#[test]
+fn el_png_de_un_er_no_sale_en_blanco() {
+    let png = raster::to_png(&svg::render(&er_sample()), 1.0).unwrap();
+
+    assert!(
+        painted_pixels(&png) > 5_000,
+        "el PNG del diagrama ER esta practicamente vacio"
+    );
+}
+
+#[test]
+fn el_er_tambien_se_exporta_a_los_tres_formatos() {
+    let input = er_sample();
+    let svg_text = svg::render(&input);
+
+    let png = raster::to_png(&svg_text, 2.0).unwrap();
+    let pdf_bytes = pdf::to_pdf(&svg_text).unwrap();
+
+    assert_eq!(&png[..4], &[0x89, b'P', b'N', b'G']);
+    assert_eq!(&pdf_bytes[..5], b"%PDF-");
+
+    if let Ok(dir) = std::env::var("EXPORT_SAMPLE_DIR") {
+        let dir = std::path::Path::new(&dir);
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("er.svg"), &svg_text).unwrap();
+        std::fs::write(dir.join("er.png"), &png).unwrap();
+    }
+}

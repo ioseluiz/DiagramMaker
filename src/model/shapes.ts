@@ -16,6 +16,9 @@ const DEFAULT_SIZE: Record<NodeShape, readonly [number, number]> = {
   note: [160, 80],
   package: [220, 160],
   actor: [40, 80],
+  // El tamano real de una tabla sale de sus columnas (`@/model/table`); esto
+  // es solo la cabecera, para el instante antes de calcularlo.
+  table: [220, 28],
 };
 
 export function defaultSizeFor(shape: NodeShape): readonly [number, number] {
@@ -34,6 +37,7 @@ export const SHAPE_LABEL: Record<NodeShape, string> = {
   note: "Nota",
   package: "Paquete",
   actor: "Actor",
+  table: "Tabla",
 };
 
 /** Formas que pueden contener a otros nodos. */

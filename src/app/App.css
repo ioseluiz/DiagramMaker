@@ -515,3 +515,71 @@
 .recovery-toast__actions .recovery-toast__primary:hover {
   background: color-mix(in srgb, var(--accent) 88%, black);
 }
+
+/* --- Dialogo de importacion --------------------------------------------- */
+
+.modal--wide {
+  width: 620px;
+}
+
+.modal__code {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: var(--surface-1);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  tab-size: 2;
+}
+
+.modal__code::placeholder {
+  color: var(--text-faint);
+}
+
+.diagnostics {
+  max-height: 160px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.diagnostics__item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 9px;
+  font-size: 12px;
+  border-left: 3px solid transparent;
+}
+
+.diagnostics__item + .diagnostics__item {
+  border-top: 1px solid var(--border);
+}
+
+.diagnostics__item[data-severity="error"] {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+
+.diagnostics__item[data-severity="warning"] {
+  border-left-color: var(--warning);
+  color: var(--warning);
+}
+
+.diagnostics__item[data-severity="info"] {
+  border-left-color: var(--border-strong);
+  color: var(--text-muted);
+}
+
+.diagnostics__where {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  opacity: 0.75;
+}

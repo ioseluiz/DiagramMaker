@@ -1,5 +1,6 @@
 import type { NodeShape } from "./generated/NodeShape";
 import type { Primitive } from "./generated/Primitive";
+import { TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT } from "./tableMetrics";
 
 /**
  * Contorno de cada forma, en primitivas SVG.
@@ -17,6 +18,8 @@ import type { Primitive } from "./generated/Primitive";
 export type { Primitive };
 
 const CORNER_RADIUS = 10;
+/** Radio de las esquinas de una tabla ER. */
+const TABLE_CORNER_RADIUS = 6;
 /** Alto de la solapa del paquete. */
 const TAB_HEIGHT = 22;
 /** Alto maximo de la tapa eliptica del cilindro. */
@@ -153,6 +156,12 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
       ];
     }
 
+    // La tabla depende de sus columnas, no solo de la caja: la dibuja
+    // `tablePrimitivesFor`. Aqui se devuelve el marco para que un nodo mal
+    // formado siga siendo visible en vez de desaparecer.
+    case "table":
+      return tablePrimitivesFor(0, w, h);
+
     case "actor": {
       const cx = w / 2;
       const headR = Math.min(w / 3, h / 6);
@@ -174,4 +183,38 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
       ];
     }
   }
+}
+
+/**
+ * Contorno de una tabla ER: marco, separador de cabecera y una linea entre
+ * filas. Espejo de `table_primitives` en `shape_geometry.rs`.
+ */
+export function tablePrimitivesFor(rows: number, w: number, h: number): Primitive[] {
+  const i = INSET;
+  const out: Primitive[] = [
+    {
+      kind: "rect",
+      x: r(i),
+      y: r(i),
+      width: r(w - i * 2),
+      height: r(h - i * 2),
+      radius: TABLE_CORNER_RADIUS,
+    },
+  ];
+
+  // Sin filas no hay separador: una tabla vacia es una caja con su nombre.
+  if (rows > 0) {
+    out.push({
+      kind: "line",
+      d: `M ${r(i)} ${r(TABLE_HEADER_HEIGHT)} L ${r(w - i)} ${r(TABLE_HEADER_HEIGHT)}`,
+    });
+  }
+
+  for (let index = 1; index < rows; index++) {
+    const y = TABLE_HEADER_HEIGHT + index * TABLE_ROW_HEIGHT;
+    if (y >= h - i) break;
+    out.push({ kind: "line", d: `M ${r(i)} ${r(y)} L ${r(w - i)} ${r(y)}` });
+  }
+
+  return out;
 }

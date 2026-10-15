@@ -6,6 +6,7 @@ import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { Node } from "@/model/generated/Node";
 import type { Routing } from "@/model/generated/Routing";
 import { defaultSizeFor, isContainer } from "@/model/shapes";
+import { tableSize } from "@/model/table";
 import { edgeStyle } from "@/model/style";
 import { resolveSides } from "./sides";
 
@@ -23,7 +24,8 @@ export interface ShapeNodeData extends Record<string, unknown> {
   node: Node;
 }
 
-export type DiagramFlowNode = FlowNode<ShapeNodeData, "shape">;
+/** Las tablas usan su propio componente; el resto comparte `ShapeNode`. */
+export type DiagramFlowNode = FlowNode<ShapeNodeData, "shape" | "table">;
 
 const FLOW_EDGE_TYPE: Record<Routing, string> = {
   orthogonal: "smoothstep",
@@ -74,18 +76,23 @@ export function toFlowNodes(
   );
 
   return ordered.map((node) => {
-    const [defaultWidth, defaultHeight] = defaultSizeFor(node.shape);
+    const isTable = node.shape === "table";
+    const [shapeWidth, shapeHeight] = defaultSizeFor(node.shape);
+    const fallback = isTable
+      ? tableSize(node)
+      : { width: shapeWidth, height: shapeHeight };
+
     const geometry = node.geometry ?? {
       x: 0,
       y: 0,
-      width: defaultWidth,
-      height: defaultHeight,
+      width: fallback.width,
+      height: fallback.height,
     };
     const origin = parentOrigin(doc, node);
 
     const flow: DiagramFlowNode = {
       id: node.id,
-      type: "shape",
+      type: isTable ? "table" : "shape",
       position: { x: geometry.x - origin.x, y: geometry.y - origin.y },
       width: geometry.width,
       height: geometry.height,

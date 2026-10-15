@@ -7,8 +7,11 @@
 use std::fmt::Write as _;
 
 use crate::model::edge::EdgeKind;
-use crate::model::shape_geometry::{Primitive, primitives};
-use crate::model::{Document, Edge, Node, Rect};
+use crate::model::shape_geometry::{
+    Primitive, TABLE_HEADER_FONT_SIZE, TABLE_HEADER_HEIGHT, TABLE_PADDING, TABLE_ROW_FONT_SIZE,
+    primitives, table_primitives, table_row_rect,
+};
+use crate::model::{Document, Edge, ErTable, Node, Rect};
 
 use super::{EdgePath, LabelLayout, LabelPlacement, RenderInput, RenderTheme};
 
@@ -374,7 +377,14 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
     let mut out = String::new();
     let _ = write!(out, r#"<g transform="translate({} {})">"#, n(g.x), n(g.y));
 
-    for primitive in primitives(node.shape, g.width, g.height) {
+    // El contorno de una tabla depende de cuantas columnas tenga, no solo de
+    // su caja, asi que sale de `table_primitives`.
+    let outline = match node.er() {
+        Some(table) => table_primitives(table.columns.len(), g.width, g.height),
+        None => primitives(node.shape, g.width, g.height),
+    };
+
+    for primitive in outline {
         let (body_fill, body_stroke) = if primitive.is_filled() {
             (fill, stroke)
         } else {
@@ -443,6 +453,13 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
 
     out.push_str("</g>");
 
+    // Las tablas rotulan sus propias filas: el texto va alineado a los bordes
+    // y no centrado, asi que no hace falta medirlo en el navegador.
+    if let Some(table) = node.er() {
+        out.push_str(&render_table_text(node, table, g, input));
+        return out;
+    }
+
     if let Some(label) = input.labels.get(&node.id)
         && !label.is_empty()
     {
@@ -460,6 +477,79 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
         };
 
         out.push_str(&text_block(label, x, top, color, theme));
+    }
+
+    out
+}
+
+/// Nombre de la tabla y el texto de cada columna.
+///
+/// Se alinea a los bordes, no al centro, asi que basta con el margen fijo y
+/// no hacen falta anchos medidos: lo unico que se necesita es el texto, que ya
+/// esta en el documento.
+fn render_table_text(node: &Node, table: &ErTable, g: Rect, input: &RenderInput) -> String {
+    let theme = &input.theme;
+    let color = node.style.text_color.as_deref().unwrap_or(&theme.node_text);
+
+    let mut out = String::new();
+
+    // Cabecera.
+    let header_baseline = g.y + TABLE_HEADER_HEIGHT / 2.0 + TABLE_HEADER_FONT_SIZE * 0.35;
+    let _ = write!(
+        out,
+        r#"<text x="{}" y="{}" font-family="{}" font-size="{}" font-weight="600" fill="{}">{}</text>"#,
+        n(g.x + TABLE_PADDING),
+        n(header_baseline),
+        escape(&theme.font_family),
+        n(TABLE_HEADER_FONT_SIZE),
+        escape(color),
+        escape(&node.label),
+    );
+
+    for (index, column) in table.columns.iter().enumerate() {
+        let row = table_row_rect(index, g.width);
+        let baseline = g.y + row.center().y + TABLE_ROW_FONT_SIZE * 0.35;
+
+        // Nombre a la izquierda; las claves primarias en negrita para que se
+        // encuentren de un vistazo.
+        let weight = if column.primary_key {
+            r#" font-weight="600""#
+        } else {
+            ""
+        };
+        let _ = write!(
+            out,
+            r#"<text x="{}" y="{}" font-family="{}" font-size="{}" fill="{}"{weight}>{}</text>"#,
+            n(g.x + TABLE_PADDING),
+            n(baseline),
+            escape(&theme.font_family),
+            n(TABLE_ROW_FONT_SIZE),
+            escape(color),
+            escape(&column.name),
+        );
+
+        // Tipo y marcas a la derecha, en tono atenuado.
+        let mut right = column.data_type.clone();
+        let badges = column.badges();
+        if !badges.is_empty() {
+            if !right.is_empty() {
+                right.push(' ');
+            }
+            right.push_str(&badges.join(" "));
+        }
+
+        if !right.is_empty() {
+            let _ = write!(
+                out,
+                r#"<text x="{}" y="{}" font-family="{}" font-size="{}" fill="{}" text-anchor="end">{}</text>"#,
+                n(g.right() - TABLE_PADDING),
+                n(baseline),
+                escape(&theme.font_family),
+                n(TABLE_ROW_FONT_SIZE),
+                escape(&theme.edge_text),
+                escape(&right),
+            );
+        }
     }
 
     out

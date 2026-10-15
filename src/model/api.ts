@@ -5,7 +5,9 @@ import type { DiagramKind } from "./generated/DiagramKind";
 import type { Document } from "./generated/Document";
 import type { ExportFormat } from "./generated/ExportFormat";
 import type { RecentFile } from "./generated/RecentFile";
+import type { ImportResult } from "./generated/ImportResult";
 import type { RenderInput } from "./generated/RenderInput";
+import type { SourceLanguage } from "./generated/SourceLanguage";
 import type { Recovery } from "./generated/Recovery";
 import type { Report } from "./generated/Report";
 
@@ -14,10 +16,12 @@ export type {
   DiagramKind,
   Document,
   ExportFormat,
+  ImportResult,
   RecentFile,
   Recovery,
   RenderInput,
   Report,
+  SourceLanguage,
 };
 
 /**
@@ -61,6 +65,28 @@ export function documentSave(path: string, document: Document): Promise<void> {
 
 export function documentValidate(document: Document): Promise<Report> {
   return invoke<Report>("document_validate", { document });
+}
+
+/* --- Importacion y generacion de codigo --------------------------------- */
+
+/**
+ * Convierte codigo en un documento. No lanza ante codigo roto: devuelve los
+ * diagnosticos con su linea y columna para poder mostrarlos.
+ */
+export function importCode(
+  language: SourceLanguage,
+  source: string,
+  nowMs: number,
+): Promise<ImportResult> {
+  return invoke<ImportResult>("import_code", { language, source, nowMs });
+}
+
+/** Genera el codigo equivalente al documento. */
+export function emitCode(
+  language: SourceLanguage,
+  document: Document,
+): Promise<string> {
+  return invoke<string>("emit_code", { language, document });
 }
 
 /* --- Exportacion -------------------------------------------------------- */

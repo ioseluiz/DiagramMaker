@@ -27,10 +27,11 @@ import {
 } from "@/store/operations";
 import { EdgeMarkers } from "./EdgeMarkers";
 import { ShapeNode } from "./ShapeNode";
+import { TableNode } from "./TableNode";
 import { toAbsolute, toFlowEdges, toFlowNodes, type DiagramFlowNode } from "./adapter";
 import "./GraphCanvas.css";
 
-const NODE_TYPES = { shape: ShapeNode };
+const NODE_TYPES = { shape: ShapeNode, table: TableNode };
 
 const SNAP: [number, number] = [8, 8];
 

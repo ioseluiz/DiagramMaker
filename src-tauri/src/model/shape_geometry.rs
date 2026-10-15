@@ -54,6 +54,76 @@ const CYLINDER_LIP: f64 = 12.0;
 /// caja. Encogiendo este margen por lado, el contorno queda dentro.
 const INSET: f64 = 0.75;
 
+/// Alto de la cabecera de una tabla ER, donde va su nombre.
+pub const TABLE_HEADER_HEIGHT: f64 = 28.0;
+/// Alto de cada fila de columna.
+pub const TABLE_ROW_HEIGHT: f64 = 22.0;
+/// Margen horizontal del texto dentro de la tabla.
+pub const TABLE_PADDING: f64 = 10.0;
+/// Tamano del nombre de la tabla, en la cabecera.
+pub const TABLE_HEADER_FONT_SIZE: f64 = 13.0;
+/// Tamano del texto de cada columna.
+pub const TABLE_ROW_FONT_SIZE: f64 = 12.0;
+
+/// Alto que necesita una tabla con `rows` columnas.
+pub fn table_height(rows: usize) -> f64 {
+    TABLE_HEADER_HEIGHT + rows as f64 * TABLE_ROW_HEIGHT
+}
+
+/// Caja de la fila `index` dentro de una tabla de ancho `w`, en coordenadas
+/// locales al nodo.
+pub fn table_row_rect(index: usize, w: f64) -> super::geometry::Rect {
+    super::geometry::Rect::new(
+        0.0,
+        TABLE_HEADER_HEIGHT + index as f64 * TABLE_ROW_HEIGHT,
+        w,
+        TABLE_ROW_HEIGHT,
+    )
+}
+
+/// Contorno de una tabla ER: marco, separador de cabecera y una linea entre
+/// filas.
+///
+/// Va aparte de `primitives` porque depende del numero de columnas, que no es
+/// deducible del tamano de la caja.
+pub fn table_primitives(rows: usize, w: f64, h: f64) -> Vec<Primitive> {
+    let i = INSET;
+    let mut out = vec![Primitive::Rect {
+        x: r(i),
+        y: r(i),
+        width: r(w - i * 2.0),
+        height: r(h - i * 2.0),
+        radius: Some(6.0),
+    }];
+
+    // Separador de la cabecera. Solo si hay filas debajo: una tabla vacia es
+    // una caja con su nombre, sin raya suelta.
+    if rows > 0 {
+        out.push(Primitive::Line {
+            d: format!(
+                "M {} {} L {} {}",
+                r(i),
+                r(TABLE_HEADER_HEIGHT),
+                r(w - i),
+                r(TABLE_HEADER_HEIGHT)
+            ),
+        });
+    }
+
+    // Lineas entre filas; la ultima fila no lleva, el marco ya la cierra.
+    for index in 1..rows {
+        let y = TABLE_HEADER_HEIGHT + index as f64 * TABLE_ROW_HEIGHT;
+        if y >= h - i {
+            break;
+        }
+        out.push(Primitive::Line {
+            d: format!("M {} {} L {} {}", r(i), r(y), r(w - i), r(y)),
+        });
+    }
+
+    out
+}
+
 /// Redondea a 4 decimales. Sin esto, dos implementaciones del mismo calculo en
 /// lenguajes distintos divergen en el ultimo bit y el fichero dorado deja de
 /// coincidir por ruido, no por un cambio real.
@@ -67,6 +137,11 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
     let i = INSET;
 
     match shape {
+        // La tabla depende de sus columnas; `table_primitives` la dibuja. Aqui
+        // se devuelve el marco para que un nodo mal formado siga siendo
+        // visible en vez de desaparecer.
+        NodeShape::Table => table_primitives(0, w, h),
+
         NodeShape::Rectangle => vec![Primitive::Rect {
             x: r(i),
             y: r(i),
@@ -237,7 +312,8 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
     }
 }
 
-/// Todas las formas, para recorrerlas en pruebas y en la paleta.
+/// Formas de contorno fijo, las que dibuja `primitives`. La tabla queda
+/// fuera a proposito: su contorno depende de los datos.
 pub const ALL_SHAPES: [NodeShape; 8] = [
     NodeShape::Rectangle,
     NodeShape::RoundedRect,
@@ -329,6 +405,53 @@ mod tests {
 
         assert!(matches!(p[0], Primitive::Circle { .. }));
         assert!(matches!(p[1], Primitive::Line { .. }));
+    }
+
+    #[test]
+    fn una_tabla_de_tres_columnas_tiene_marco_cabecera_y_separadores() {
+        let p = table_primitives(3, 220.0, table_height(3));
+
+        // marco + separador de cabecera + 2 lineas entre 3 filas
+        assert_eq!(p.len(), 4);
+        assert!(matches!(p[0], Primitive::Rect { .. }));
+        assert!(p[1..].iter().all(|x| !x.is_filled()));
+    }
+
+    #[test]
+    fn una_tabla_sin_columnas_es_solo_el_marco() {
+        let p = table_primitives(0, 220.0, TABLE_HEADER_HEIGHT);
+
+        assert_eq!(p.len(), 1);
+        assert!(matches!(p[0], Primitive::Rect { .. }));
+    }
+
+    #[test]
+    fn una_tabla_de_una_columna_lleva_cabecera_pero_ningun_separador() {
+        assert_eq!(table_primitives(1, 220.0, table_height(1)).len(), 2);
+    }
+
+    #[test]
+    fn el_alto_crece_una_fila_por_columna() {
+        assert_eq!(table_height(0), TABLE_HEADER_HEIGHT);
+        assert_eq!(table_height(4) - table_height(3), TABLE_ROW_HEIGHT);
+    }
+
+    #[test]
+    fn las_filas_se_apilan_bajo_la_cabecera_sin_huecos() {
+        let a = table_row_rect(0, 220.0);
+        let b = table_row_rect(1, 220.0);
+
+        assert_eq!(a.y, TABLE_HEADER_HEIGHT);
+        assert_eq!(b.y, a.bottom());
+        assert_eq!(a.width, 220.0);
+    }
+
+    #[test]
+    fn las_filas_que_no_caben_no_dibujan_separador() {
+        // Caja mas baja de lo que piden las columnas: nada debe salirse.
+        let p = table_primitives(10, 220.0, TABLE_HEADER_HEIGHT + TABLE_ROW_HEIGHT * 2.0);
+
+        assert!(p.len() < 11);
     }
 
     #[test]

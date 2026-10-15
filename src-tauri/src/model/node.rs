@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::er::ErTable;
 use super::geometry::Rect;
 use super::style::NodeStyle;
 
@@ -18,6 +19,18 @@ pub enum NodeShape {
     Note,
     Package,
     Actor,
+    /// Tabla de un diagrama entidad-relacion: cabecera mas una fila por
+    /// columna. Su contorno depende de cuantas columnas tenga, no solo de la
+    /// caja, asi que se dibuja aparte del resto de formas.
+    Table,
+}
+
+impl NodeShape {
+    /// `true` si el contorno depende de los datos del nodo y no solo de su
+    /// tamano.
+    pub fn is_data_driven(self) -> bool {
+        matches!(self, NodeShape::Table)
+    }
 }
 
 /// Datos propios del tipo de diagrama.
@@ -31,6 +44,24 @@ pub enum NodeShape {
 pub enum NodeData {
     #[default]
     Plain,
+    /// Tabla de un diagrama entidad-relacion.
+    Er(ErTable),
+}
+
+impl NodeData {
+    pub fn as_er(&self) -> Option<&ErTable> {
+        match self {
+            NodeData::Er(table) => Some(table),
+            NodeData::Plain => None,
+        }
+    }
+
+    pub fn as_er_mut(&mut self) -> Option<&mut ErTable> {
+        match self {
+            NodeData::Er(table) => Some(table),
+            NodeData::Plain => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -88,6 +119,17 @@ impl Node {
     pub fn with_parent(mut self, parent: impl Into<String>) -> Self {
         self.parent = Some(parent.into());
         self
+    }
+
+    /// Construye una tabla ER ya con su forma puesta.
+    pub fn table(id: impl Into<String>, name: impl Into<String>, table: ErTable) -> Self {
+        let mut node = Node::new(id, name, NodeShape::Table);
+        node.data = NodeData::Er(table);
+        node
+    }
+
+    pub fn er(&self) -> Option<&ErTable> {
+        self.data.as_er()
     }
 }
 

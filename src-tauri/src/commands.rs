@@ -5,10 +5,12 @@ use ts_rs::TS;
 
 use tauri::Manager;
 
+use crate::emit;
 use crate::error::AppResult;
 use crate::io;
 use crate::io::workspace::{self, RecentFile, Recovery};
 use crate::model::{DiagramKind, Document, Report, SCHEMA_VERSION, validate};
+use crate::parse::{self, ImportResult, SourceLanguage};
 use crate::render::{self, RenderInput};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -58,6 +60,28 @@ pub fn document_save(path: PathBuf, document: Document) -> AppResult<()> {
 #[tauri::command]
 pub fn document_validate(document: Document) -> AppResult<Report> {
     Ok(validate(&document))
+}
+
+/* --- Importacion y generacion de codigo --------------------------------- */
+
+/// Convierte codigo en un documento.
+///
+/// El documento sale **sin geometria**: colocar los nodos es cosa del
+/// auto-layout del frontend, que es quien puede medir el texto. Los
+/// diagnosticos vienen con linea y columna para poder senalarlos en el editor.
+#[tauri::command]
+pub fn import_code(
+    language: SourceLanguage,
+    source: String,
+    now_ms: i64,
+) -> AppResult<ImportResult> {
+    Ok(parse::import(language, &source, now_ms))
+}
+
+/// Genera el codigo equivalente al documento.
+#[tauri::command]
+pub fn emit_code(language: SourceLanguage, document: Document) -> AppResult<String> {
+    Ok(emit::emit(language, &document))
 }
 
 /* --- Exportacion -------------------------------------------------------- */
@@ -158,6 +182,49 @@ pub fn autosave_clear(app: tauri::AppHandle) -> AppResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn import_code_devuelve_documento_y_diagnosticos() {
+        let result = import_code(
+            SourceLanguage::Dbml,
+            "Table users {
+  id integer [pk]
+}"
+            .into(),
+            0,
+        )
+        .unwrap();
+
+        assert!(result.ok());
+        assert_eq!(result.document.nodes.len(), 1);
+        assert_eq!(result.document.kind, DiagramKind::Er);
+    }
+
+    #[test]
+    fn import_code_no_falla_ante_codigo_roto_sino_que_lo_reporta() {
+        let result = import_code(SourceLanguage::Dbml, "esto no es dbml".into(), 0).unwrap();
+
+        assert!(!result.ok());
+        assert!(!result.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn emit_code_da_la_vuelta_a_import_code() {
+        let imported = import_code(
+            SourceLanguage::Dbml,
+            "Table users {
+  id integer [pk]
+}"
+            .into(),
+            0,
+        )
+        .unwrap();
+
+        let code = emit_code(SourceLanguage::Dbml, imported.document).unwrap();
+
+        assert!(code.contains("Table users"));
+        assert!(code.contains("[pk]"));
+    }
 
     #[test]
     fn app_info_reporta_la_version_del_esquema_y_la_extension() {
