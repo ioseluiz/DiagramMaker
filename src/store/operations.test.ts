@@ -2,9 +2,17 @@ import { produce } from "immer";
 import { describe, expect, it } from "vitest";
 
 import type { Document } from "@/model/generated/Document";
+import { TABLE_ROW_HEIGHT } from "@/model/tableMetrics";
 import {
+  addColumn,
   addNode,
+  addTable,
   connect,
+  moveColumn,
+  removeColumn,
+  setTableAlias,
+  setTableNote,
+  updateColumn,
   moveNode,
   newId,
   reconnect,
@@ -321,5 +329,239 @@ describe("aristas", () => {
     expect(doc.edges[0]!.source.label).toBe("1");
     expect(doc.edges[0]!.target.label).toBe("0..*");
     expect(doc.edges[0]!.kind).toBe("composition");
+  });
+});
+
+describe("tablas entidad-relacion", () => {
+  function erDoc(): Document {
+    return { ...emptyDoc(), kind: "er" };
+  }
+
+  function tableOf(doc: Document, id: string) {
+    const node = doc.nodes.find((n) => n.id === id)!;
+    if (node.data.type !== "er") throw new Error("no es una tabla");
+    return node.data;
+  }
+
+  it("una tabla nueva nace con una clave primaria `id`", () => {
+    let id = "";
+    const doc = run(erDoc(), (d) => {
+      id = addTable(d, { x: 10, y: 20 });
+    });
+
+    const table = tableOf(doc, id);
+    expect(table.columns).toHaveLength(1);
+    expect(table.columns[0]!.name).toBe("id");
+    expect(table.columns[0]!.primaryKey).toBe(true);
+    expect(table.columns[0]!.nullable).toBe(false);
+  });
+
+  it("la tabla nueva queda colocada y anclada", () => {
+    let id = "";
+    const doc = run(erDoc(), (d) => {
+      id = addTable(d, { x: 10, y: 20 });
+    });
+
+    const node = doc.nodes.find((n) => n.id === id)!;
+    expect(node.geometry).toMatchObject({ x: 10, y: 20 });
+    expect(node.pinned).toBe(true);
+    expect(node.shape).toBe("table");
+  });
+
+  it("anadir una columna sube el alto una fila", () => {
+    let id = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+    });
+    const before = base.nodes[0]!.geometry!.height;
+
+    const doc = run(base, (d) => {
+      addColumn(d, id);
+    });
+
+    expect(doc.nodes[0]!.geometry!.height).toBe(before + TABLE_ROW_HEIGHT);
+  });
+
+  it("las columnas nuevas no repiten nombre", () => {
+    let id = "";
+    const doc = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      addColumn(d, id);
+      addColumn(d, id);
+      addColumn(d, id);
+    });
+
+    const names = tableOf(doc, id).columns.map((c) => c.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("borrar una columna baja el alto", () => {
+    let id = "";
+    let columnId: string | null = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      columnId = addColumn(d, id);
+    });
+    const before = base.nodes[0]!.geometry!.height;
+
+    const doc = run(base, (d) => removeColumn(d, id, columnId!));
+
+    expect(doc.nodes[0]!.geometry!.height).toBe(before - TABLE_ROW_HEIGHT);
+    expect(tableOf(doc, id).columns).toHaveLength(1);
+  });
+
+  it("borrar una columna conserva la relacion y solo suelta el anclaje", () => {
+    let a = "";
+    let b = "";
+    let columnId: string | null = "";
+    let edgeId: string | null = "";
+
+    const base = run(erDoc(), (d) => {
+      a = addTable(d, { x: 0, y: 0 });
+      b = addTable(d, { x: 400, y: 0 });
+      columnId = addColumn(d, a);
+      edgeId = connect(d, a, b);
+      const edge = d.edges.find((e) => e.id === edgeId)!;
+      edge.source.port = columnId!;
+    });
+
+    const doc = run(base, (d) => removeColumn(d, a, columnId!));
+
+    expect(doc.edges).toHaveLength(1);
+    expect(doc.edges[0]!.source.port).toBeUndefined();
+    expect(doc.edges[0]!.source.node).toBe(a);
+  });
+
+  it("marcar una columna como clave primaria le quita la nulabilidad", () => {
+    let id = "";
+    let columnId: string | null = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      columnId = addColumn(d, id);
+    });
+
+    const doc = run(base, (d) =>
+      updateColumn(d, id, columnId!, { primaryKey: true, nullable: true }),
+    );
+
+    const column = tableOf(doc, id).columns[1]!;
+    expect(column.primaryKey).toBe(true);
+    expect(column.nullable).toBe(false);
+  });
+
+  it("cambiar el tipo y el nombre de una columna", () => {
+    let id = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+    });
+    const columnId = tableOf(base, id).columns[0]!.id;
+
+    const doc = run(base, (d) =>
+      updateColumn(d, id, columnId, { name: "clave", dataType: "bigint" }),
+    );
+
+    expect(tableOf(doc, id).columns[0]).toMatchObject({
+      name: "clave",
+      dataType: "bigint",
+    });
+  });
+
+  it("la tabla se ensancha si una columna no cabe, pero nunca encoge", () => {
+    let id = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+    });
+    const columnId = tableOf(base, id).columns[0]!.id;
+    const ancha = run(base, (d) => {
+      d.nodes[0]!.geometry!.width = 400;
+      updateColumn(d, id, columnId, { name: "x" });
+    });
+
+    expect(ancha.nodes[0]!.geometry!.width).toBe(400);
+  });
+
+  it("reordenar columnas con los dos sentidos", () => {
+    let id = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      addColumn(d, id, "segunda");
+      addColumn(d, id, "tercera");
+    });
+
+    const bajada = run(base, (d) =>
+      moveColumn(d, id, tableOf(base, id).columns[0]!.id, 1),
+    );
+    expect(tableOf(bajada, id).columns.map((c) => c.name)).toEqual([
+      "segunda",
+      "id",
+      "tercera",
+    ]);
+
+    const subida = run(base, (d) =>
+      moveColumn(d, id, tableOf(base, id).columns[2]!.id, -1),
+    );
+    expect(tableOf(subida, id).columns.map((c) => c.name)).toEqual([
+      "id",
+      "tercera",
+      "segunda",
+    ]);
+  });
+
+  it("no se puede sacar una columna de los extremos", () => {
+    let id = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      addColumn(d, id, "segunda");
+    });
+    const first = tableOf(base, id).columns[0]!.id;
+    const last = tableOf(base, id).columns[1]!.id;
+
+    expect(
+      tableOf(
+        run(base, (d) => moveColumn(d, id, first, -1)),
+        id,
+      ).columns[0]!.name,
+    ).toBe("id");
+    expect(
+      tableOf(
+        run(base, (d) => moveColumn(d, id, last, 1)),
+        id,
+      ).columns[1]!.name,
+    ).toBe("segunda");
+  });
+
+  it("alias y nota se vacian a undefined, no a cadena vacia", () => {
+    let id = "";
+    const base = run(erDoc(), (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      setTableAlias(d, id, "U");
+      setTableNote(d, id, "Clientes");
+    });
+
+    expect(tableOf(base, id).alias).toBe("U");
+
+    const vacio = run(base, (d) => {
+      setTableAlias(d, id, "   ");
+      setTableNote(d, id, "");
+    });
+
+    expect(tableOf(vacio, id).alias).toBeUndefined();
+    expect(tableOf(vacio, id).note).toBeUndefined();
+  });
+
+  it("las operaciones de columna ignoran los nodos que no son tablas", () => {
+    const base = run(emptyDoc(), (d) => {
+      addNode(d, { shape: "rectangle", x: 0, y: 0 });
+    });
+    const id = base.nodes[0]!.id;
+
+    const doc = run(base, (d) => {
+      addColumn(d, id);
+      removeColumn(d, id, "nada");
+      updateColumn(d, id, "nada", { name: "x" });
+      moveColumn(d, id, "nada", 1);
+    });
+
+    expect(doc.nodes[0]!.data.type).toBe("plain");
   });
 });

@@ -54,7 +54,9 @@ con importador de Mermaid (F4).
 - Exportación a SVG, PNG (1× a 4×) y PDF, con margen configurable y fondo
   opcionalmente transparente. También copia el SVG al portapapeles.
 - **Diagramas entidad-relación**: tablas con columnas, tipos, claves primarias
-  y ajenas, unicidad y nulabilidad, agrupadas en contenedores.
+  y ajenas, unicidad y nulabilidad, agrupadas en contenedores. Se crean desde
+  la paleta y se editan en el inspector: añadir, renombrar, reordenar y borrar
+  columnas, cambiar su tipo y sus restricciones.
 - **Importador de DBML** (sintaxis de dbdiagram.io): `Table` con sus ajustes,
   `Ref` sueltas y en línea, `Enum`, `TableGroup`, `Project` y notas. Lo que no
   entiende lo reporta con línea y columna en vez de adivinarlo, y sigue
@@ -71,6 +73,10 @@ con importador de Mermaid (F4).
 | `Ctrl+S` / `Ctrl+Shift+S` | Guardar / Guardar como |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Deshacer / Rehacer |
 | `Supr`                 | Borrar la selección |
+
+La paleta de formas depende del tipo de diagrama, que se elige en la barra de
+herramientas: en un entidad-relación ofrece tablas, grupos y notas; en el
+resto, el juego general de ocho formas.
 
 ## Requisitos
 

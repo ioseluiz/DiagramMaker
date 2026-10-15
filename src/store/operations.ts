@@ -1,10 +1,14 @@
+import type { DiagramKind } from "@/model/generated/DiagramKind";
 import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { Node } from "@/model/generated/Node";
 import type { NodeShape } from "@/model/generated/NodeShape";
+import type { ErColumn } from "@/model/generated/ErColumn";
+import type { ErTable } from "@/model/generated/ErTable";
 import type { Side } from "@/model/generated/Side";
 import { defaultSizeFor } from "@/model/shapes";
+import { tableSize } from "@/model/table";
 
 /**
  * Operaciones sobre el documento.
@@ -195,4 +199,188 @@ export function setEdgeKind(draft: Document, edgeId: string, kind: EdgeKind): vo
 
 export function setTitle(draft: Document, title: string): void {
   draft.meta.title = title;
+}
+
+/**
+ * Cambia el tipo de diagrama.
+ *
+ * No toca los nodos: cada uno se sigue dibujando segun su forma. Lo que
+ * cambia es que formas ofrece la paleta y a que lenguaje se exporta el
+ * codigo.
+ */
+export function setDiagramKind(draft: Document, kind: DiagramKind): void {
+  draft.kind = kind;
+}
+
+/* --- Tablas entidad-relacion -------------------------------------------- */
+
+/** Tabla de un nodo, si lo es. */
+function tableOf(draft: Document, nodeId: string): ErTable | null {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  return node?.data.type === "er" ? node.data : null;
+}
+
+/**
+ * Reajusta la caja tras cambiar las columnas.
+ *
+ * El alto es derivado: una fila por columna, siempre. El ancho solo crece —
+ * si el usuario ensancho la tabla a mano, encogersela porque borro una
+ * columna larga seria pelearse con el.
+ */
+function resyncTableGeometry(draft: Document, nodeId: string): void {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  if (!node || node.data.type !== "er") return;
+
+  const natural = tableSize(node);
+  node.geometry = {
+    x: node.geometry?.x ?? 0,
+    y: node.geometry?.y ?? 0,
+    width: Math.max(node.geometry?.width ?? 0, natural.width),
+    height: natural.height,
+  };
+}
+
+export interface AddTableOptions {
+  x: number;
+  y: number;
+  label?: string;
+}
+
+/**
+ * Crea una tabla con una clave primaria `id`, que es con lo que empieza
+ * practicamente cualquier tabla.
+ */
+export function addTable(draft: Document, options: AddTableOptions): string {
+  const id = newId("t");
+
+  const node: Node = {
+    id,
+    label: options.label ?? "tabla",
+    shape: "table",
+    pinned: true,
+    style: {},
+    data: {
+      type: "er",
+      columns: [
+        {
+          id: newId("c"),
+          name: "id",
+          dataType: "integer",
+          primaryKey: true,
+          foreignKey: false,
+          nullable: false,
+          unique: false,
+          increment: true,
+        },
+      ],
+    },
+  };
+
+  draft.nodes.push(node);
+  node.geometry = { x: options.x, y: options.y, ...tableSize(node) };
+
+  return id;
+}
+
+/** Nombre libre para una columna nueva: `columna`, `columna_2`, ... */
+function freeColumnName(table: ErTable): string {
+  const taken = new Set(table.columns.map((c) => c.name.toLowerCase()));
+  if (!taken.has("columna")) return "columna";
+
+  for (let i = 2; ; i++) {
+    const candidate = `columna_${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+export function addColumn(
+  draft: Document,
+  nodeId: string,
+  name?: string,
+): string | null {
+  const table = tableOf(draft, nodeId);
+  if (!table) return null;
+
+  const id = newId("c");
+  table.columns.push({
+    id,
+    name: name ?? freeColumnName(table),
+    dataType: "",
+    primaryKey: false,
+    foreignKey: false,
+    nullable: true,
+    unique: false,
+    increment: false,
+  });
+
+  resyncTableGeometry(draft, nodeId);
+  return id;
+}
+
+/**
+ * Borra una columna.
+ *
+ * Las relaciones que apuntaban a ella **no se borran**: pierden el anclaje a
+ * la columna concreta y quedan apuntando a la tabla entera. Borrar la
+ * relacion del usuario porque toco una columna seria pasarse.
+ */
+export function removeColumn(draft: Document, nodeId: string, columnId: string): void {
+  const table = tableOf(draft, nodeId);
+  if (!table) return;
+
+  table.columns = table.columns.filter((c) => c.id !== columnId);
+
+  for (const edge of draft.edges) {
+    if (edge.source.port === columnId) edge.source.port = undefined;
+    if (edge.target.port === columnId) edge.target.port = undefined;
+  }
+
+  resyncTableGeometry(draft, nodeId);
+}
+
+export function updateColumn(
+  draft: Document,
+  nodeId: string,
+  columnId: string,
+  changes: Partial<Omit<ErColumn, "id">>,
+): void {
+  const table = tableOf(draft, nodeId);
+  const column = table?.columns.find((c) => c.id === columnId);
+  if (!table || !column) return;
+
+  Object.assign(column, changes);
+
+  // Una clave primaria no admite nulos; dejar las dos marcas en contra seria
+  // un estado que ninguna base de datos acepta.
+  if (column.primaryKey) column.nullable = false;
+
+  resyncTableGeometry(draft, nodeId);
+}
+
+/** Mueve una columna una posicion arriba o abajo. */
+export function moveColumn(
+  draft: Document,
+  nodeId: string,
+  columnId: string,
+  direction: -1 | 1,
+): void {
+  const table = tableOf(draft, nodeId);
+  if (!table) return;
+
+  const from = table.columns.findIndex((c) => c.id === columnId);
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= table.columns.length) return;
+
+  const [column] = table.columns.splice(from, 1);
+  table.columns.splice(to, 0, column!);
+}
+
+export function setTableAlias(draft: Document, nodeId: string, alias: string): void {
+  const table = tableOf(draft, nodeId);
+  if (table) table.alias = alias.trim() || undefined;
+}
+
+export function setTableNote(draft: Document, nodeId: string, note: string): void {
+  const table = tableOf(draft, nodeId);
+  if (table) table.note = note.trim() || undefined;
 }

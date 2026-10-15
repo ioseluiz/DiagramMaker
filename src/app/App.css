@@ -103,11 +103,6 @@
   flex: 1;
 }
 
-.toolbar__kind {
-  color: var(--text-faint);
-  font-size: 12px;
-}
-
 .toolbar__field {
   display: flex;
   align-items: center;
@@ -130,7 +125,7 @@
 /* --- Inspector --------------------------------------------------------- */
 
 .inspector {
-  width: 260px;
+  width: 300px;
   padding: 12px;
   background: var(--surface-0);
   border-left: 1px solid var(--border);
@@ -595,4 +590,172 @@
   flex-shrink: 0;
   font-family: var(--font-mono);
   opacity: 0.75;
+}
+
+/* --- Editor de columnas de una tabla ------------------------------------ */
+
+.inspector__spacer {
+  flex: 1;
+}
+
+.columns__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 6px;
+}
+
+.columns__add {
+  height: 22px;
+  padding: 0 8px;
+  background: var(--surface-1);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.columns__add:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+.columns {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.columns__row {
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.columns__line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.columns__name,
+.columns__type {
+  min-width: 0;
+  padding: 3px 5px;
+  background: var(--surface-0);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 12px;
+}
+
+.columns__name {
+  flex: 1.2;
+}
+
+.columns__type {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.columns__delete,
+.columns__move {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.columns__delete {
+  font-size: 15px;
+}
+
+.columns__delete:hover {
+  background: var(--surface-2);
+  color: var(--danger);
+}
+
+.columns__move:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.columns__move:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/*
+ * Las marcas son interruptores y no casillas: ocupan la mitad y se leen igual
+ * que en el nodo, donde aparecen como `PK`, `U` o `NN`.
+ */
+.columns__flag {
+  height: 19px;
+  min-width: 26px;
+  padding: 0 5px;
+  background: var(--surface-0);
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.columns__flag:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.columns__flag[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.columns__flag:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* `FK` se deduce de las relaciones, no se pulsa. */
+.columns__derived {
+  height: 19px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.inspector textarea {
+  background: var(--surface-1);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
 }

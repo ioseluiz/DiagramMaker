@@ -1,7 +1,9 @@
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import { SHAPE_LABEL } from "@/model/shapes";
+import { erTableOf } from "@/model/table";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
+import { TableInspector } from "./TableInspector";
 import { setEdgeKind, setEndpointLabel, setLabel, setTitle } from "@/store/operations";
 
 const EDGE_KIND_LABEL: Record<EdgeKind, string> = {
@@ -33,9 +35,13 @@ export function Inspector() {
   const node = only ? doc.nodes.find((n) => n.id === only) : undefined;
   const edge = only ? doc.edges.find((e) => e.id === only) : undefined;
 
+  const table = node ? erTableOf(node) : null;
+
   return (
     <aside className="inspector">
-      {node && (
+      {node && table && <TableInspector node={node} table={table} />}
+
+      {node && !table && (
         <>
           <h2 className="inspector__title">Nodo</h2>
           <Field label="Etiqueta">

@@ -7,7 +7,7 @@ import {
   selectDocument,
   useDocumentStore,
 } from "@/store/documentStore";
-import { addNode } from "@/store/operations";
+import { addNode, addTable, setDiagramKind } from "@/store/operations";
 import { useTheme, type ThemePreference } from "@/theme/useTheme";
 import { useState } from "react";
 
@@ -32,7 +32,18 @@ const THEME_LABEL: Record<ThemePreference, string> = {
   dark: "Oscuro",
 };
 
-const PALETTE: NodeShape[] = [
+/**
+ * Formas que ofrece la paleta, segun el tipo de diagrama.
+ *
+ * En un entidad-relacion lo que se dibuja son tablas; ofrecer un rombo o un
+ * actor seria ruido. El resto de tipos comparten el juego general hasta que
+ * cada uno tenga el suyo.
+ */
+const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
+  er: ["table", "package", "note"],
+};
+
+const DEFAULT_PALETTE: NodeShape[] = [
   "rectangle",
   "roundedRect",
   "ellipse",
@@ -69,9 +80,16 @@ export function Toolbar() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
 
+  const palette = (doc && PALETTE_BY_KIND[doc.kind]) ?? DEFAULT_PALETTE;
+
   const addShape = (shape: NodeShape) => {
     const position = nextPosition(doc?.nodes.length ?? 0);
+
     edit("anadir", (draft) => {
+      if (shape === "table") {
+        addTable(draft, position);
+        return;
+      }
       addNode(draft, { shape, label: SHAPE_LABEL[shape], ...position });
     });
   };
@@ -131,7 +149,7 @@ export function Toolbar() {
       </div>
 
       <div className="toolbar__group toolbar__palette">
-        {PALETTE.map((shape) => (
+        {palette.map((shape) => (
           <button
             key={shape}
             type="button"
@@ -147,7 +165,24 @@ export function Toolbar() {
 
       <span className="toolbar__spacer" />
 
-      <span className="toolbar__kind">{doc ? DIAGRAM_LABEL[doc.kind] : ""}</span>
+      <label className="toolbar__field">
+        Diagrama
+        <select
+          value={doc?.kind ?? "architecture"}
+          disabled={!doc}
+          onChange={(e) =>
+            edit("tipo de diagrama", (d) =>
+              setDiagramKind(d, e.target.value as DiagramKind),
+            )
+          }
+        >
+          {(Object.keys(DIAGRAM_LABEL) as DiagramKind[]).map((kind) => (
+            <option key={kind} value={kind}>
+              {DIAGRAM_LABEL[kind]}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="toolbar__field">
         Tema
@@ -215,6 +250,12 @@ function ShapeIcon({ shape }: { shape: NodeShape }) {
         <>
           <path d="M3 8 L3 5 L10 5 L10 8" {...common} />
           <rect x="3" y="8" width="18" height="11" {...common} />
+        </>
+      )}
+      {shape === "table" && (
+        <>
+          <rect x="3" y="5" width="18" height="14" rx="2" {...common} />
+          <path d="M3 9.5 L21 9.5 M3 14.25 L21 14.25" {...common} />
         </>
       )}
       {shape === "actor" && (
