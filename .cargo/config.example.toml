@@ -1,0 +1,5 @@
+# Copia este archivo a `.cargo/config.toml` si el repositorio vive dentro de una
+# carpeta sincronizada en la nube (OneDrive, Dropbox, Drive). Dejar que
+# `target/` se sincronice degrada el build severamente y puede corromperlo.
+[build]
+target-dir = "C:/Users/<usuario>/AppData/Local/diagrammaker/cargo-target"

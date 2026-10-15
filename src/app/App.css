@@ -1,0 +1,99 @@
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+.app-bar,
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-bar {
+  height: 40px;
+}
+
+.status-bar {
+  height: 26px;
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.app-bar__title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.app-bar__spacer {
+  flex: 1;
+}
+
+.app-bar__field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.app-bar__field select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px 6px;
+  font: inherit;
+}
+
+.app-main {
+  overflow: auto;
+  background: var(--canvas-bg);
+  display: grid;
+  place-items: center;
+}
+
+.placeholder {
+  max-width: 54ch;
+  padding: 32px;
+  text-align: center;
+}
+
+.placeholder h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.placeholder p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  font-size: 12px;
+}
+
+.kv dt {
+  color: var(--text-faint);
+}
+
+.kv dd {
+  margin: 0;
+  font-family: var(--font-mono);
+}

@@ -1,0 +1,4 @@
+dist
+node_modules
+src/model/generated
+src-tauri/target

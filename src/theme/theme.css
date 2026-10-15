@@ -1,0 +1,149 @@
+/*
+ * Tokens de tema. Toda la paleta se define en `:root` (claro) y se redefine por
+ * completo en los bloques oscuros; ningun color vive solo dentro de un @media.
+ *
+ * El tema efectivo se decide en este orden:
+ *   1. `data-theme="light" | "dark"` en <html>  -> eleccion explicita del usuario
+ *   2. `prefers-color-scheme`                   -> seguir al sistema (por defecto)
+ */
+
+:root {
+  color-scheme: light;
+
+  --surface-0: #ffffff;
+  --surface-1: #f6f7f9;
+  --surface-2: #eceef2;
+  --surface-3: #dfe3e9;
+
+  --border: #d5dae1;
+  --border-strong: #b6bec9;
+
+  --text: #16191d;
+  --text-muted: #5b6471;
+  --text-faint: #8b95a3;
+
+  --accent: #2563eb;
+  --accent-text: #ffffff;
+  --accent-soft: #dbe6fe;
+
+  --danger: #c2341d;
+  --warning: #9a6300;
+  --success: #15803d;
+
+  --canvas-bg: #fbfbfc;
+  --canvas-grid: #e4e7ec;
+
+  --shadow-1: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow-2: 0 4px 12px rgb(16 24 40 / 0.1);
+
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Fuente del diagrama: debe coincidir con la registrada en fontdb (resvg).
+     Ver riesgo 1 del plan: la medicion del texto tiene que ser identica en
+     el webview y en el renderizador de Rust. */
+  --font-diagram: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --surface-0: #15181d;
+    --surface-1: #1b1f26;
+    --surface-2: #232830;
+    --surface-3: #2d333d;
+
+    --border: #343b45;
+    --border-strong: #4a525f;
+
+    --text: #e8eaee;
+    --text-muted: #a0a8b4;
+    --text-faint: #717a87;
+
+    --accent: #5b8cf5;
+    --accent-text: #0c0f14;
+    --accent-soft: #23314e;
+
+    --danger: #f08a77;
+    --warning: #e0b155;
+    --success: #6cc08a;
+
+    --canvas-bg: #121519;
+    --canvas-grid: #262c34;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-0: #15181d;
+  --surface-1: #1b1f26;
+  --surface-2: #232830;
+  --surface-3: #2d333d;
+
+  --border: #343b45;
+  --border-strong: #4a525f;
+
+  --text: #e8eaee;
+  --text-muted: #a0a8b4;
+  --text-faint: #717a87;
+
+  --accent: #5b8cf5;
+  --accent-text: #0c0f14;
+  --accent-soft: #23314e;
+
+  --danger: #f08a77;
+  --warning: #e0b155;
+  --success: #6cc08a;
+
+  --canvas-bg: #121519;
+  --canvas-grid: #262c34;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--surface-1);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* La app es un lienzo, no una pagina: nada de seleccion de texto accidental
+   ni de menu contextual del navegador. */
+body {
+  user-select: none;
+  overflow: hidden;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.selectable {
+  user-select: text;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

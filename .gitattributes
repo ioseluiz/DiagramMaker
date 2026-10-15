@@ -1,0 +1,6 @@
+# Normalizar a LF en el repositorio; evita churn entre Windows y el CI.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.icns binary

@@ -1,0 +1,34 @@
+[package]
+name = "diagrammaker"
+version = "0.1.0"
+description = "Editor de diagramas de ingenieria de software"
+authors = ["Jose Luis Munoz <joseluism1412@gmail.com>"]
+edition = "2024"
+
+[lib]
+# El sufijo `_lib` evita que el nombre de la libreria choque con el del binario
+# en Windows (rust-lang/cargo#8519).
+name = "diagrammaker_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
+
+[dev-dependencies]
+insta = { version = "1", features = ["json", "redactions"] }
+
+# Guia de optimizacion: https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
