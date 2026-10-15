@@ -9,10 +9,18 @@ use std::fmt::Write as _;
 use crate::model::{Document, LayoutDirection, NodeShape};
 use crate::parse::mermaid::{arrow_for, delimiters_for};
 
+pub mod sequence;
+
 /// Sangria de cada nivel de `subgraph`.
 const INDENT: &str = "  ";
 
 pub fn emit(doc: &Document) -> String {
+    // Una secuencia es otro dialecto entero: otra cabecera, otras flechas y
+    // un arbol en vez de una lista de aristas.
+    if doc.kind.is_lane_based() {
+        return sequence::emit(doc);
+    }
+
     let mut out = String::new();
     let _ = writeln!(out, "flowchart {}", direction_code(doc.direction));
 

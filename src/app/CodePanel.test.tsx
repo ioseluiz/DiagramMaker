@@ -122,9 +122,9 @@ describe("CodePanel", () => {
   });
 
   it("un tipo de diagrama sin generador lo dice en vez de quedarse vacio", async () => {
-    // Entidad-relacion genera DBML y arquitectura genera Mermaid o PlantUML;
-    // secuencia todavia no tiene generador.
-    await mount("sequence");
+    // El caso de prueba va cambiando segun llegan los generadores: hoy
+    // quedan sin cubrir los tipos de la fase F6.
+    await mount("class");
 
     expect(screen.getByText(/no hay generador de código/i)).toBeInTheDocument();
     expect(emitCode).not.toHaveBeenCalled();

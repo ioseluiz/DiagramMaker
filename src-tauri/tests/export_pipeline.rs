@@ -1028,3 +1028,116 @@ fn una_secuencia_vacia_no_revienta_la_exportacion() {
     assert!(svg.starts_with("<svg"));
     assert!(svg.ends_with("</svg>"));
 }
+
+/// Mismo diagrama que `sequence_sample`, escrito en Mermaid.
+const SECUENCIA_MERMAID: &str = r#"
+sequenceDiagram
+  title Compra de un pedido
+  actor Cliente
+  participant web as Portal web
+  participant api as API de pedidos
+  participant pago as Pasarela
+
+  Cliente->>+web: comprar
+  Note over web,api: todo sobre TLS
+  web->>+api: POST /pedidos
+  api->>api: validar carrito
+  alt pago autorizado
+    api->>+pago: cobrar
+    pago-->>-api: autorizado
+    api-->>-web: 201 Created
+  else rechazado
+    api-->>web: 402 Rechazado
+  end
+  web-->>-Cliente: confirmacion
+  destroy pago
+  api->>pago: cerrar sesion
+"#;
+
+#[test]
+fn una_secuencia_de_mermaid_llega_hasta_el_png() {
+    use diagrammaker_lib::model::{Measures, Size};
+
+    let imported = diagrammaker_lib::parse::mermaid::import(SECUENCIA_MERMAID, 0);
+    assert!(
+        imported.ok(),
+        "el Mermaid de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let doc = imported.document;
+    assert_eq!(doc.meta.title, "Compra de un pedido");
+
+    // Medir es cosa del navegador; aqui se estima igual que en el resto de
+    // esta prueba, que es lo que basta para comprobar que llega al pixel.
+    let mut measures = Measures::default();
+    let mut labels = HashMap::new();
+
+    for node in &doc.nodes {
+        let medida = label(&node.label, 13.0, placement_for(node.shape));
+        measures
+            .headers
+            .insert(node.id.clone(), Size::new(medida.width() + 28.0, 40.0));
+        labels.insert(node.id.clone(), medida);
+    }
+
+    let script = doc.script.clone().unwrap_or_default();
+    for step in script.walk() {
+        use diagrammaker_lib::model::Step;
+
+        let (id, text) = match step {
+            Step::Message(m) if !m.text.is_empty() => (m.id.clone(), m.text.clone()),
+            Step::Note(n) => (n.id.clone(), n.text.clone()),
+            Step::Block(b) => {
+                // El rotulo del marco no empuja la geometria, solo se dibuja.
+                let caption = match b.branches.first() {
+                    Some(branch) if !branch.label.is_empty() => {
+                        format!("{} [{}]", b.kind.tag(), branch.label)
+                    }
+                    _ => b.kind.tag().to_string(),
+                };
+                labels.insert(b.id.clone(), label(&caption, 11.0, LabelPlacement::Center));
+
+                for branch in b.branches.iter().skip(1) {
+                    labels.insert(
+                        branch.id.clone(),
+                        label(&format!("[{}]", branch.label), 11.0, LabelPlacement::Center),
+                    );
+                }
+                continue;
+            }
+            _ => continue,
+        };
+
+        let medida = label(&text, 11.0, LabelPlacement::Center);
+        measures
+            .texts
+            .insert(id.clone(), Size::new(medida.width(), medida.height()));
+        labels.insert(id, medida);
+    }
+
+    let out = svg::render(&RenderInput {
+        document: doc,
+        labels,
+        edges: HashMap::new(),
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures,
+    });
+
+    for text in [
+        "Cliente",
+        "Portal web",
+        "API de pedidos",
+        "comprar",
+        "validar carrito",
+        "alt [pago autorizado]",
+        "[rechazado]",
+        "todo sobre TLS",
+        "cerrar sesion",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "secuencia-mermaid");
+}
