@@ -16,8 +16,10 @@ pub fn validate(doc: &Document) -> Report {
 
     check_empty_ids(doc, &mut out);
     check_edge_endpoints(doc, &node_ids, &mut out);
+    check_edge_ports(doc, &mut out);
     check_parents(doc, &node_ids, &mut out);
     check_parent_cycles(doc, &mut out);
+    check_er_columns(doc, &mut out);
 
     Report::new(out)
 }
@@ -108,6 +110,61 @@ fn check_parents(doc: &Document, node_ids: &HashSet<&str>, out: &mut Vec<Diagnos
                 )
                 .at(&n.id),
             );
+        }
+    }
+}
+
+/// Las aristas que apuntan a una columna concreta tienen que apuntar a una
+/// que exista. Una referencia rota aqui produce codigo generado sin sentido.
+fn check_edge_ports(doc: &Document, out: &mut Vec<Diagnostic>) {
+    for edge in &doc.edges {
+        for (extremo, endpoint) in [("origen", &edge.source), ("destino", &edge.target)] {
+            let Some(port) = endpoint.port.as_deref() else {
+                continue;
+            };
+            let Some(node) = doc.node(&endpoint.node) else {
+                // `check_edge_endpoints` ya reporto que el nodo no existe.
+                continue;
+            };
+
+            let exists = node.er().is_some_and(|t| t.column(port).is_some());
+            if !exists {
+                out.push(
+                    Diagnostic::error(
+                        "unknownPort",
+                        format!(
+                            "La arista `{}` se ancla en su {extremo} a una columna que no existe.",
+                            edge.id
+                        ),
+                    )
+                    .at(&edge.id),
+                );
+            }
+        }
+    }
+}
+
+/// Avisa de lo que impediria exportar un entidad-relacion a DBML.
+///
+/// Son advertencias y no errores: el diagrama se dibuja igual, y obligar a
+/// rellenar un tipo para poder seguir dibujando seria estorbar.
+fn check_er_columns(doc: &Document, out: &mut Vec<Diagnostic>) {
+    for node in &doc.nodes {
+        let Some(table) = node.er() else { continue };
+
+        for column in &table.columns {
+            if column.data_type.trim().is_empty() {
+                out.push(
+                    Diagnostic::warning(
+                        "columnWithoutType",
+                        format!(
+                            "La columna `{}` de `{}` no tiene tipo; dbdiagram.io lo exige.",
+                            column.name, node.label
+                        ),
+                    )
+                    .at(&node.id),
+                );
+            }
         }
     }
 }
@@ -275,6 +332,64 @@ mod tests {
 
         let r = validate(&d);
         assert!(r.ok, "diagnosticos inesperados: {:?}", r.diagnostics);
+    }
+
+    #[test]
+    fn detecta_una_arista_anclada_a_una_columna_inexistente() {
+        use crate::model::{ErColumn, ErTable};
+
+        let mut d = doc();
+        d.nodes.push(Node::table(
+            "t",
+            "users",
+            ErTable {
+                columns: vec![ErColumn::new("t.id", "id").with_type("integer")],
+                ..Default::default()
+            },
+        ));
+        let mut edge = Edge::new("e1", "t", "t", EdgeKind::Association);
+        edge.source.port = Some("t.fantasma".into());
+        d.edges.push(edge);
+
+        assert_eq!(codes(&validate(&d)), ["unknownPort"]);
+    }
+
+    #[test]
+    fn una_columna_sin_tipo_es_una_advertencia_no_un_error() {
+        use crate::model::{ErColumn, ErTable};
+
+        let mut d = doc();
+        d.nodes.push(Node::table(
+            "t",
+            "users",
+            ErTable {
+                columns: vec![ErColumn::new("t.a", "sin_tipo")],
+                ..Default::default()
+            },
+        ));
+
+        let report = validate(&d);
+
+        // Dibujar sigue siendo posible; solo la exportacion se resentiria.
+        assert!(report.ok);
+        assert_eq!(codes(&report), ["columnWithoutType"]);
+    }
+
+    #[test]
+    fn una_tabla_con_todas_sus_columnas_tipadas_no_avisa() {
+        use crate::model::{ErColumn, ErTable};
+
+        let mut d = doc();
+        d.nodes.push(Node::table(
+            "t",
+            "users",
+            ErTable {
+                columns: vec![ErColumn::new("t.a", "id").with_type("integer")],
+                ..Default::default()
+            },
+        ));
+
+        assert!(validate(&d).diagnostics.is_empty());
     }
 
     #[test]

@@ -1066,3 +1066,20 @@ describe("setNodeParent", () => {
     expect(doc.nodes.find((n) => n.id === ids.suelto)!.parent).toBeUndefined();
   });
 });
+
+describe("tipo por defecto de una columna nueva", () => {
+  it("una columna nueva trae tipo", () => {
+    // Sin tipo, el DBML generado es `columna` a secas y dbdiagram.io lo
+    // rechaza: alli el tipo es obligatorio.
+    let id = "";
+    const doc = run({ ...emptyDoc(), kind: "er" }, (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      addColumn(d, id);
+    });
+
+    const node = doc.nodes.find((n) => n.id === id)!;
+    if (node.data.type !== "er") throw new Error("no es una tabla");
+
+    expect(node.data.columns[1]!.dataType).not.toBe("");
+  });
+});

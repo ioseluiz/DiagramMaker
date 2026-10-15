@@ -27,7 +27,11 @@ export function StatusBar() {
     return () => clearTimeout(timer);
   }, [doc, validate]);
 
-  const errors = report?.diagnostics.filter((d) => d.severity === "error") ?? [];
+  const diagnostics = report?.diagnostics ?? [];
+  const errors = diagnostics.filter((d) => d.severity === "error");
+  // Las advertencias cuentan aparte: no impiden dibujar, pero avisan de algo
+  // que se notaria al exportar, como una columna sin tipo.
+  const warnings = diagnostics.filter((d) => d.severity === "warning");
 
   return (
     <footer className="status-bar">
@@ -49,9 +53,20 @@ export function StatusBar() {
       {errors.length > 0 && (
         <span
           className="status-bar__problem"
+          data-severity="error"
           title={errors.map((d) => d.message).join("\n")}
         >
           {errors.length} {errors.length === 1 ? "problema" : "problemas"}
+        </span>
+      )}
+
+      {warnings.length > 0 && (
+        <span
+          className="status-bar__problem"
+          data-severity="warning"
+          title={warnings.map((d) => d.message).join("\n")}
+        >
+          {warnings.length} {warnings.length === 1 ? "aviso" : "avisos"}
         </span>
       )}
 

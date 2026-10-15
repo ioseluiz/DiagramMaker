@@ -362,6 +362,15 @@ export function addTable(draft: Document, options: AddTableOptions): string {
   return id;
 }
 
+/**
+ * Tipo de una columna recien creada.
+ *
+ * No se deja vacio porque el DBML que se genera entonces es `columna` a
+ * secas, y en dbdiagram.io el tipo es obligatorio: el codigo exportado no se
+ * podria pegar alli. `varchar` es el tipo mas comun y se cambia en un campo.
+ */
+const DEFAULT_COLUMN_TYPE = "varchar";
+
 /** Nombre libre para una columna nueva: `columna`, `columna_2`, ... */
 function freeColumnName(table: ErTable): string {
   const taken = new Set(table.columns.map((c) => c.name.toLowerCase()));
@@ -385,7 +394,7 @@ export function addColumn(
   table.columns.push({
     id,
     name: name ?? freeColumnName(table),
-    dataType: "",
+    dataType: DEFAULT_COLUMN_TYPE,
     primaryKey: false,
     foreignKey: false,
     nullable: true,

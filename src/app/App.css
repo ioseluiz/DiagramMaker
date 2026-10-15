@@ -199,8 +199,15 @@
 }
 
 .status-bar__problem {
-  color: var(--warning);
   cursor: help;
+}
+
+.status-bar__problem[data-severity="error"] {
+  color: var(--danger);
+}
+
+.status-bar__problem[data-severity="warning"] {
+  color: var(--warning);
 }
 
 .status-bar__error {

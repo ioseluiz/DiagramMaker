@@ -411,3 +411,73 @@ TableGroup ventas {
         assert_equivalent(&a, &b);
     }
 }
+
+#[cfg(test)]
+mod tests_manuales {
+    use super::*;
+    use crate::model::{DiagramKind, Document, ErColumn, ErTable, Node};
+    use crate::parse::dbml;
+
+    /// Reproduce lo que crea el boton de tabla del lienzo: una tabla nueva con
+    /// una clave primaria `id` autoincremental.
+    fn tabla_nueva(id: &str, nombre: &str) -> Node {
+        let mut column = ErColumn::new(format!("{id}.id"), "id")
+            .with_type("integer")
+            .as_primary_key();
+        column.increment = true;
+
+        Node::table(
+            id,
+            nombre,
+            ErTable {
+                columns: vec![column],
+                ..Default::default()
+            },
+        )
+    }
+
+    #[test]
+    fn una_tabla_creada_a_mano_sale_en_el_codigo() {
+        let mut doc = Document::new("d", DiagramKind::Er, 0);
+        doc.nodes.push(tabla_nueva("t_users", "users"));
+
+        assert_eq!(
+            emit(&doc),
+            "Table users {\n  id integer [pk, increment]\n}\n"
+        );
+    }
+
+    #[test]
+    fn el_codigo_de_una_tabla_hecha_a_mano_vuelve_a_entrar() {
+        let mut doc = Document::new("d", DiagramKind::Er, 0);
+        doc.nodes.push(tabla_nueva("t_users", "users"));
+        doc.nodes.push(tabla_nueva("t_posts", "posts"));
+
+        let result = dbml::import(&emit(&doc), 0);
+
+        assert!(result.ok(), "diagnosticos: {:#?}", result.diagnostics);
+        assert_eq!(result.document.nodes.len(), 2);
+    }
+
+    #[test]
+    fn una_columna_sin_tipo_produce_codigo_que_dbdiagram_rechazaria() {
+        // El lienzo ya no crea columnas sin tipo —`addColumn` pone `varchar`
+        // justo por esto—, pero una se puede quedar sin el si el usuario
+        // vacia el campo. `validate` lo avisa; aqui se fija que el codigo
+        // generado en ese caso es el que es.
+        let mut doc = Document::new("d", DiagramKind::Er, 0);
+        let mut node = tabla_nueva("t_users", "users");
+        if let Some(table) = node.data.as_er_mut() {
+            table
+                .columns
+                .push(ErColumn::new("t_users.nueva", "columna"));
+        }
+        doc.nodes.push(node);
+
+        let code = emit(&doc);
+
+        assert!(code.contains("\n  columna\n"), "{code}");
+        // Y aun asi vuelve a entrar por nuestro importador.
+        assert!(dbml::import(&code, 0).ok());
+    }
+}
