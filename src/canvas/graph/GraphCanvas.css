@@ -38,10 +38,11 @@
   --xy-background-pattern-color: var(--canvas-grid);
 }
 
-.graph-canvas .react-flow__edge.selected .react-flow__edge-path,
-.graph-canvas .react-flow__edge:focus .react-flow__edge-path {
-  stroke: var(--accent);
-}
+/*
+ * La seleccion de una arista la resuelve `RelationEdge` en el propio
+ * componente: el color de trazo llega como estilo en linea desde el
+ * adaptador, y una regla CSS aqui no tendria nada que hacer contra el.
+ */
 
 .graph-canvas .react-flow__edge-text {
   font-family: var(--font-diagram);

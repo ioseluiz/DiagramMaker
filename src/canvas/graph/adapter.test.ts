@@ -266,3 +266,29 @@ describe("isDashed", () => {
     );
   });
 });
+
+describe("seleccion de relaciones", () => {
+  const two = [node("a", 0, 0), node("b", 300, 0)];
+  const plain = (): Edge => ({
+    id: "e1",
+    source: { node: "a" },
+    target: { node: "b" },
+    kind: "association",
+    routing: "orthogonal",
+  });
+
+  it("marca la arista seleccionada para que el componente lo sepa", () => {
+    const d = doc(two, [plain()]);
+
+    expect(toFlowEdges(d, new Set(["e1"]))[0]!.selected).toBe(true);
+    expect(toFlowEdges(d, NONE)[0]!.selected).toBe(false);
+  });
+
+  it("el trazo llega como estilo en linea, asi que el color de seleccion no puede ser CSS", () => {
+    // Fija la razon por la que `RelationEdge` resuelve la seleccion en el
+    // componente: un estilo en linea gana a cualquier regla.
+    const [flow] = toFlowEdges(doc(two, [plain()]), new Set(["e1"]));
+
+    expect(flow!.style).toHaveProperty("stroke");
+  });
+});

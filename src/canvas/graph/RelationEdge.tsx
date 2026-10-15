@@ -89,6 +89,18 @@ function RelationEdgeImpl({
 
   const [path, centerX, centerY] = pathFor(routing, geometry);
 
+  // El color de trazo llega como estilo en linea desde el adaptador, y eso
+  // gana a cualquier regla CSS: la seleccion tiene que resolverse aqui o no
+  // se ve. Sin esto se puede seleccionar una relacion y borrarla, pero nada
+  // indica cual esta seleccionada.
+  const strokeStyle = selected
+    ? {
+        ...style,
+        stroke: "var(--accent)",
+        strokeWidth: Math.max(Number(style?.strokeWidth ?? 1.5), 2),
+      }
+    : style;
+
   return (
     <>
       <BaseEdge
@@ -96,7 +108,7 @@ function RelationEdgeImpl({
         path={path}
         markerStart={markerStart}
         markerEnd={markerEnd}
-        style={style}
+        style={strokeStyle}
       />
 
       <EdgeLabelRenderer>
@@ -118,6 +130,7 @@ function RelationEdgeImpl({
             x={sourceX}
             y={sourceY}
             position={sourcePosition}
+            selected={selected}
           />
         )}
 
@@ -127,6 +140,7 @@ function RelationEdgeImpl({
             x={targetX}
             y={targetY}
             position={targetPosition}
+            selected={selected}
           />
         )}
       </EdgeLabelRenderer>
@@ -139,10 +153,11 @@ interface CardinalityProps {
   x: number;
   y: number;
   position: Position;
+  selected?: boolean;
 }
 
 /** Cardinalidad de un extremo, apartada hacia fuera del nodo. */
-function Cardinality({ text, x, y, position }: CardinalityProps) {
+function Cardinality({ text, x, y, position, selected }: CardinalityProps) {
   // Se separa en la direccion en la que sale la linea, para no caer encima
   // del borde de la caja ni de la propia arista.
   const dx =
@@ -153,6 +168,7 @@ function Cardinality({ text, x, y, position }: CardinalityProps) {
   return (
     <div
       className="relation-edge__cardinality"
+      data-selected={selected || undefined}
       style={{ transform: `translate(-50%, -50%) translate(${x + dx}px, ${y + dy}px)` }}
     >
       {text}

@@ -34,3 +34,7 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+.relation-edge__cardinality[data-selected] {
+  color: var(--accent);
+}
