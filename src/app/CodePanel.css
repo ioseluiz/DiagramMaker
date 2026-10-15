@@ -1,7 +1,9 @@
 .code-panel {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  width: 360px;
+  /* Igual que el inspector: ancho preferido, con tope relativo a la ventana. */
+  width: min(360px, 34vw);
+  min-width: 240px;
   background: var(--surface-0);
   border-right: 1px solid var(--border);
   overflow: hidden;

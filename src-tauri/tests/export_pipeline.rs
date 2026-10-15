@@ -187,6 +187,7 @@ fn sample() -> RenderInput {
             EdgePath {
                 d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
                 label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
             },
         );
     }
@@ -423,6 +424,7 @@ fn er_sample() -> RenderInput {
             EdgePath {
                 d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
                 label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
             },
         );
         labels.insert(edge.id.clone(), label("", 11.0, LabelPlacement::Center));
@@ -562,4 +564,77 @@ fn un_er_con_grupo_color_y_texto_se_exporta_entero() {
         painted_pixels(&raster::to_png(&out, 1.0).unwrap()) > 5_000,
         "el PNG salio practicamente vacio"
     );
+}
+
+/* --- Saltos en los cruces ------------------------------------------------ */
+
+/// Dos relaciones que se cruzan: la de encima debe dibujar su puente.
+#[test]
+fn un_cruce_se_marca_con_un_puente() {
+    use diagrammaker_lib::model::{Edge, EdgeKind, Node, NodeShape};
+    use diagrammaker_lib::render::Hop;
+
+    let mut doc = diagrammaker_lib::model::Document::new("cruce", DiagramKind::Architecture, 0);
+
+    // Cuatro cajas en aspa, de modo que las dos relaciones se crucen en medio.
+    for (id, x, y) in [
+        ("a", 40.0, 40.0),
+        ("b", 460.0, 320.0),
+        ("c", 460.0, 40.0),
+        ("d", 40.0, 320.0),
+    ] {
+        doc.nodes
+            .push(Node::new(id, id, NodeShape::Rectangle).at(x, y, 160.0, 60.0));
+    }
+
+    doc.edges
+        .push(Edge::new("e1", "a", "b", EdgeKind::Association));
+    doc.edges
+        .push(Edge::new("e2", "c", "d", EdgeKind::Association));
+
+    let mut edges = HashMap::new();
+    edges.insert(
+        "e1".to_string(),
+        EdgePath {
+            d: "M 200 70 L 460 350".into(),
+            label_at: None,
+            hops: Vec::new(),
+        },
+    );
+    // La segunda pasa por encima y salta en el cruce.
+    edges.insert(
+        "e2".to_string(),
+        EdgePath {
+            d: "M 460 70 L 200 350".into(),
+            label_at: None,
+            hops: vec![Hop {
+                x: 330.0,
+                y: 210.0,
+                angle: std::f64::consts::PI - 0.82,
+            }],
+        },
+    );
+
+    let input = RenderInput {
+        document: doc,
+        labels: HashMap::new(),
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+    };
+
+    let out = svg::render(&input);
+    assert!(
+        out.contains(r#"stroke-linecap="butt""#),
+        "falta el trazo que borra"
+    );
+
+    let png = raster::to_png(&out, 2.0).unwrap();
+    assert!(painted_pixels(&png) > 2_000);
+
+    if let Ok(dir) = std::env::var("EXPORT_SAMPLE_DIR") {
+        let dir = std::path::Path::new(&dir);
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("cruce.png"), &png).unwrap();
+    }
 }

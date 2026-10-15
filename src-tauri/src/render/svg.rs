@@ -13,7 +13,7 @@ use crate::model::shape_geometry::{
 };
 use crate::model::{Document, Edge, ErTable, Node, Rect};
 
-use super::{EdgePath, LabelLayout, LabelPlacement, RenderInput, RenderTheme};
+use super::{EdgePath, HOP_RADIUS, Hop, LabelLayout, LabelPlacement, RenderInput, RenderTheme};
 
 /// Alto de la solapa del paquete; debe coincidir con `shape_geometry`.
 const TAB_HEIGHT: f64 = 22.0;
@@ -241,7 +241,7 @@ fn markers_for(kind: EdgeKind) -> (Option<&'static str>, Option<&'static str>) {
     }
 }
 
-/// Solo la linea y sus marcadores.
+/// La linea, sus marcadores y los puentes de los cruces.
 fn render_edge_path(edge: &Edge, path: &EdgePath, theme: &RenderTheme) -> String {
     let stroke = edge.style.stroke.as_deref().unwrap_or(&theme.edge_stroke);
     let width = edge.style.stroke_width.unwrap_or(1.5);
@@ -270,7 +270,41 @@ fn render_edge_path(edge: &Edge, path: &EdgePath, theme: &RenderTheme) -> String
         let _ = write!(out, r##" marker-end="url(#{m})""##);
     }
     out.push_str("/>");
+
+    for hop in &path.hops {
+        out.push_str(&render_hop(hop, stroke, width, theme));
+    }
+
     out
+}
+
+/// Puente sobre un cruce: borra el tramo de linea y dibuja el arco encima.
+///
+/// Es la misma construccion que usa el lienzo. Sin el trazo que borra, la
+/// linea recta seguiria viendose por debajo del arco y el cruce no se
+/// entenderia.
+fn render_hop(hop: &Hop, stroke: &str, width: f64, theme: &RenderTheme) -> String {
+    let dx = hop.angle.cos() * HOP_RADIUS;
+    let dy = hop.angle.sin() * HOP_RADIUS;
+
+    let (x0, y0) = (hop.x - dx, hop.y - dy);
+    let (x1, y1) = (hop.x + dx, hop.y + dy);
+
+    format!(
+        concat!(
+            r#"<path d="M {x0} {y0} L {x1} {y1}" fill="none" stroke="{bg}" stroke-width="{mask}" stroke-linecap="butt"/>"#,
+            r#"<path d="M {x0} {y0} A {r} {r} 0 0 1 {x1} {y1}" fill="none" stroke="{stroke}" stroke-width="{w}" stroke-linecap="round"/>"#,
+        ),
+        x0 = n(x0),
+        y0 = n(y0),
+        x1 = n(x1),
+        y1 = n(y1),
+        r = n(HOP_RADIUS),
+        bg = escape(&theme.background),
+        mask = n(width + 1.5),
+        stroke = escape(stroke),
+        w = n(width),
+    )
 }
 
 /// Etiqueta central y cardinalidades. Se dibujan despues de los nodos.
@@ -682,6 +716,32 @@ mod tests {
         input.document.edges[0].kind = EdgeKind::Inheritance;
 
         assert!(render(&input).contains(r##"marker-end="url(#dm-triangle-hollow)""##));
+    }
+
+    #[test]
+    fn un_cruce_dibuja_su_puente() {
+        let mut input = fixtures::input();
+        input.edges.get_mut("e1").unwrap().hops = vec![Hop {
+            x: 230.0,
+            y: 37.0,
+            angle: 0.0,
+        }];
+
+        let svg = render(&input);
+
+        // El arco, y el trazo que borra la linea por debajo.
+        assert!(
+            svg.contains(&format!("A {} {} 0 0 1", n(HOP_RADIUS), n(HOP_RADIUS))),
+            "{svg}"
+        );
+        assert!(svg.contains(r#"stroke-linecap="butt""#), "{svg}");
+    }
+
+    #[test]
+    fn sin_cruces_no_hay_puentes() {
+        let svg = render(&fixtures::input());
+
+        assert!(!svg.contains(r#"stroke-linecap="butt""#));
     }
 
     #[test]

@@ -10,6 +10,7 @@ import {
 import { memo } from "react";
 
 import type { Routing } from "@/model/generated/Routing";
+import { HOP_RADIUS, hopPath, type Hop } from "./crossings";
 import "./RelationEdge.css";
 
 /**
@@ -34,6 +35,8 @@ export interface RelationEdgeData extends Record<string, unknown> {
   sourceLabel?: string;
   targetLabel?: string;
   centerLabel?: string;
+  /** Cruces por los que esta arista pasa por encima. */
+  hops?: readonly Hop[];
 }
 
 /** Trazado segun el ruteo que pida la arista. */
@@ -85,6 +88,7 @@ function RelationEdgeImpl({
     sourceLabel,
     targetLabel,
     centerLabel,
+    hops,
   } = (data ?? {}) as RelationEdgeData;
 
   const [path, centerX, centerY] = pathFor(routing, geometry);
@@ -110,6 +114,15 @@ function RelationEdgeImpl({
         markerEnd={markerEnd}
         style={strokeStyle}
       />
+
+      {hops?.map((hop, index) => (
+        <LineJump
+          key={index}
+          hop={hop}
+          stroke={String(strokeStyle?.stroke ?? "")}
+          width={Number(strokeStyle?.strokeWidth ?? 1.5)}
+        />
+      ))}
 
       <EdgeLabelRenderer>
         {centerLabel && (
@@ -144,6 +157,39 @@ function RelationEdgeImpl({
           />
         )}
       </EdgeLabelRenderer>
+    </>
+  );
+}
+
+/**
+ * Puente sobre un cruce.
+ *
+ * Se dibuja encima del trazado en vez de reescribirlo: rehacer el `d` de la
+ * arista obligaria a partir curvas y arcos, y esto se ve igual con geometria
+ * elemental.
+ *
+ * Son dos piezas. Primero un trazo del color del fondo que borra el tramo de
+ * linea que el arco va a sustituir —sin el, la linea recta seguiria
+ * viendose por debajo del puente y no se entenderia nada—. Despues el arco.
+ */
+function LineJump({ hop, stroke, width }: { hop: Hop; stroke: string; width: number }) {
+  const dx = Math.cos(hop.angle) * HOP_RADIUS;
+  const dy = Math.sin(hop.angle) * HOP_RADIUS;
+
+  return (
+    <>
+      <path
+        d={`M ${hop.x - dx} ${hop.y - dy} L ${hop.x + dx} ${hop.y + dy}`}
+        className="relation-edge__jump-mask"
+        strokeWidth={width + 1.5}
+      />
+      <path
+        d={hopPath(hop)}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={width}
+        strokeLinecap="round"
+      />
     </>
   );
 }

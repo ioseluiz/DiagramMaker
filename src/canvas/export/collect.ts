@@ -6,6 +6,8 @@ import type { RenderInput } from "@/model/generated/RenderInput";
 import type { RenderTheme } from "@/model/generated/RenderTheme";
 import { defaultSizeFor } from "@/model/shapes";
 import { edgeStyle, nodeStyle } from "@/model/style";
+import { hopsFor } from "@/canvas/graph/adapter";
+import type { Hop } from "@/canvas/graph/crossings";
 import {
   LINE_HEIGHT,
   diagramFontFamily,
@@ -27,6 +29,8 @@ import {
  *    algoritmo de ruteo; reimplementarlo en Rust daria curvas parecidas pero
  *    no iguales. Se lee del SVG que el lienzo ya dibujo, que es por definicion
  *    lo que el usuario esta viendo.
+ * 3. **Los puentes de los cruces.** Dependen de por donde pasan todas las
+ *    demas aristas, cosa que solo sabe el adaptador del lienzo.
  *
  * Los colores tambien se resuelven aqui: el lienzo pinta con variables CSS y
  * un SVG exportado que dependiera de ellas saldria en blanco fuera de la app.
@@ -126,6 +130,7 @@ function edgeLabels(doc: Document): Record<string, LabelLayout> {
 function edgePaths(
   doc: Document,
   root: ParentNode = document,
+  hops: ReadonlyMap<string, readonly Hop[]> = new Map(),
 ): Record<string, EdgePath> {
   const paths: Record<string, EdgePath> = {};
 
@@ -136,7 +141,11 @@ function edgePaths(
     const d = element?.getAttribute("d");
     if (!element || !d) continue;
 
-    paths[edge.id] = { d, labelAt: midpointOf(element) ?? undefined };
+    paths[edge.id] = {
+      d,
+      labelAt: midpointOf(element) ?? undefined,
+      hops: [...(hops.get(edge.id) ?? [])],
+    };
   }
 
   return paths;
@@ -170,7 +179,7 @@ export function collectRenderInput(
   return {
     document,
     labels: { ...nodeLabels(document), ...edgeLabels(document) },
-    edges: edgePaths(document, root),
+    edges: edgePaths(document, root, hopsFor(document)),
     theme: resolveTheme(),
     options,
   };

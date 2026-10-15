@@ -4,15 +4,21 @@
   height: 100%;
 }
 
+/*
+ * El lienzo manda: los paneles laterales ceden antes que el. `minmax(0, 1fr)`
+ * deja que la columna del lienzo encoja por debajo de su contenido en lugar
+ * de empujar a los paneles fuera de la ventana.
+ */
 .app-body {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* Con el panel de codigo abierto, el lienzo queda en medio. */
 .app-body[data-code] {
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .app-canvas {
@@ -34,14 +40,31 @@
 
 /* --- Barra de herramientas -------------------------------------------- */
 
+/*
+ * La barra no deja que sus botones se encojan —un icono aplastado es
+ * ilegible— y en su lugar pasa a dos filas cuando no caben. Se considero
+ * desplazarla en horizontal, pero eso esconde los controles de la derecha y
+ * obliga a buscarlos; una barra mas alta no esconde nada.
+ */
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  height: 44px;
-  padding: 0 12px;
+  gap: 6px 16px;
+  min-height: 44px;
+  padding: 6px 12px;
   background: var(--surface-0);
   border-bottom: 1px solid var(--border);
+}
+
+.toolbar > * {
+  flex-shrink: 0;
+}
+
+/* El separador elastico si puede desaparecer: es solo aire. */
+.toolbar .toolbar__spacer {
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .toolbar__group {
@@ -56,6 +79,11 @@
   height: 20px;
   margin-right: 12px;
   background: var(--border);
+}
+
+/* Los grupos tampoco se parten: si uno no cabe, baja entero. */
+.toolbar__group {
+  flex-wrap: nowrap;
 }
 
 .toolbar button {
@@ -135,8 +163,14 @@
 
 /* --- Inspector --------------------------------------------------------- */
 
+/*
+ * Ancho preferido, pero nunca mas de un tercio de la ventana: con el panel de
+ * codigo abierto en una pantalla estrecha, dos paneles fijos no dejarian
+ * lienzo donde dibujar.
+ */
 .inspector {
-  width: 340px;
+  width: min(340px, 32vw);
+  min-width: 240px;
   padding: 12px;
   background: var(--surface-0);
   border-left: 1px solid var(--border);
@@ -864,4 +898,28 @@
 .status-bar__repo:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+/* --- Barra de estado en ventanas estrechas ------------------------------ */
+
+/*
+ * El pie tampoco se corta: lo que sobra se recorta por el nombre del archivo,
+ * que es lo unico cuya longitud no se controla.
+ */
+.status-bar {
+  overflow: hidden;
+}
+
+.status-bar__file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-bar__counts,
+.status-bar__problem,
+.status-bar__version,
+.status-bar__repo {
+  flex-shrink: 0;
 }

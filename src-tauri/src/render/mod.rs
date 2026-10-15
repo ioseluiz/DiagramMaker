@@ -77,6 +77,22 @@ impl LabelLayout {
     }
 }
 
+/// Un cruce por el que esta arista pasa por encima.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/model/generated/")]
+pub struct Hop {
+    pub x: f64,
+    pub y: f64,
+    /// Direccion de la linea en el cruce, en radianes.
+    pub angle: f64,
+}
+
+/// Radio del puente. Debe coincidir con `HOP_RADIUS` de
+/// `src/canvas/graph/crossings.ts`, o el SVG exportado no se pareceria a lo
+/// que se ve en pantalla.
+pub const HOP_RADIUS: f64 = 8.0;
+
 /// Trazado de una arista, tal y como lo dibujo el lienzo.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -88,6 +104,9 @@ pub struct EdgePath {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub label_at: Option<crate::model::Point>,
+    /// Cruces donde esta arista salta por encima de otra.
+    #[serde(default)]
+    pub hops: Vec<Hop>,
 }
 
 /// Colores resueltos del tema activo.
@@ -214,6 +233,7 @@ pub(crate) mod fixtures {
             EdgePath {
                 d: "M 160 30 L 300 45".into(),
                 label_at: Some(Point::new(230.0, 37.5)),
+                hops: Vec::new(),
             },
         )]);
 

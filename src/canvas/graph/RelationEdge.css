@@ -38,3 +38,14 @@
 .relation-edge__cardinality[data-selected] {
   color: var(--accent);
 }
+
+/*
+ * El trazo que borra el tramo bajo el puente va del color del lienzo. Si
+ * fuese transparente, la linea recta se veria por debajo del arco y el
+ * cruce no se entenderia.
+ */
+.relation-edge__jump-mask {
+  fill: none;
+  stroke: var(--canvas-bg);
+  stroke-linecap: butt;
+}

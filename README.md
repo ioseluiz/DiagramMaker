@@ -57,6 +57,9 @@ con importador de Mermaid (F4).
   y ajenas, unicidad y nulabilidad, agrupadas en contenedores. Se crean desde
   la paleta y se editan en el inspector: añadir, renombrar, reordenar y borrar
   columnas, cambiar su tipo y sus restricciones.
+- **Saltos en los cruces**: cuando dos relaciones se cruzan sin estar
+  conectadas, la de encima dibuja un puente, igual que en draw.io. Sin eso un
+  cruce y una unión se ven idénticos.
 - **Agrupar, colorear y anotar**: encerrar tablas en un contenedor
   (seleccionarlas y «Agrupar», o arrastrarlas dentro), pintarlas con una
   paleta de tintes que funcionan en tema claro y oscuro, y escribir texto
