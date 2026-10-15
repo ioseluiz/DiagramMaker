@@ -5,5 +5,14 @@ import type { LayoutDirection } from "./LayoutDirection";
 import type { LayoutMode } from "./LayoutMode";
 import type { Meta } from "./Meta";
 import type { Node } from "./Node";
+import type { SequenceScript } from "./SequenceScript";
 
-export type Document = { schemaVersion: number, id: string, kind: DiagramKind, meta: Meta, nodes: Array<Node>, edges: Array<Edge>, layout: LayoutMode, direction: LayoutDirection, };
+export type Document = { schemaVersion: number, id: string, kind: DiagramKind, meta: Meta, nodes: Array<Node>, edges: Array<Edge>, layout: LayoutMode, direction: LayoutDirection, 
+/**
+ * Guion de un diagrama de secuencia.
+ *
+ * Solo lo llevan los de ese tipo. Los participantes son los `nodes`, en
+ * su orden; esto es lo que pasa entre ellos. No hay geometria porque en
+ * una secuencia las coordenadas se derivan enteras del orden.
+ */
+script?: SequenceScript, };

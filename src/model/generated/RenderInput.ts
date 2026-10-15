@@ -3,6 +3,7 @@ import type { Document } from "./Document";
 import type { EdgePath } from "./EdgePath";
 import type { ExportOptions } from "./ExportOptions";
 import type { LabelLayout } from "./LabelLayout";
+import type { Measures } from "./Measures";
 import type { RenderTheme } from "./RenderTheme";
 
 /**
@@ -16,4 +17,9 @@ labels: { [key in string]: LabelLayout },
 /**
  * Trazados de arista, indexados por id de arista.
  */
-edges: { [key in string]: EdgePath }, theme: RenderTheme, options: ExportOptions, };
+edges: { [key in string]: EdgePath }, theme: RenderTheme, options: ExportOptions, 
+/**
+ * Medidas que necesita el reparto de un diagrama de secuencia. Vacias
+ * en los demas, que traen la geometria ya puesta en el documento.
+ */
+measures: Measures, };

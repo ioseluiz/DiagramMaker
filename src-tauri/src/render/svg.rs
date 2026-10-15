@@ -22,6 +22,12 @@ const BELOW_GAP: f64 = 4.0;
 
 /// Area que ocupa el diagrama, ya con el margen de exportacion.
 pub fn viewport(input: &RenderInput) -> Rect {
+    // Una secuencia no tiene geometria en el documento: su area sale del
+    // reparto, que se calcula aqui mismo a partir de las medidas.
+    if input.document.kind.is_lane_based() {
+        return super::lane::viewport(&super::lane::layout_of(input), input.options.padding);
+    }
+
     let content = bounds(&input.document, input);
     content.inflate(input.options.padding)
 }
@@ -97,7 +103,7 @@ fn path_bounds(d: &str) -> Option<Rect> {
 }
 
 /// Escapa los caracteres que no pueden aparecer tal cual en texto XML.
-fn escape(text: &str) -> String {
+pub(super) fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
         match c {
@@ -113,7 +119,7 @@ fn escape(text: &str) -> String {
 }
 
 /// Formatea un numero sin ceros de cola: `30` en vez de `30.0000`.
-fn n(value: f64) -> String {
+pub(super) fn n(value: f64) -> String {
     let rounded = (value * 100.0).round() / 100.0;
     if rounded == rounded.trunc() && rounded.abs() < 1e15 {
         format!("{}", rounded as i64)
@@ -155,6 +161,14 @@ pub fn render(input: &RenderInput) -> String {
             n(view.height),
             escape(&theme.background),
         );
+    }
+
+    // Una secuencia se dibuja entera por otro camino: su reparto es distinto
+    // y no tiene aristas en el sentido del grafo.
+    if input.document.kind.is_lane_based() {
+        out.push_str(&super::lane::render(input, &super::lane::layout_of(input)));
+        out.push_str("</svg>");
+        return out;
     }
 
     // Orden de pintado, de abajo a arriba:
@@ -595,7 +609,13 @@ fn render_table_text(node: &Node, table: &ErTable, g: Rect, input: &RenderInput)
 /// `dominant-baseline` no es fiable entre visores, asi que la linea base se
 /// calcula a mano: `0.8 * font_size` por debajo del alto de linea centrado es
 /// una aproximacion estable de la altura de las mayusculas.
-fn text_block(label: &LabelLayout, x: f64, top: f64, color: &str, theme: &RenderTheme) -> String {
+pub(super) fn text_block(
+    label: &LabelLayout,
+    x: f64,
+    top: f64,
+    color: &str,
+    theme: &RenderTheme,
+) -> String {
     let mut out = String::new();
 
     let _ = write!(
@@ -821,6 +841,7 @@ mod tests {
             edges: Default::default(),
             theme: fixtures::theme(),
             options: Default::default(),
+            measures: Default::default(),
         };
 
         let svg = render(&input);
@@ -845,6 +866,7 @@ mod tests {
             edges: Default::default(),
             theme: fixtures::theme(),
             options: Default::default(),
+            measures: Default::default(),
         };
 
         let view = viewport(&input);
@@ -879,6 +901,7 @@ mod tests {
             edges: Default::default(),
             theme: fixtures::theme(),
             options: Default::default(),
+            measures: Default::default(),
         };
 
         let svg = render(&input);

@@ -4,6 +4,7 @@ use ts_rs::TS;
 use super::edge::Edge;
 use super::geometry::Rect;
 use super::node::Node;
+use super::sequence::SequenceScript;
 
 /// Version del esquema del documento `.dgm`. Se incrementa en cada cambio
 /// incompatible del IR; `io::load` la usa para decidir si hay que migrar.
@@ -115,6 +116,15 @@ pub struct Document {
 
     #[serde(default)]
     pub direction: LayoutDirection,
+
+    /// Guion de un diagrama de secuencia.
+    ///
+    /// Solo lo llevan los de ese tipo. Los participantes son los `nodes`, en
+    /// su orden; esto es lo que pasa entre ellos. No hay geometria porque en
+    /// una secuencia las coordenadas se derivan enteras del orden.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub script: Option<SequenceScript>,
 }
 
 impl Document {
@@ -133,6 +143,7 @@ impl Document {
             edges: Vec::new(),
             layout: LayoutMode::default(),
             direction: LayoutDirection::default(),
+            script: kind.is_lane_based().then(SequenceScript::default),
         }
     }
 

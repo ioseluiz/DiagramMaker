@@ -201,6 +201,7 @@ fn sample() -> RenderInput {
         edges,
         theme: theme(),
         options: ExportOptions::default(),
+        measures: Default::default(),
     }
 }
 
@@ -436,6 +437,7 @@ fn er_sample() -> RenderInput {
         edges,
         theme: theme(),
         options: ExportOptions::default(),
+        measures: Default::default(),
     }
 }
 
@@ -542,6 +544,7 @@ fn un_er_con_grupo_color_y_texto_se_exporta_entero() {
         edges: HashMap::new(),
         theme: theme(),
         options: ExportOptions::default(),
+        measures: Default::default(),
     };
 
     let out = svg::render(&input);
@@ -621,6 +624,7 @@ fn un_cruce_se_marca_con_un_puente() {
         edges,
         theme: theme(),
         options: ExportOptions::default(),
+        measures: Default::default(),
     };
 
     let out = svg::render(&input);
@@ -751,6 +755,7 @@ fn render_arquitectura(mut doc: diagrammaker_lib::model::Document) -> String {
         edges,
         theme: theme(),
         options: ExportOptions::default(),
+        measures: Default::default(),
     })
 }
 
@@ -838,4 +843,188 @@ fn un_diagrama_de_componentes_de_plantuml_llega_hasta_el_png() {
     }
 
     check_png(&out, "plantuml");
+}
+
+/* --- Secuencia ----------------------------------------------------------- */
+
+/// Construye un diagrama de secuencia con todo lo que el renderizador sabe
+/// dibujar: llamadas, retornos, un mensaje a uno mismo, barras de ejecucion
+/// anidadas, un `alt` con dos ramas, una nota y un participante destruido.
+fn sequence_sample() -> RenderInput {
+    use diagrammaker_lib::model::{
+        Block, BlockKind, Branch, Measures, Message, MessageKind, NotePlacement, SequenceNote,
+        SequenceScript, Size, Step,
+    };
+
+    let participants = [
+        ("cliente", "Cliente"),
+        ("portal", "Portal web"),
+        ("api", "API de pedidos"),
+        ("pago", "Pasarela"),
+    ];
+
+    let mut doc = Document::new("secuencia", DiagramKind::Sequence, 0);
+    let mut labels = HashMap::new();
+    let mut measures = Measures::default();
+
+    for (id, nombre) in participants {
+        doc.nodes.push(Node::new(id, nombre, NodeShape::Rectangle));
+        labels.insert(id.to_string(), label(nombre, 13.0, LabelPlacement::Center));
+        measures.headers.insert(
+            id.to_string(),
+            Size::new(nombre.chars().count() as f64 * 13.0 * 0.55 + 28.0, 40.0),
+        );
+    }
+
+    /// Un mensaje con su texto, registrando de paso lo que mediria.
+    fn step(
+        labels: &mut HashMap<String, LabelLayout>,
+        measures: &mut diagrammaker_lib::model::Measures,
+        id: &str,
+        from: &str,
+        to: &str,
+        kind: MessageKind,
+        text: &str,
+    ) -> Message {
+        if !text.is_empty() {
+            let measured = label(text, 11.0, LabelPlacement::Center);
+            measures.texts.insert(
+                id.to_string(),
+                Size::new(measured.width(), measured.height()),
+            );
+            labels.insert(id.to_string(), measured);
+        }
+        Message::new(id, from, to, kind).with_text(text)
+    }
+
+    macro_rules! msg {
+        ($id:expr, $from:expr, $to:expr, $kind:expr, $text:expr) => {
+            step(&mut labels, &mut measures, $id, $from, $to, $kind, $text)
+        };
+    }
+
+    let m1 = msg!("m1", "cliente", "portal", MessageKind::Sync, "comprar").activating();
+    let m2 = msg!("m2", "portal", "api", MessageKind::Sync, "POST /pedidos").activating();
+    let m3 = msg!("m3", "api", "api", MessageKind::Sync, "validar carrito");
+    let m4 = msg!("m4", "api", "pago", MessageKind::Sync, "cobrar").activating();
+    let m5 = msg!("m5", "pago", "api", MessageKind::Reply, "autorizado").deactivating();
+    let m6 = msg!("m6", "api", "portal", MessageKind::Reply, "201 Created").deactivating();
+    let m7 = msg!("m7", "api", "portal", MessageKind::Reply, "402 Rechazado").deactivating();
+    let m8 = msg!(
+        "m8",
+        "portal",
+        "cliente",
+        MessageKind::Reply,
+        "confirmacion"
+    )
+    .deactivating();
+    let m9 = msg!("m9", "api", "pago", MessageKind::Destroy, "cerrar sesion");
+
+    // Una nota sobre dos participantes.
+    let nota = SequenceNote {
+        id: "n1".into(),
+        placement: NotePlacement::Over,
+        participants: vec!["portal".into(), "api".into()],
+        text: "todo sobre TLS".into(),
+    };
+    let medida = label(&nota.text, 11.0, LabelPlacement::Center);
+    measures
+        .texts
+        .insert("n1".into(), Size::new(medida.width(), medida.height()));
+    labels.insert("n1".into(), medida);
+
+    // Rotulos de los marcos: los compone el navegador, igual que el resto.
+    for (id, texto) in [("b1", "alt [pago autorizado]"), ("r2", "[rechazado]")] {
+        labels.insert(id.to_string(), label(texto, 11.0, LabelPlacement::Center));
+    }
+
+    let alt = Step::Block(Block {
+        id: "b1".into(),
+        kind: BlockKind::Alt,
+        branches: vec![
+            Branch::new("r1", "pago autorizado").with_steps(vec![
+                Step::Message(m4),
+                Step::Message(m5),
+                Step::Message(m6),
+            ]),
+            Branch::new("r2", "rechazado").with_steps(vec![Step::Message(m7)]),
+        ],
+    });
+
+    doc.script = Some(SequenceScript {
+        steps: vec![
+            Step::Message(m1),
+            Step::Note(nota),
+            Step::Message(m2),
+            Step::Message(m3),
+            alt,
+            Step::Message(m8),
+            Step::Message(m9),
+        ],
+    });
+    doc.meta.title = "Compra de un pedido".into();
+
+    RenderInput {
+        document: doc,
+        labels,
+        edges: HashMap::new(),
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures,
+    }
+}
+
+#[test]
+fn un_diagrama_de_secuencia_llega_hasta_el_png() {
+    let input = sequence_sample();
+    let out = svg::render(&input);
+
+    // Participantes, mensajes y rotulos de marco.
+    for text in [
+        "Cliente",
+        "Portal web",
+        "API de pedidos",
+        "Pasarela",
+        "comprar",
+        "validar carrito",
+        "autorizado",
+        "alt [pago autorizado]",
+        "[rechazado]",
+        "todo sobre TLS",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    // Lineas de vida punteadas, barras de ejecucion y la cruz del destruido.
+    assert!(
+        out.contains(r#"stroke-dasharray="4 4""#),
+        "faltan las lineas de vida"
+    );
+    assert!(out.contains("dm-arrow-filled"), "faltan las llamadas");
+    assert!(out.contains("dm-arrow-open"), "faltan los retornos");
+
+    check_png(&out, "secuencia");
+}
+
+#[test]
+fn el_area_de_una_secuencia_sale_del_reparto_y_no_del_documento() {
+    // Los nodos de una secuencia no tienen geometria: si el area se calculara
+    // como en un grafo, saldria vacia.
+    let input = sequence_sample();
+    let view = svg::viewport(&input);
+
+    assert!(view.width > 400.0, "{view:?}");
+    assert!(view.height > 300.0, "{view:?}");
+}
+
+#[test]
+fn una_secuencia_vacia_no_revienta_la_exportacion() {
+    let mut input = sequence_sample();
+    input.document.nodes.clear();
+    input.document.script = Some(Default::default());
+
+    let svg = svg::render(&input);
+
+    assert!(svg.starts_with("<svg"));
+    assert!(svg.ends_with("</svg>"));
 }

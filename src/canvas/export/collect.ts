@@ -182,6 +182,9 @@ export function collectRenderInput(
     edges: edgePaths(document, root, hopsFor(document)),
     theme: resolveTheme(),
     options,
+    // Solo las usa el reparto de una secuencia, y de momento ese tipo de
+    // diagrama no se puede dibujar: las rellenara el lienzo de carriles.
+    measures: { headers: {}, texts: {} },
   };
 }
 

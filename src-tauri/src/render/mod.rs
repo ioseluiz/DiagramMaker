@@ -10,6 +10,7 @@
 //! `RenderInput`. Recalcularlos aqui con otra tipografia u otro algoritmo de
 //! ruteo es justo lo que haria que el PNG no se pareciera al lienzo.
 
+pub mod lane;
 pub mod pdf;
 pub mod raster;
 pub mod svg;
@@ -19,7 +20,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::model::Document;
+use crate::model::{Document, Measures};
 
 /// Una linea de texto ya compuesta por el navegador.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -175,6 +176,10 @@ pub struct RenderInput {
     pub theme: RenderTheme,
     #[serde(default)]
     pub options: ExportOptions,
+    /// Medidas que necesita el reparto de un diagrama de secuencia. Vacias
+    /// en los demas, que traen la geometria ya puesta en el documento.
+    #[serde(default)]
+    pub measures: Measures,
 }
 
 #[cfg(test)]
@@ -243,6 +248,7 @@ pub(crate) mod fixtures {
             edges,
             theme: theme(),
             options: ExportOptions::default(),
+            measures: Default::default(),
         }
     }
 }

@@ -16,7 +16,7 @@ impl Point {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../src/model/generated/")]
 pub struct Size {
     pub width: f64,
