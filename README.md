@@ -104,6 +104,10 @@ resto, el juego general de ocho formas.
 | Clic derecho | Menú contextual sobre nodo, relación o lienzo |
 | `Ctrl` + clic | Añadir a la selección |
 
+La ventana admite hasta 960 × 600. Por debajo de lo que cabe en una fila, la
+barra de herramientas pasa a dos filas en lugar de recortarse, y los paneles
+laterales se limitan a un tercio del ancho para que siempre quede lienzo.
+
 ## Requisitos
 
 | Herramienta      | Versión verificada |
