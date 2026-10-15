@@ -40,12 +40,28 @@ export function initHistory<T extends Objectish>(present: T): History<T> {
  * referencia): un clic que no modifica el documento no debe gastar un paso de
  * deshacer.
  */
+/**
+ * Envuelve una receta para que lo que devuelva no llegue a immer.
+ *
+ * Immer trata el valor devuelto como el estado nuevo y lanza si ademas se
+ * modifico el borrador. Muchas operaciones devuelven el id de lo que acaban
+ * de crear, y escribir `edit("x", (d) => addMessage(d, ...))` es lo natural:
+ * TypeScript no lo impide —devolver algo donde se espera `void` es legal— asi
+ * que el descarte se hace aqui, una vez, en vez de confiar en que nadie se
+ * despiste.
+ */
+function run<T>(recipe: (draft: T) => void): (draft: T) => void {
+  return (draft) => {
+    recipe(draft);
+  };
+}
+
 export function commit<T extends Objectish>(
   history: History<T>,
   label: string,
   recipe: (draft: T) => void,
 ): History<T> {
-  const [next, redo, undo] = produceWithPatches(history.present, recipe);
+  const [next, redo, undo] = produceWithPatches(history.present, run(recipe));
 
   if (redo.length === 0) return history;
 

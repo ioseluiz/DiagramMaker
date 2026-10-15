@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import { GraphCanvas } from "@/canvas/graph/GraphCanvas";
+import { LaneCanvas } from "@/canvas/lane/LaneCanvas";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { CodePanel } from "./CodePanel";
 import { Inspector } from "./Inspector";
@@ -42,12 +43,7 @@ export function App() {
 
         <main className="app-canvas">
           {doc && doc.kind !== "sequence" && <GraphCanvas document={doc} />}
-          {doc?.kind === "sequence" && (
-            <div className="app-placeholder">
-              Los diagramas de secuencia llegan en la fase F5, con su propio
-              renderizador de carriles.
-            </div>
-          )}
+          {doc?.kind === "sequence" && <LaneCanvas document={doc} />}
         </main>
 
         <Inspector />

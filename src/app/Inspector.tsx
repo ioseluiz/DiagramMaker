@@ -7,6 +7,7 @@ import { SHAPE_LABEL } from "@/model/shapes";
 import { nodeStyle } from "@/model/style";
 import { erTableOf } from "@/model/table";
 import { ColorPicker } from "./ColorPicker";
+import { SequenceInspector } from "./SequenceInspector";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { TableInspector } from "./TableInspector";
 import {
@@ -59,6 +60,16 @@ export function Inspector() {
   const edge = only ? doc.edges.find((e) => e.id === only) : undefined;
 
   const table = node ? erTableOf(node) : null;
+
+  // Una secuencia se edita por su guion, no por propiedades de nodos y
+  // aristas: el panel entero es otro.
+  if (doc.kind === "sequence") {
+    return (
+      <aside className="inspector">
+        <SequenceInspector document={doc} />
+      </aside>
+    );
+  }
 
   return (
     <aside className="inspector">

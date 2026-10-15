@@ -9,6 +9,11 @@ import type { NodeShape } from "@/model/generated/NodeShape";
 import type { ErColumn } from "@/model/generated/ErColumn";
 import type { ErTable } from "@/model/generated/ErTable";
 import type { Side } from "@/model/generated/Side";
+import type { BlockKind } from "@/model/generated/BlockKind";
+import type { MessageKind } from "@/model/generated/MessageKind";
+import type { NotePlacement } from "@/model/generated/NotePlacement";
+import type { SequenceScript } from "@/model/generated/SequenceScript";
+import type { Step } from "@/model/generated/Step";
 import type { C4Level } from "@/model/c4";
 import { defaultSizeFor, labelPlacement } from "@/model/shapes";
 import { tableSize } from "@/model/table";
@@ -261,6 +266,13 @@ export function removeElements(draft: Document, ids: readonly string[]): void {
     (e) =>
       !doomed.has(e.id) && !doomed.has(e.source.node) && !doomed.has(e.target.node),
   );
+
+  // En una secuencia lo borrado puede ser un participante o un paso del
+  // guion; las dos cosas viven fuera de `nodes` y `edges`.
+  if (draft.script) {
+    for (const id of ids) removeStep(draft, id);
+    pruneScript(draft);
+  }
 }
 
 export function setEndpointLabel(
@@ -291,6 +303,11 @@ export function setTitle(draft: Document, title: string): void {
  */
 export function setDiagramKind(draft: Document, kind: DiagramKind): void {
   draft.kind = kind;
+
+  // Una secuencia necesita guion desde el primer momento: es donde vive todo
+  // lo que la define. Al cambiar a otro tipo se conserva, porque volver a
+  // secuencia tiene que devolver el diagrama que habia.
+  if (kind === "sequence") draft.script ??= { steps: [] };
 }
 
 /* --- Tablas entidad-relacion -------------------------------------------- */
@@ -708,4 +725,289 @@ export function setNodeParent(
   }
 
   node.parent = parentId ?? undefined;
+}
+
+/* --- Diagramas de secuencia ---------------------------------------------- */
+
+/**
+ * Un diagrama de secuencia se edita por su guion, no por coordenadas: estas
+ * operaciones mueven pasos dentro de una lista ordenada y el reparto decide
+ * donde cae cada cosa. Por eso ninguna toca `geometry`.
+ */
+
+/** Guion del documento, creandolo si hacia falta. */
+function scriptDraft(draft: Document): SequenceScript {
+  draft.script ??= { steps: [] };
+  return draft.script;
+}
+
+/** Lista que contiene un paso, y su posicion. */
+function siblingsOf(
+  steps: Step[],
+  id: string,
+): { list: Step[]; position: number } | undefined {
+  const position = steps.findIndex((s) => s.id === id);
+  if (position >= 0) return { list: steps, position };
+
+  for (const step of steps) {
+    if (step.type !== "block") continue;
+    for (const branch of step.branches) {
+      const found = siblingsOf(branch.steps, id);
+      if (found) return found;
+    }
+  }
+
+  return undefined;
+}
+
+/** Todos los pasos, entrando en los marcos. */
+function allSteps(steps: Step[]): Step[] {
+  return steps.flatMap((step) =>
+    step.type === "block"
+      ? [step, ...step.branches.flatMap((b) => allSteps(b.steps))]
+      : [step],
+  );
+}
+
+export function addParticipant(
+  draft: Document,
+  label: string,
+  shape: NodeShape = "rectangle",
+): string {
+  const id = newId("p");
+
+  // Sin geometria: en una secuencia la posicion sale del orden, y el orden
+  // de los participantes es el de esta lista.
+  draft.nodes.push({
+    id,
+    label,
+    shape,
+    pinned: false,
+    style: {},
+    data: { type: "plain" },
+  });
+
+  return id;
+}
+
+/** Mueve un participante a izquierda o derecha en el diagrama. */
+export function moveParticipant(draft: Document, nodeId: string, delta: number): void {
+  const from = draft.nodes.findIndex((n) => n.id === nodeId);
+  if (from < 0) return;
+
+  const to = from + delta;
+  if (to < 0 || to >= draft.nodes.length) return;
+
+  const [node] = draft.nodes.splice(from, 1);
+  draft.nodes.splice(to, 0, node!);
+}
+
+export interface AddMessageOptions {
+  from: string;
+  to: string;
+  kind?: MessageKind;
+  text?: string;
+  /** Detras de que paso se inserta. Al final si no se dice. */
+  after?: string;
+}
+
+export function addMessage(draft: Document, options: AddMessageOptions): string {
+  const id = newId("m");
+  const message: Step = {
+    type: "message",
+    id,
+    from: options.from,
+    to: options.to,
+    kind: options.kind ?? "sync",
+    text: options.text ?? "",
+    activate: false,
+    deactivate: false,
+  };
+
+  insert(draft, message, options.after);
+  return id;
+}
+
+export function addSequenceBlock(
+  draft: Document,
+  kind: BlockKind,
+  label = "",
+  after?: string,
+): string {
+  const id = newId("b");
+
+  insert(
+    draft,
+    {
+      type: "block",
+      id,
+      kind,
+      branches: [{ id: newId("r"), label, steps: [] }],
+    },
+    after,
+  );
+
+  return id;
+}
+
+export function addSequenceNote(
+  draft: Document,
+  participants: string[],
+  placement: NotePlacement,
+  text: string,
+  after?: string,
+): string {
+  const id = newId("n");
+  insert(draft, { type: "note", id, placement, participants, text }, after);
+  return id;
+}
+
+/** Mete un paso detras de otro, o al final del guion. */
+function insert(draft: Document, step: Step, after?: string): void {
+  const script = scriptDraft(draft);
+
+  const target = after ? siblingsOf(script.steps, after) : undefined;
+  if (target) {
+    target.list.splice(target.position + 1, 0, step);
+    return;
+  }
+
+  script.steps.push(step);
+}
+
+/** Anade una rama a un marco: el `else` de un `alt`. */
+export function addBranch(
+  draft: Document,
+  blockId: string,
+  label = "",
+): string | undefined {
+  const block = allSteps(scriptDraft(draft).steps).find(
+    (s) => s.id === blockId && s.type === "block",
+  );
+  if (block?.type !== "block") return undefined;
+
+  const id = newId("r");
+  block.branches.push({ id, label, steps: [] });
+  return id;
+}
+
+export function removeStep(draft: Document, id: string): void {
+  const script = scriptDraft(draft);
+
+  const found = siblingsOf(script.steps, id);
+  if (found) {
+    found.list.splice(found.position, 1);
+    return;
+  }
+
+  // Tambien puede ser una rama: borrarla se lleva lo que contenga, pero
+  // nunca la ultima, que dejaria el marco sin cuerpo.
+  for (const step of allSteps(script.steps)) {
+    if (step.type !== "block") continue;
+    const position = step.branches.findIndex((b) => b.id === id);
+    if (position >= 0 && step.branches.length > 1) {
+      step.branches.splice(position, 1);
+      return;
+    }
+  }
+}
+
+/**
+ * Sube o baja un paso entre sus hermanos.
+ *
+ * No lo saca de su marco: salir de un `alt` arrastrando cambiaria lo que el
+ * diagrama dice, y para eso esta borrar y volver a crear.
+ */
+export function moveStep(draft: Document, id: string, delta: number): void {
+  const found = siblingsOf(scriptDraft(draft).steps, id);
+  if (!found) return;
+
+  const to = found.position + delta;
+  if (to < 0 || to >= found.list.length) return;
+
+  const [step] = found.list.splice(found.position, 1);
+  found.list.splice(to, 0, step!);
+}
+
+/** Texto de un mensaje o de una nota. */
+export function setStepText(draft: Document, id: string, text: string): void {
+  const step = allSteps(scriptDraft(draft).steps).find((s) => s.id === id);
+  if (step?.type === "message" || step?.type === "note") step.text = text;
+}
+
+export function setMessageKind(draft: Document, id: string, kind: MessageKind): void {
+  const step = allSteps(scriptDraft(draft).steps).find((s) => s.id === id);
+  if (step?.type === "message") step.kind = kind;
+}
+
+export function setMessageEndpoint(
+  draft: Document,
+  id: string,
+  end: "from" | "to",
+  node: string,
+): void {
+  const step = allSteps(scriptDraft(draft).steps).find((s) => s.id === id);
+  if (step?.type === "message") step[end] = node;
+}
+
+export function setMessageActivation(
+  draft: Document,
+  id: string,
+  which: "activate" | "deactivate",
+  value: boolean,
+): void {
+  const step = allSteps(scriptDraft(draft).steps).find((s) => s.id === id);
+  if (step?.type === "message") step[which] = value;
+}
+
+/** Condicion de una rama. La primera se rotula en la esquina del marco. */
+export function setBranchLabel(draft: Document, branchId: string, label: string): void {
+  for (const step of allSteps(scriptDraft(draft).steps)) {
+    if (step.type !== "block") continue;
+    const branch = step.branches.find((b) => b.id === branchId);
+    if (branch) {
+      branch.label = label;
+      return;
+    }
+  }
+}
+
+export function setNotePlacement(
+  draft: Document,
+  id: string,
+  placement: NotePlacement,
+): void {
+  const step = allSteps(scriptDraft(draft).steps).find((s) => s.id === id);
+  if (step?.type === "note") step.placement = placement;
+}
+
+/**
+ * Quita del guion los pasos que apuntan a participantes que ya no existen.
+ *
+ * Un mensaje huerfano no se dibuja —el reparto lo ignora— pero seguiria en el
+ * archivo y reapareceria al volver a crear un participante con ese id.
+ */
+export function pruneScript(draft: Document): void {
+  const script = draft.script;
+  if (!script) return;
+
+  const alive = new Set(draft.nodes.map((n) => n.id));
+
+  const keep = (steps: Step[]): Step[] =>
+    steps
+      .filter((step) => {
+        if (step.type === "message") return alive.has(step.from) && alive.has(step.to);
+        if (step.type === "note") return step.participants.every((p) => alive.has(p));
+        return true;
+      })
+      .map((step) =>
+        step.type === "block"
+          ? {
+              ...step,
+              branches: step.branches.map((b) => ({ ...b, steps: keep(b.steps) })),
+            }
+          : step,
+      );
+
+  script.steps = keep(script.steps);
 }

@@ -1,0 +1,216 @@
+.lane-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--canvas-bg);
+}
+
+.lane-canvas__surface {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Arrastrar el fondo desplaza; sin esto el puntero sugiere seleccionar
+     texto, que aqui no se puede hacer. */
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  font-family: var(--font-sans);
+}
+
+.lane-canvas__surface:active {
+  cursor: grabbing;
+}
+
+/* --- Participantes -------------------------------------------------------- */
+
+.lane-header {
+  cursor: pointer;
+}
+
+.lane-header__box {
+  fill: var(--surface-0);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.lane-header__name {
+  fill: var(--text);
+  font-weight: 500;
+}
+
+.lane-header[data-chosen] .lane-header__box {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.lane-lifeline {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.lane-cross {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.lane-bar {
+  fill: var(--surface-0);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+/* --- Mensajes ------------------------------------------------------------- */
+
+.lane-arrow {
+  cursor: pointer;
+}
+
+/* Banda ancha e invisible: acertarle a una linea de 1.5px con el raton es
+   incomodo, y el texto no siempre esta donde uno pincha. */
+.lane-arrow__hit {
+  stroke: transparent;
+  fill: none;
+}
+
+.lane-arrow__line {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.lane-arrow[data-dashed] .lane-arrow__line {
+  stroke-dasharray: 6 4;
+}
+
+.lane-arrow__text {
+  fill: var(--text-muted);
+}
+
+.lane-arrow:hover .lane-arrow__line {
+  stroke: var(--text-muted);
+}
+
+.lane-arrow[data-chosen] .lane-arrow__line {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.lane-arrow[data-chosen] .lane-arrow__text {
+  fill: var(--accent);
+}
+
+.lane-marker {
+  fill: var(--border-strong);
+  stroke: none;
+}
+
+.lane-marker--open {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.lane-arrow[data-chosen] .lane-marker {
+  fill: var(--accent);
+}
+
+.lane-arrow[data-chosen] .lane-marker--open {
+  stroke: var(--accent);
+}
+
+/* --- Marcos y notas ------------------------------------------------------- */
+
+.lane-frame {
+  cursor: pointer;
+}
+
+.lane-frame__box {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.lane-frame__divider {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.lane-frame__tag {
+  fill: var(--text-muted);
+  font-weight: 600;
+}
+
+.lane-frame[data-chosen] .lane-frame__box {
+  stroke: var(--accent);
+}
+
+.lane-frame[data-chosen] .lane-frame__tag {
+  fill: var(--accent);
+}
+
+.lane-note {
+  cursor: pointer;
+}
+
+.lane-note__box {
+  fill: var(--surface-1);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.lane-note__fold {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.lane-note__text {
+  fill: var(--text);
+}
+
+.lane-note[data-chosen] .lane-note__box {
+  stroke: var(--accent);
+}
+
+/* --- Mandos --------------------------------------------------------------- */
+
+.lane-canvas__controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.lane-canvas__controls button {
+  padding: 4px 10px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.lane-canvas__controls button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.lane-canvas__empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 320px;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+}

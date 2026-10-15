@@ -1,0 +1,119 @@
+.seq__buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.seq__buttons--wrap {
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.seq__buttons button {
+  padding: 3px 8px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.seq__buttons button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.seq__buttons button:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.seq__checks {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.seq__checks label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* --- Lista ordenada de pasos ---------------------------------------------- */
+
+.seq__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* La lista puede ser larga; el resto del inspector no debe irse de la
+     ventana por ello. */
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.seq__step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding-right: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.seq__step[data-chosen] {
+  background: var(--accent-soft);
+}
+
+.seq__step-label {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.seq__step[data-chosen] .seq__step-label {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.seq__step-actions {
+  display: flex;
+  gap: 1px;
+  /* Los mandos solo aparecen al pasar por encima: con tres botones por fila
+     la lista era ilegible. */
+  opacity: 0;
+}
+
+.seq__step:hover .seq__step-actions,
+.seq__step[data-chosen] .seq__step-actions {
+  opacity: 1;
+}
+
+.seq__step-actions button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.seq__step-actions button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}

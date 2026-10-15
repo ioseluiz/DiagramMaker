@@ -7,6 +7,7 @@ import type { RenderTheme } from "@/model/generated/RenderTheme";
 import { defaultSizeFor } from "@/model/shapes";
 import { edgeStyle, nodeStyle } from "@/model/style";
 import { hopsFor } from "@/canvas/graph/adapter";
+import { laneLabels, laneMeasures } from "@/canvas/lane/measure";
 import type { Hop } from "@/canvas/graph/crossings";
 import {
   LINE_HEIGHT,
@@ -176,14 +177,26 @@ export function collectRenderInput(
   options: ExportOptions = DEFAULT_EXPORT_OPTIONS,
   root?: ParentNode,
 ): RenderInput {
+  // Una secuencia no tiene aristas ni geometria: lo que Rust necesita de
+  // aqui son las medidas con las que repartirla, las mismas que usa el
+  // lienzo de carriles para pintarla.
+  if (document.kind === "sequence") {
+    return {
+      document,
+      labels: laneLabels(document),
+      edges: {},
+      theme: resolveTheme(),
+      options,
+      measures: laneMeasures(document),
+    };
+  }
+
   return {
     document,
     labels: { ...nodeLabels(document), ...edgeLabels(document) },
     edges: edgePaths(document, root, hopsFor(document)),
     theme: resolveTheme(),
     options,
-    // Solo las usa el reparto de una secuencia, y de momento ese tipo de
-    // diagrama no se puede dibujar: las rellenara el lienzo de carriles.
     measures: { headers: {}, texts: {} },
   };
 }

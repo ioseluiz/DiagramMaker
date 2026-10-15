@@ -43,6 +43,9 @@ const THEME_LABEL: Record<ThemePreference, string> = {
  */
 const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
   er: ["table", "package", "note", "text"],
+  // Una secuencia no se dibuja colocando formas: sus participantes y sus
+  // pasos se anaden desde el panel del guion, que es donde esta el orden.
+  sequence: [],
 };
 
 const DEFAULT_PALETTE: NodeShape[] = [
