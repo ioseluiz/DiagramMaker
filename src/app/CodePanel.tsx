@@ -16,16 +16,25 @@ import "./CodePanel.css";
  * que el usuario ha ido ajustando.
  */
 
-/** Que lenguaje corresponde a cada tipo de diagrama. */
-const LANGUAGE_BY_KIND: Partial<Record<string, SourceLanguage>> = {
-  er: "dbml",
-  architecture: "mermaid",
+/**
+ * Lenguajes en los que se puede escribir cada tipo de diagrama. El primero
+ * de la lista es el que se muestra al abrir el panel.
+ */
+const LANGUAGES_BY_KIND: Partial<Record<string, SourceLanguage[]>> = {
+  er: ["dbml"],
+  architecture: ["mermaid", "plantUml"],
 };
 
-const EXTENSION: Record<SourceLanguage, string> = { dbml: "dbml", mermaid: "mmd" };
+const EXTENSION: Record<SourceLanguage, string> = {
+  dbml: "dbml",
+  mermaid: "mmd",
+  plantUml: "puml",
+};
+
 const LANGUAGE_NAME: Record<SourceLanguage, string> = {
   dbml: "DBML",
   mermaid: "Mermaid",
+  plantUml: "PlantUML",
 };
 
 /**
@@ -41,13 +50,24 @@ export function CodePanel() {
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<SourceLanguage | null>(null);
 
-  const language = doc ? LANGUAGE_BY_KIND[doc.kind] : undefined;
+  const available = (doc && LANGUAGES_BY_KIND[doc.kind]) ?? [];
+  // Lo elegido solo vale mientras el tipo de diagrama lo ofrezca: al cambiar
+  // de diagrama se vuelve al primero de la lista.
+  const language = chosen && available.includes(chosen) ? chosen : available[0];
+
+  const lastLanguage = useRef(language);
 
   useEffect(() => {
     // Sin generador para este tipo de diagrama no hay nada que regenerar; el
     // panel muestra su aviso y `code` no llega a pintarse.
     if (!doc || !language) return;
+
+    // La espera es para los cambios del diagrama, que llegan a decenas por
+    // segundo al arrastrar. Cambiar de lenguaje es un clic, y se atiende ya.
+    const delay = lastLanguage.current === language ? DEBOUNCE_MS : 0;
+    lastLanguage.current = language;
 
     const timer = setTimeout(() => {
       api
@@ -57,7 +77,7 @@ export function CodePanel() {
           setError(null);
         })
         .catch((e: unknown) => setError(api.isAppError(e) ? e.message : String(e)));
-    }, DEBOUNCE_MS);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [doc, language]);
@@ -99,9 +119,24 @@ export function CodePanel() {
   return (
     <aside className="code-panel">
       <header className="code-panel__head">
-        <span className="code-panel__title">
-          {language ? LANGUAGE_NAME[language] : "Código"}
-        </span>
+        {available.length > 1 ? (
+          <select
+            className="code-panel__language"
+            value={language}
+            onChange={(e) => setChosen(e.target.value as SourceLanguage)}
+            aria-label="Lenguaje del código"
+          >
+            {available.map((option) => (
+              <option key={option} value={option}>
+                {LANGUAGE_NAME[option]}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="code-panel__title">
+            {language ? LANGUAGE_NAME[language] : "Código"}
+          </span>
+        )}
         <button
           type="button"
           className="code-panel__close"
@@ -130,8 +165,8 @@ export function CodePanel() {
         </>
       ) : (
         <p className="code-panel__empty">
-          Todavía no hay generador de código para este tipo de diagrama. El de
-          entidad-relación produce DBML.
+          Todavía no hay generador de código para este tipo de diagrama. Los de
+          entidad-relación y arquitectura producen DBML, Mermaid y PlantUML.
         </p>
       )}
     </aside>

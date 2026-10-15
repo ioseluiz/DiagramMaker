@@ -10,6 +10,7 @@
 
 pub mod dbml;
 pub mod mermaid;
+pub mod plantuml;
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -51,6 +52,8 @@ pub enum SourceLanguage {
     Dbml,
     /// `flowchart` / `graph` de Mermaid.
     Mermaid,
+    /// Diagrama de componentes de PlantUML.
+    PlantUml,
 }
 
 impl SourceLanguage {
@@ -58,6 +61,7 @@ impl SourceLanguage {
         match self {
             SourceLanguage::Dbml => "DBML (dbdiagram.io)",
             SourceLanguage::Mermaid => "Mermaid (flowchart)",
+            SourceLanguage::PlantUml => "PlantUML (componentes)",
         }
     }
 }
@@ -67,5 +71,6 @@ pub fn import(language: SourceLanguage, source: &str, now_ms: i64) -> ImportResu
     match language {
         SourceLanguage::Dbml => dbml::import(source, now_ms),
         SourceLanguage::Mermaid => mermaid::import(source, now_ms),
+        SourceLanguage::PlantUml => plantuml::import(source, now_ms),
     }
 }

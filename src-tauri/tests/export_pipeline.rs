@@ -688,16 +688,13 @@ fn place_grid(doc: &mut diagrammaker_lib::model::Document) {
     }
 }
 
-#[test]
-fn un_flowchart_de_mermaid_llega_hasta_el_png() {
-    let imported = diagrammaker_lib::parse::mermaid::import(ARQUITECTURA_MERMAID, 0);
-    assert!(
-        imported.ok(),
-        "el Mermaid de ejemplo no deberia fallar: {:#?}",
-        imported.diagnostics
-    );
-
-    let mut doc = imported.document;
+/// Coloca, mide y dibuja un diagrama de arquitectura recien importado.
+///
+/// Hace a mano lo que en la aplicacion hacen ELK y el navegador: repartir las
+/// cajas y medir su texto. La rejilla es tosca a proposito —lo que se prueba
+/// es que el documento importado llega entero hasta el pixel, no que quede
+/// bonito— asi que los hijos de un grupo pueden salirse de su caja.
+fn render_arquitectura(mut doc: diagrammaker_lib::model::Document) -> String {
     place_grid(&mut doc);
 
     let mut labels = HashMap::new();
@@ -736,26 +733,97 @@ fn un_flowchart_de_mermaid_llega_hasta_el_png() {
         }
     }
 
-    let input = RenderInput {
+    svg::render(&RenderInput {
         document: doc,
         labels,
         edges,
         theme: theme(),
         options: ExportOptions::default(),
-    };
+    })
+}
 
-    let out = svg::render(&input);
-
-    for text in ["Cliente", "Portal web", "API REST", "PostgreSQL", "HTTPS"] {
-        assert!(out.contains(text), "falta `{text}` en el SVG");
-    }
-
-    let png = raster::to_png(&out, 1.5).unwrap();
+/// Rasteriza y, si se pidio, deja el PNG donde poder mirarlo.
+fn check_png(svg: &str, name: &str) {
+    let png = raster::to_png(svg, 1.5).unwrap();
     assert!(painted_pixels(&png) > 5_000);
 
     if let Ok(dir) = std::env::var("EXPORT_SAMPLE_DIR") {
         let dir = std::path::Path::new(&dir);
         std::fs::create_dir_all(dir).unwrap();
-        std::fs::write(dir.join("mermaid.png"), &png).unwrap();
+        std::fs::write(dir.join(format!("{name}.png")), png).unwrap();
     }
+}
+
+#[test]
+fn un_flowchart_de_mermaid_llega_hasta_el_png() {
+    let imported = diagrammaker_lib::parse::mermaid::import(ARQUITECTURA_MERMAID, 0);
+    assert!(
+        imported.ok(),
+        "el Mermaid de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let out = render_arquitectura(imported.document);
+
+    for text in ["Cliente", "Portal web", "API REST", "PostgreSQL", "HTTPS"] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "mermaid");
+}
+
+/// Mismo diagrama que el de Mermaid, escrito en el otro idioma.
+const ARQUITECTURA_PLANTUML: &str = r#"
+@startuml
+title Plataforma de pagos
+left to right direction
+
+actor "Cliente" as cliente
+
+package "Capa publica" {
+  [Portal web] as web
+  component "API REST" as api
+}
+
+package "Datos" {
+  database "PostgreSQL" as base
+  queue "Eventos" as cola
+}
+
+cliente --> web : HTTPS
+web --> api
+api "1" --> "0..*" base
+api ..> cola : publica
+@enduml
+"#;
+
+#[test]
+fn un_diagrama_de_componentes_de_plantuml_llega_hasta_el_png() {
+    let imported = diagrammaker_lib::parse::plantuml::import(ARQUITECTURA_PLANTUML, 0);
+    assert!(
+        imported.ok(),
+        "el PlantUML de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let doc = imported.document;
+    assert_eq!(doc.meta.title, "Plataforma de pagos");
+
+    let out = render_arquitectura(doc);
+
+    for text in [
+        "Cliente",
+        "Portal web",
+        "API REST",
+        "PostgreSQL",
+        "Eventos",
+        "Capa publica",
+        "HTTPS",
+        // La cardinalidad de un extremo se dibuja pegada a su caja.
+        "0..*",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "plantuml");
 }

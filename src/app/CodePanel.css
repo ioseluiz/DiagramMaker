@@ -27,6 +27,28 @@
   color: var(--text-faint);
 }
 
+.code-panel__language {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 4px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.code-panel__language:hover,
+.code-panel__language:focus-visible {
+  border-color: var(--border);
+  color: var(--text);
+}
+
 .code-panel__close {
   width: 20px;
   height: 20px;

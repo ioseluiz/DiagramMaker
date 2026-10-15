@@ -3,4 +3,4 @@
 /**
  * Lenguajes de entrada soportados.
  */
-export type SourceLanguage = "dbml" | "mermaid";
+export type SourceLanguage = "dbml" | "mermaid" | "plantUml";

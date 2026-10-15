@@ -6,6 +6,7 @@
 
 pub mod dbml;
 pub mod mermaid;
+pub mod plantuml;
 
 use crate::model::Document;
 use crate::parse::SourceLanguage;
@@ -15,5 +16,6 @@ pub fn emit(language: SourceLanguage, doc: &Document) -> String {
     match language {
         SourceLanguage::Dbml => dbml::emit(doc),
         SourceLanguage::Mermaid => mermaid::emit(doc),
+        SourceLanguage::PlantUml => plantuml::emit(doc),
     }
 }

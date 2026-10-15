@@ -21,6 +21,7 @@ Table posts {
 const LANGUAGES: { value: SourceLanguage; label: string }[] = [
   { value: "dbml", label: "DBML (dbdiagram.io)" },
   { value: "mermaid", label: "Mermaid (flowchart)" },
+  { value: "plantUml", label: "PlantUML (componentes)" },
 ];
 
 const EJEMPLO_MERMAID = `flowchart LR
@@ -37,9 +38,30 @@ const EJEMPLO_MERMAID = `flowchart LR
   api --> base
   api -.-> cola`;
 
+const EJEMPLO_PLANTUML = `@startuml
+title Plataforma de pagos
+left to right direction
+
+actor "Cliente" as cliente
+
+package "Capa publica" {
+  [Portal web] as web
+  component "API REST" as api
+}
+
+database "PostgreSQL" as base
+queue "Eventos" as cola
+
+cliente --> web : HTTPS
+web --> api
+api "1" --> "0..*" base
+api ..> cola : publica
+@enduml`;
+
 const EJEMPLOS: Record<SourceLanguage, string> = {
   dbml: EJEMPLO_DBML,
   mermaid: EJEMPLO_MERMAID,
+  plantUml: EJEMPLO_PLANTUML,
 };
 
 export interface ImportDialogProps {

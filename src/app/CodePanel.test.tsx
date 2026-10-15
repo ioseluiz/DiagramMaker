@@ -102,9 +102,28 @@ describe("CodePanel", () => {
     expect(emitCode).toHaveBeenCalledTimes(2);
   });
 
+  it("un diagrama con un solo generador no ofrece donde elegir", async () => {
+    await mount("er");
+
+    expect(screen.queryByLabelText("Lenguaje del código")).not.toBeInTheDocument();
+  });
+
+  it("arquitectura deja elegir entre Mermaid y PlantUML", async () => {
+    await mount("architecture");
+    expect(emitCode).toHaveBeenCalledWith("mermaid", expect.anything());
+
+    await userEvent.selectOptions(
+      screen.getByLabelText("Lenguaje del código"),
+      "plantUml",
+    );
+    await tick(300);
+
+    expect(emitCode).toHaveBeenLastCalledWith("plantUml", expect.anything());
+  });
+
   it("un tipo de diagrama sin generador lo dice en vez de quedarse vacio", async () => {
-    // Entidad-relacion genera DBML y arquitectura genera Mermaid; secuencia
-    // todavia no tiene generador.
+    // Entidad-relacion genera DBML y arquitectura genera Mermaid o PlantUML;
+    // secuencia todavia no tiene generador.
     await mount("sequence");
 
     expect(screen.getByText(/no hay generador de código/i)).toBeInTheDocument();
