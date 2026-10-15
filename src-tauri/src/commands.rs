@@ -84,6 +84,17 @@ pub fn emit_code(language: SourceLanguage, document: Document) -> AppResult<Stri
     Ok(emit::emit(language, &document))
 }
 
+/// Escribe el codigo generado en un archivo.
+#[tauri::command]
+pub fn emit_code_to_file(
+    language: SourceLanguage,
+    document: Document,
+    path: PathBuf,
+) -> AppResult<()> {
+    std::fs::write(&path, emit::emit(language, &document))?;
+    Ok(())
+}
+
 /* --- Exportacion -------------------------------------------------------- */
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -224,6 +235,38 @@ mod tests {
 
         assert!(code.contains("Table users"));
         assert!(code.contains("[pk]"));
+    }
+
+    #[test]
+    fn emit_code_to_file_escribe_lo_mismo_que_emit_code() {
+        let imported = import_code(
+            SourceLanguage::Dbml,
+            "Table users {
+  id integer [pk]
+}"
+            .into(),
+            0,
+        )
+        .unwrap();
+
+        let dir = std::env::temp_dir().join("diagrammaker-test-emit");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("esquema.dbml");
+
+        emit_code_to_file(
+            SourceLanguage::Dbml,
+            imported.document.clone(),
+            path.clone(),
+        )
+        .unwrap();
+
+        let escrito = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            escrito,
+            emit_code(SourceLanguage::Dbml, imported.document).unwrap()
+        );
+
+        std::fs::remove_file(&path).ok();
     }
 
     #[test]

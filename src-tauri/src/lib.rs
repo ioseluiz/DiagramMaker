@@ -19,6 +19,7 @@ pub fn run() {
             commands::document_validate,
             commands::import_code,
             commands::emit_code,
+            commands::emit_code_to_file,
             commands::export_svg,
             commands::export_to_file,
             commands::recent_list,

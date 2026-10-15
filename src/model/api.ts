@@ -89,6 +89,15 @@ export function emitCode(
   return invoke<string>("emit_code", { language, document });
 }
 
+/** Escribe el codigo generado en un archivo. */
+export function emitCodeToFile(
+  language: SourceLanguage,
+  document: Document,
+  path: string,
+): Promise<void> {
+  return invoke<void>("emit_code_to_file", { language, document, path });
+}
+
 /* --- Exportacion -------------------------------------------------------- */
 
 /** SVG como texto, para el portapapeles o una vista previa. */

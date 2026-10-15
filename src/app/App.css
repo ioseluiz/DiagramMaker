@@ -10,6 +10,11 @@
   min-height: 0;
 }
 
+/* Con el panel de codigo abierto, el lienzo queda en medio. */
+.app-body[data-code] {
+  grid-template-columns: auto 1fr auto;
+}
+
 .app-canvas {
   position: relative;
   min-width: 0;
@@ -67,6 +72,12 @@
 .toolbar button:hover:not(:disabled) {
   background: var(--surface-2);
   border-color: var(--border-strong);
+}
+
+.toolbar button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .toolbar button:disabled {

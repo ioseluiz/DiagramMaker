@@ -70,7 +70,9 @@ con importador de Mermaid (F4).
   entiende lo reporta con línea y columna en vez de adivinarlo, y sigue
   leyendo el resto. El resultado se coloca solo con ELK.
 - **Generador de DBML**: desde cualquier diagrama ER sale el código, y vuelve
-  a entrar produciendo el mismo diagrama (hay pruebas de ida y vuelta).
+  a entrar produciendo el mismo diagrama (hay pruebas de ida y vuelta). El
+  panel «Código» lo muestra al día mientras dibujas, y permite copiarlo o
+  guardarlo como `.dbml`.
 
 ### Atajos
 

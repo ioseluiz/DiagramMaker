@@ -10,6 +10,7 @@ import {
 import { addNode, addTable, setDiagramKind } from "@/store/operations";
 import { useTheme, type ThemePreference } from "@/theme/useTheme";
 import { useCanvasTool, type CanvasTool } from "./useCanvasTool";
+import { useCodePanel } from "./useCodePanel";
 import { useState } from "react";
 
 import { ExportDialog } from "./ExportDialog";
@@ -81,6 +82,8 @@ export function Toolbar() {
   const { preference, setPreference } = useTheme();
   const tool = useCanvasTool((s) => s.tool);
   const setTool = useCanvasTool((s) => s.setTool);
+  const codeOpen = useCodePanel((s) => s.open);
+  const toggleCode = useCodePanel((s) => s.toggle);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
 
@@ -151,6 +154,14 @@ export function Toolbar() {
           title="Exportar a SVG, PNG o PDF"
         >
           Exportar
+        </button>
+        <button
+          type="button"
+          aria-pressed={codeOpen}
+          onClick={toggleCode}
+          title="Ver el código del diagrama, siempre al día"
+        >
+          Código
         </button>
       </div>
 
