@@ -4,4 +4,4 @@
  * Forma visual de la caja. Es puramente grafica: la semantica (que representa
  * el nodo dentro de su tipo de diagrama) vive en `NodeData`.
  */
-export type NodeShape = "rectangle" | "roundedRect" | "ellipse" | "diamond" | "cylinder" | "note" | "package" | "actor" | "table";
+export type NodeShape = "rectangle" | "roundedRect" | "ellipse" | "diamond" | "cylinder" | "note" | "package" | "actor" | "text" | "table";

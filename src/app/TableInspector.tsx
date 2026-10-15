@@ -1,12 +1,15 @@
 import type { ErColumn } from "@/model/generated/ErColumn";
 import type { ErTable } from "@/model/generated/ErTable";
 import type { Node } from "@/model/generated/Node";
+import { nodeStyle } from "@/model/style";
 import { useDocumentStore } from "@/store/documentStore";
+import { ColorPicker } from "./ColorPicker";
 import {
   addColumn,
   moveColumn,
   removeColumn,
   setLabel,
+  setNodeFill,
   setTableAlias,
   setTableNote,
   updateColumn,
@@ -56,6 +59,14 @@ export function TableInspector({ node, table }: TableInspectorProps) {
           }
         />
       </label>
+
+      <div className="inspector__field">
+        <span className="inspector__label">Color</span>
+        <ColorPicker
+          value={nodeStyle(node).fill ?? null}
+          onChange={(fill) => edit("color", (d) => setNodeFill(d, node.id, fill))}
+        />
+      </div>
 
       <div className="columns__head">
         <span className="inspector__label">Columnas ({table.columns.length})</span>

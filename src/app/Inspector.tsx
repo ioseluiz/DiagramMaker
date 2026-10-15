@@ -3,7 +3,9 @@ import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import { SHAPE_LABEL } from "@/model/shapes";
+import { nodeStyle } from "@/model/style";
 import { erTableOf } from "@/model/table";
+import { ColorPicker } from "./ColorPicker";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { TableInspector } from "./TableInspector";
 import {
@@ -12,6 +14,7 @@ import {
   setEdgeKind,
   setEndpointLabel,
   setLabel,
+  setNodeFill,
   setRelationKind,
   setTitle,
   type RelationKind,
@@ -79,6 +82,13 @@ export function Inspector() {
               {SHAPE_LABEL[node.shape as NodeShape]}
             </span>
           </Field>
+          <div className="inspector__field">
+            <span className="inspector__label">Color</span>
+            <ColorPicker
+              value={nodeStyle(node).fill ?? null}
+              onChange={(fill) => edit("color", (d) => setNodeFill(d, node.id, fill))}
+            />
+          </div>
           {node.geometry && (
             <Field label="Posicion">
               <span className="inspector__readonly">

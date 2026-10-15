@@ -29,10 +29,14 @@ import {
   removeElements,
   resizeNode,
   reverseEdge,
+  setNodeParent,
   setRelationKind,
+  groupNodes,
+  ungroupNode,
   type RelationKind,
 } from "@/store/operations";
 import { erTableOf } from "@/model/table";
+import { isContainer } from "@/model/shapes";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { EdgeMarkers } from "./EdgeMarkers";
 import { decodeHandle } from "./handles";
@@ -173,6 +177,45 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
     [edit],
   );
 
+  /**
+   * Al soltar un nodo, mira si cayo sobre un contenedor y lo mete dentro.
+   *
+   * Se usa el centro del nodo y no su caja entera: pedir que encaje por
+   * completo obliga a punterias imposibles con tablas grandes, y asomar una
+   * esquina fuera del grupo es normal mientras se coloca.
+   */
+  const onNodeDragStop = useCallback(
+    (_event: MouseEvent | TouchEvent, flowNode: { id: string }) => {
+      const node = document.nodes.find((n) => n.id === flowNode.id);
+      if (!node?.geometry || isContainer(node.shape)) return;
+
+      const center = {
+        x: node.geometry.x + node.geometry.width / 2,
+        y: node.geometry.y + node.geometry.height / 2,
+      };
+
+      const container = document.nodes.find((candidate) => {
+        if (candidate.id === node.id || !isContainer(candidate.shape)) return false;
+        const g = candidate.geometry;
+        if (!g) return false;
+        return (
+          center.x >= g.x &&
+          center.x <= g.x + g.width &&
+          center.y >= g.y &&
+          center.y <= g.y + g.height
+        );
+      });
+
+      const next = container?.id ?? null;
+      if ((node.parent ?? null) === next) return;
+
+      edit(next ? "agrupar" : "sacar del grupo", (d) =>
+        setNodeParent(d, node.id, next),
+      );
+    },
+    [document, edit],
+  );
+
   /* --- Menu contextual ---------------------------------------------- */
 
   const onNodeContextMenu = useCallback(
@@ -196,6 +239,34 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
         });
       }
 
+      if (isContainer(node.shape)) {
+        items.push({
+          label: "Desagrupar",
+          onSelect: () => edit("desagrupar", (d) => ungroupNode(d, node.id)),
+        });
+      } else if (node.parent) {
+        items.push({
+          label: "Sacar del grupo",
+          onSelect: () =>
+            edit("sacar del grupo", (d) => setNodeParent(d, node.id, null)),
+        });
+      }
+
+      // Agrupar actua sobre la seleccion, no sobre el nodo pulsado: pedirlo
+      // con un solo nodo seleccionado casi siempre es un descuido.
+      const groupable = selection.filter((id) => {
+        const candidate = document.nodes.find((n) => n.id === id);
+        return candidate && !candidate.parent && !isContainer(candidate.shape);
+      });
+
+      if (groupable.length >= 2) {
+        items.push({
+          label: `Agrupar ${groupable.length} elementos`,
+          separated: true,
+          onSelect: () => edit("agrupar", (d) => void groupNodes(d, groupable)),
+        });
+      }
+
       items.push({
         label: "Borrar",
         separated: true,
@@ -205,7 +276,7 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
 
       setMenu({ x: event.clientX, y: event.clientY, items });
     },
-    [document, edit],
+    [document, edit, selection],
   );
 
   const onEdgeContextMenu = useCallback(
@@ -260,23 +331,34 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
         ...document.edges.map((e) => e.id),
       ];
 
-      setMenu({
-        x: event.clientX,
-        y: event.clientY,
-        items: [
-          {
-            label: "Seleccionar todo",
-            disabled: everything.length === 0,
-            onSelect: () => select(everything),
-          },
-          {
-            label: "Ajustar a la vista",
-            onSelect: () => void fitView({ padding: 0.2, duration: 200 }),
-          },
-        ],
+      const groupable = selection.filter((id) => {
+        const node = document.nodes.find((n) => n.id === id);
+        return node && !node.parent && !isContainer(node.shape);
       });
+
+      const items: MenuItem[] = [
+        {
+          label: "Seleccionar todo",
+          disabled: everything.length === 0,
+          onSelect: () => select(everything),
+        },
+        {
+          label: "Ajustar a la vista",
+          onSelect: () => void fitView({ padding: 0.2, duration: 200 }),
+        },
+      ];
+
+      if (groupable.length >= 2) {
+        items.push({
+          label: `Agrupar ${groupable.length} elementos`,
+          separated: true,
+          onSelect: () => edit("agrupar", (d) => void groupNodes(d, groupable)),
+        });
+      }
+
+      setMenu({ x: event.clientX, y: event.clientY, items });
     },
-    [document, fitView, select],
+    [document, edit, fitView, select, selection],
   );
 
   const onSelectionChange = useCallback(
@@ -299,6 +381,7 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
         onConnect={onConnect}
         onReconnect={onReconnect}
         onSelectionChange={onSelectionChange}
+        onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneContextMenu={onPaneContextMenu}

@@ -142,6 +142,9 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
         // visible en vez de desaparecer.
         NodeShape::Table => table_primitives(0, w, h),
 
+        // El texto suelto no tiene contorno: es solo su etiqueta.
+        NodeShape::Text => Vec::new(),
+
         NodeShape::Rectangle => vec![Primitive::Rect {
             x: r(i),
             y: r(i),
@@ -312,8 +315,8 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
     }
 }
 
-/// Formas de contorno fijo, las que dibuja `primitives`. La tabla queda
-/// fuera a proposito: su contorno depende de los datos.
+/// Formas de contorno fijo, las que dibuja `primitives`. Quedan fuera la
+/// tabla, cuyo contorno depende de los datos, y el texto, que no tiene.
 pub const ALL_SHAPES: [NodeShape; 8] = [
     NodeShape::Rectangle,
     NodeShape::RoundedRect,
@@ -405,6 +408,11 @@ mod tests {
 
         assert!(matches!(p[0], Primitive::Circle { .. }));
         assert!(matches!(p[1], Primitive::Line { .. }));
+    }
+
+    #[test]
+    fn el_texto_suelto_no_dibuja_contorno() {
+        assert!(primitives(NodeShape::Text, 160.0, 40.0).is_empty());
     }
 
     #[test]

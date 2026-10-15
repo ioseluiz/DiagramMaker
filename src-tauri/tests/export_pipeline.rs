@@ -499,3 +499,67 @@ fn el_er_tambien_se_exporta_a_los_tres_formatos() {
         std::fs::write(dir.join("er.png"), &png).unwrap();
     }
 }
+
+/* --- ER con grupo, color y texto suelto ---------------------------------- */
+
+/// Comprueba que las tres cosas que se pueden anadir a un ER —encerrar tablas
+/// en un grupo, pintarlas y escribir texto suelto— llegan al SVG exportado.
+#[test]
+fn un_er_con_grupo_color_y_texto_se_exporta_entero() {
+    use diagrammaker_lib::model::{Node, NodeShape, Rect};
+
+    let imported = diagrammaker_lib::parse::dbml::import(ESQUEMA_DBML, 0);
+    let mut doc = imported.document;
+    place_tables(&mut doc);
+
+    // Un grupo que encierra las dos primeras tablas.
+    let mut group = Node::new("g1", "Ventas", NodeShape::Package);
+    group.geometry = Some(Rect::new(16.0, 14.0, 640.0, 220.0));
+    for node in doc.nodes.iter_mut().take(2) {
+        node.parent = Some("g1".into());
+    }
+    doc.nodes.insert(0, group);
+
+    // Color en una tabla y una anotacion suelta.
+    doc.nodes[1].style.fill = Some("rgb(37 99 235 / 0.16)".into());
+
+    let mut note = Node::new("txt", "Esquema provisional", NodeShape::Text);
+    note.geometry = Some(Rect::new(40.0, 300.0, 220.0, 24.0));
+    doc.nodes.push(note);
+
+    let mut labels = HashMap::new();
+    labels.insert("g1".to_string(), label("Ventas", 12.0, LabelPlacement::Tab));
+    labels.insert(
+        "txt".to_string(),
+        label("Esquema provisional", 13.0, LabelPlacement::Center),
+    );
+
+    let input = RenderInput {
+        document: doc,
+        labels,
+        edges: HashMap::new(),
+        theme: theme(),
+        options: ExportOptions::default(),
+    };
+
+    let out = svg::render(&input);
+
+    assert!(out.contains("Ventas"), "falta el nombre del grupo");
+    assert!(out.contains("Esquema provisional"), "falta el texto suelto");
+    assert!(
+        out.contains("rgb(37 99 235 / 0.16)"),
+        "falta el color de la tabla"
+    );
+
+    // El texto suelto no dibuja contorno: su grupo va vacio de formas.
+    let texto = group_of(&out, "translate(40 300)");
+    assert!(
+        !texto.contains("<rect") && !texto.contains("<path"),
+        "el texto suelto no deberia llevar contorno:\n{texto}"
+    );
+
+    assert!(
+        painted_pixels(&raster::to_png(&out, 1.0).unwrap()) > 5_000,
+        "el PNG salio practicamente vacio"
+    );
+}

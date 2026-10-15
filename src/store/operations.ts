@@ -544,3 +544,119 @@ export function reverseEdge(draft: Document, edgeId: string): void {
   edge.source = target;
   edge.target = source;
 }
+
+/** Fija o quita el relleno de un nodo. `null` devuelve el color del tema. */
+export function setNodeFill(
+  draft: Document,
+  nodeId: string,
+  fill: string | null,
+): void {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  if (node) node.style = { ...node.style, fill: fill ?? undefined };
+}
+
+/* --- Agrupar y desagrupar ------------------------------------------------ */
+
+/** Hueco entre el borde del grupo y lo que contiene. */
+const GROUP_PADDING = 24;
+/** Alto de la solapa del paquete; espejo de `shape_geometry.rs`. */
+const GROUP_TAB_HEIGHT = 22;
+
+/**
+ * Envuelve los nodos indicados en un contenedor.
+ *
+ * Solo toma los que estan en la raiz: mover a un grupo un nodo que ya vive
+ * dentro de otro lo sacaria de su sitio sin haberlo pedido.
+ */
+export function groupNodes(
+  draft: Document,
+  nodeIds: readonly string[],
+  label = "grupo",
+): string | null {
+  const members = draft.nodes.filter(
+    (n) => nodeIds.includes(n.id) && !n.parent && n.geometry,
+  );
+  if (members.length === 0) return null;
+
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+
+  for (const node of members) {
+    const g = node.geometry!;
+    left = Math.min(left, g.x);
+    top = Math.min(top, g.y);
+    right = Math.max(right, g.x + g.width);
+    bottom = Math.max(bottom, g.y + g.height);
+  }
+
+  const id = newId("g");
+  const node: Node = {
+    id,
+    label,
+    shape: "package",
+    pinned: true,
+    style: {},
+    data: { type: "plain" },
+    geometry: {
+      x: left - GROUP_PADDING,
+      // Arriba hace falta sitio extra: la solapa lleva el nombre del grupo.
+      y: top - GROUP_PADDING - GROUP_TAB_HEIGHT,
+      width: right - left + GROUP_PADDING * 2,
+      height: bottom - top + GROUP_PADDING * 2 + GROUP_TAB_HEIGHT,
+    },
+  };
+
+  // El contenedor va primero: el lienzo y el exportador esperan ver al padre
+  // antes que a sus hijos.
+  draft.nodes.unshift(node);
+  for (const member of members) member.parent = id;
+
+  return id;
+}
+
+/** Saca a los hijos de un contenedor y lo elimina. */
+export function ungroupNode(draft: Document, groupId: string): void {
+  const group = draft.nodes.find((n) => n.id === groupId);
+  if (!group) return;
+
+  const parent = group.parent;
+  for (const node of draft.nodes) {
+    // Los hijos suben un nivel: al contenedor del grupo, o a la raiz.
+    if (node.parent === groupId) node.parent = parent;
+  }
+
+  draft.nodes = draft.nodes.filter((n) => n.id !== groupId);
+  draft.edges = draft.edges.filter(
+    (e) => e.source.node !== groupId && e.target.node !== groupId,
+  );
+}
+
+/**
+ * Cambia el contenedor de un nodo. `null` lo devuelve a la raiz.
+ *
+ * Rechaza meter un nodo dentro de si mismo o de su propia descendencia: eso
+ * produciria un ciclo de anidamiento, que es justo lo que `validate` marca
+ * como error y lo que cuelga al auto-layout jerarquico.
+ */
+export function setNodeParent(
+  draft: Document,
+  nodeId: string,
+  parentId: string | null,
+): void {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  if (!node || nodeId === parentId) return;
+
+  if (parentId) {
+    if (!draft.nodes.some((n) => n.id === parentId)) return;
+
+    let cursor: string | undefined = parentId;
+    for (let guard = 0; cursor && guard <= draft.nodes.length; guard++) {
+      if (cursor === nodeId) return;
+      cursor = draft.nodes.find((n) => n.id === cursor)?.parent ?? undefined;
+    }
+  }
+
+  node.parent = parentId ?? undefined;
+}

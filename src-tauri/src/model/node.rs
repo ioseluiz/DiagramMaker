@@ -19,6 +19,8 @@ pub enum NodeShape {
     Note,
     Package,
     Actor,
+    /// Texto suelto, sin recuadro: una anotacion sobre el lienzo.
+    Text,
     /// Tabla de un diagrama entidad-relacion: cabecera mas una fila por
     /// columna. Su contorno depende de cuantas columnas tenga, no solo de la
     /// caja, asi que se dibuja aparte del resto de formas.

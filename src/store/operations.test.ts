@@ -9,23 +9,26 @@ import {
   addTable,
   connect,
   duplicateNode,
+  groupNodes,
   moveColumn,
-  relationKindOf,
-  removeColumn,
-  reverseEdge,
-  setRelationKind,
-  setTableAlias,
-  setTableNote,
-  updateColumn,
   moveNode,
   newId,
   reconnect,
+  relationKindOf,
+  removeColumn,
   removeElements,
   resizeNode,
+  reverseEdge,
   setEdgeKind,
   setEndpointLabel,
   setEndpointSide,
   setLabel,
+  setNodeParent,
+  setRelationKind,
+  setTableAlias,
+  setTableNote,
+  ungroupNode,
+  updateColumn,
 } from "./operations";
 
 function emptyDoc(): Document {
@@ -883,5 +886,183 @@ describe("reverseEdge", () => {
     });
 
     expect(doc.edges[0]).toEqual(base.edges[0]);
+  });
+});
+
+describe("agrupar y desagrupar", () => {
+  function twoNodes() {
+    const ids = { a: "", b: "" };
+    const doc = run(emptyDoc(), (d) => {
+      ids.a = addNode(d, { shape: "rectangle", x: 100, y: 100 });
+      ids.b = addNode(d, { shape: "rectangle", x: 400, y: 300 });
+    });
+    return { doc, ids };
+  }
+
+  it("el grupo envuelve a sus miembros con margen", () => {
+    const { doc: base, ids } = twoNodes();
+
+    let groupId: string | null = "";
+    const doc = run(base, (d) => {
+      groupId = groupNodes(d, [ids.a, ids.b]);
+    });
+
+    const group = doc.nodes.find((n) => n.id === groupId)!;
+    const g = group.geometry!;
+
+    // Miembros: de (100,100) a (560,360). El grupo tiene que pasarse por fuera.
+    expect(g.x).toBeLessThan(100);
+    expect(g.y).toBeLessThan(100);
+    expect(g.x + g.width).toBeGreaterThan(560);
+    expect(g.y + g.height).toBeGreaterThan(360);
+  });
+
+  it("deja sitio arriba para la solapa con el nombre", () => {
+    const { doc: base, ids } = twoNodes();
+
+    let groupId: string | null = "";
+    const doc = run(base, (d) => {
+      groupId = groupNodes(d, [ids.a, ids.b]);
+    });
+
+    const g = doc.nodes.find((n) => n.id === groupId)!.geometry!;
+    // Por arriba se reserva mas hueco que por los lados.
+    expect(100 - g.y).toBeGreaterThan(g.x === 0 ? 0 : 100 - g.x);
+  });
+
+  it("el contenedor aparece antes que sus hijos", () => {
+    const { doc: base, ids } = twoNodes();
+
+    const doc = run(base, (d) => void groupNodes(d, [ids.a, ids.b]));
+
+    expect(doc.nodes[0]!.shape).toBe("package");
+  });
+
+  it("los miembros quedan colgando del grupo", () => {
+    const { doc: base, ids } = twoNodes();
+
+    let groupId: string | null = "";
+    const doc = run(base, (d) => {
+      groupId = groupNodes(d, [ids.a, ids.b]);
+    });
+
+    expect(doc.nodes.filter((n) => n.parent === groupId)).toHaveLength(2);
+  });
+
+  it("no se lleva nodos que ya viven en otro grupo", () => {
+    let pkg = "";
+    let dentro = "";
+    let fuera = "";
+    const base = run(emptyDoc(), (d) => {
+      pkg = addNode(d, { shape: "package", x: 0, y: 0 });
+      dentro = addNode(d, { shape: "rectangle", x: 20, y: 20, parent: pkg });
+      fuera = addNode(d, { shape: "rectangle", x: 500, y: 20 });
+    });
+
+    const doc = run(base, (d) => void groupNodes(d, [dentro, fuera]));
+
+    // `dentro` sigue en su paquete original.
+    expect(doc.nodes.find((n) => n.id === dentro)!.parent).toBe(pkg);
+  });
+
+  it("agrupar sin nada seleccionado no crea nada", () => {
+    const base = emptyDoc();
+
+    expect(run(base, (d) => void groupNodes(d, []))).toEqual(base);
+  });
+
+  it("desagrupar sube a los hijos y borra el contenedor", () => {
+    const { doc: base, ids } = twoNodes();
+    let groupId: string | null = "";
+    const agrupado = run(base, (d) => {
+      groupId = groupNodes(d, [ids.a, ids.b]);
+    });
+
+    const doc = run(agrupado, (d) => ungroupNode(d, groupId!));
+
+    expect(doc.nodes).toHaveLength(2);
+    expect(doc.nodes.every((n) => !n.parent)).toBe(true);
+  });
+
+  it("desagrupar un grupo anidado sube a los hijos un solo nivel", () => {
+    let externo = "";
+    let interno = "";
+    let hoja = "";
+    const base = run(emptyDoc(), (d) => {
+      externo = addNode(d, { shape: "package", x: 0, y: 0 });
+      interno = addNode(d, { shape: "package", x: 10, y: 10, parent: externo });
+      hoja = addNode(d, { shape: "rectangle", x: 20, y: 20, parent: interno });
+    });
+
+    const doc = run(base, (d) => ungroupNode(d, interno));
+
+    expect(doc.nodes.find((n) => n.id === hoja)!.parent).toBe(externo);
+  });
+
+  it("el documento resultante sigue siendo coherente", () => {
+    const { doc: base, ids } = twoNodes();
+
+    const doc = run(base, (d) => void groupNodes(d, [ids.a, ids.b]));
+
+    // Ningun nodo apunta a un contenedor inexistente.
+    for (const node of doc.nodes) {
+      if (node.parent) {
+        expect(doc.nodes.some((n) => n.id === node.parent)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("setNodeParent", () => {
+  function nested() {
+    const ids = { pkg: "", hijo: "", suelto: "" };
+    const doc = run(emptyDoc(), (d) => {
+      ids.pkg = addNode(d, { shape: "package", x: 0, y: 0 });
+      ids.hijo = addNode(d, { shape: "rectangle", x: 20, y: 20, parent: ids.pkg });
+      ids.suelto = addNode(d, { shape: "rectangle", x: 500, y: 0 });
+    });
+    return { doc, ids };
+  }
+
+  it("mete un nodo suelto en un contenedor", () => {
+    const { doc: base, ids } = nested();
+
+    const doc = run(base, (d) => setNodeParent(d, ids.suelto, ids.pkg));
+
+    expect(doc.nodes.find((n) => n.id === ids.suelto)!.parent).toBe(ids.pkg);
+  });
+
+  it("null lo devuelve a la raiz", () => {
+    const { doc: base, ids } = nested();
+
+    const doc = run(base, (d) => setNodeParent(d, ids.hijo, null));
+
+    expect(doc.nodes.find((n) => n.id === ids.hijo)!.parent).toBeUndefined();
+  });
+
+  it("rechaza meter un nodo dentro de si mismo", () => {
+    const { doc: base, ids } = nested();
+
+    const doc = run(base, (d) => setNodeParent(d, ids.pkg, ids.pkg));
+
+    expect(doc.nodes.find((n) => n.id === ids.pkg)!.parent).toBeUndefined();
+  });
+
+  it("rechaza meter un contenedor dentro de su propio hijo", () => {
+    // Seria un ciclo de anidamiento: `validate` lo marca como error y el
+    // auto-layout jerarquico se colgaria.
+    const { doc: base, ids } = nested();
+
+    const doc = run(base, (d) => setNodeParent(d, ids.pkg, ids.hijo));
+
+    expect(doc.nodes.find((n) => n.id === ids.pkg)!.parent).toBeUndefined();
+  });
+
+  it("rechaza un contenedor inexistente", () => {
+    const { doc: base, ids } = nested();
+
+    const doc = run(base, (d) => setNodeParent(d, ids.suelto, "fantasma"));
+
+    expect(doc.nodes.find((n) => n.id === ids.suelto)!.parent).toBeUndefined();
   });
 });

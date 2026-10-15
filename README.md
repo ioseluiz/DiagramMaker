@@ -57,6 +57,10 @@ con importador de Mermaid (F4).
   y ajenas, unicidad y nulabilidad, agrupadas en contenedores. Se crean desde
   la paleta y se editan en el inspector: añadir, renombrar, reordenar y borrar
   columnas, cambiar su tipo y sus restricciones.
+- **Agrupar, colorear y anotar**: encerrar tablas en un contenedor
+  (seleccionarlas y «Agrupar», o arrastrarlas dentro), pintarlas con una
+  paleta de tintes que funcionan en tema claro y oscuro, y escribir texto
+  suelto sobre el lienzo.
 - **Claves ajenas columna a columna**: cada fila de una tabla tiene su propio
   conector. Arrastrar de una columna a otra declara la relación, marca la FK
   en el lado «muchos» y deja la cardinalidad elegible entre las cuatro de

@@ -40,7 +40,7 @@ const THEME_LABEL: Record<ThemePreference, string> = {
  * cada uno tenga el suyo.
  */
 const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
-  er: ["table", "package", "note"],
+  er: ["table", "package", "note", "text"],
 };
 
 const DEFAULT_PALETTE: NodeShape[] = [
@@ -52,6 +52,7 @@ const DEFAULT_PALETTE: NodeShape[] = [
   "note",
   "package",
   "actor",
+  "text",
 ];
 
 /**
@@ -250,6 +251,12 @@ function ShapeIcon({ shape }: { shape: NodeShape }) {
         <>
           <path d="M3 8 L3 5 L10 5 L10 8" {...common} />
           <rect x="3" y="8" width="18" height="11" {...common} />
+        </>
+      )}
+      {shape === "text" && (
+        <>
+          <path d="M5 7 L5 5 L19 5 L19 7" {...common} />
+          <path d="M12 5 L12 19 M9 19 L15 19" {...common} />
         </>
       )}
       {shape === "table" && (

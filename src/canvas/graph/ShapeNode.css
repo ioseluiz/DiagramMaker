@@ -101,3 +101,16 @@
   border: 1.5px solid var(--accent);
   border-radius: 2px;
 }
+
+/*
+ * El texto suelto no tiene contorno, asi que sin esto un nodo vacio seria
+ * imposible de encontrar y de agarrar. El recuadro punteado solo aparece al
+ * pasar por encima o al seleccionarlo: en reposo tiene que verse como texto
+ * sobre el lienzo, que es lo que es.
+ */
+.react-flow__node:hover .shape-node:has(> .shape-node__body:empty),
+.react-flow__node.selected .shape-node:has(> .shape-node__body:empty) {
+  outline: 1px dashed var(--border-strong);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}

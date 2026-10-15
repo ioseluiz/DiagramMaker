@@ -19,6 +19,8 @@ const DEFAULT_SIZE: Record<NodeShape, readonly [number, number]> = {
   // El tamano real de una tabla sale de sus columnas (`@/model/table`); esto
   // es solo la cabecera, para el instante antes de calcularlo.
   table: [220, 28],
+  // El texto crece con su contenido; esto es el hueco inicial.
+  text: [160, 32],
 };
 
 export function defaultSizeFor(shape: NodeShape): readonly [number, number] {
@@ -38,6 +40,7 @@ export const SHAPE_LABEL: Record<NodeShape, string> = {
   package: "Paquete",
   actor: "Actor",
   table: "Tabla",
+  text: "Texto",
 };
 
 /** Formas que pueden contener a otros nodos. */

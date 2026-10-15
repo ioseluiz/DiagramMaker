@@ -765,3 +765,42 @@
   font-size: 12px;
   resize: vertical;
 }
+
+/* --- Selector de color -------------------------------------------------- */
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.swatches__item {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.swatches__item:hover {
+  border-color: var(--text-muted);
+}
+
+.swatches__item[aria-checked="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* La muestra de "sin color" se marca con una diagonal. */
+.swatches__item[data-empty] {
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 1px),
+    var(--border-strong) calc(50% - 1px),
+    var(--border-strong) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}

@@ -162,6 +162,10 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
     case "table":
       return tablePrimitivesFor(0, w, h);
 
+    // El texto suelto no tiene contorno: es solo su etiqueta.
+    case "text":
+      return [];
+
     case "actor": {
       const cx = w / 2;
       const headR = Math.min(w / 3, h / 6);
