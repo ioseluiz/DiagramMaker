@@ -17,7 +17,7 @@ pub mod style;
 pub mod validate;
 
 pub use diagnostic::{Diagnostic, Report, Severity, Span};
-pub use document::{DiagramKind, Document, LayoutMode, Meta, SCHEMA_VERSION};
+pub use document::{DiagramKind, Document, LayoutDirection, LayoutMode, Meta, SCHEMA_VERSION};
 pub use edge::{Edge, EdgeKind, Endpoint, Routing, Side};
 pub use er::{Cardinality, ErColumn, ErTable};
 pub use geometry::{Point, Rect, Size};

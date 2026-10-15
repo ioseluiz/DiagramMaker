@@ -22,6 +22,7 @@ function emptyDoc(): Document {
     nodes: [],
     edges: [],
     layout: "manual",
+    direction: "right",
   };
 }
 

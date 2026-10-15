@@ -41,6 +41,7 @@ function doc(nodes: Node[], edges: Document["edges"] = []): Document {
     nodes,
     edges,
     layout: "auto",
+    direction: "right",
   };
 }
 
@@ -200,3 +201,38 @@ async function produceAsync(
   await recipe(draft);
   return produce(base, () => draft);
 }
+
+describe("direccion del grafo", () => {
+  it("se la pasa a ELK tal y como la trae el documento", () => {
+    for (const [direction, elk] of [
+      ["right", "RIGHT"],
+      ["left", "LEFT"],
+      ["down", "DOWN"],
+      ["up", "UP"],
+    ] as const) {
+      const graph = __testing.toElkGraph({
+        ...doc([tableNode("a")]),
+        direction,
+      });
+
+      expect(graph.layoutOptions!["elk.direction"], direction).toBe(elk);
+    }
+  });
+
+  it("un diagrama de arriba abajo apila los nodos en vertical", async () => {
+    const vertical = await produceAsync(
+      {
+        ...doc(
+          [tableNode("a", [column("id")]), tableNode("b", [column("id")])],
+          [edge("e1", "a", "b")],
+        ),
+        direction: "down",
+      },
+      applyAutoLayout,
+    );
+
+    const [a, b] = vertical.nodes;
+    // Con direccion `down`, el segundo cae por debajo, no al lado.
+    expect(b!.geometry!.y).toBeGreaterThan(a!.geometry!.y);
+  });
+});

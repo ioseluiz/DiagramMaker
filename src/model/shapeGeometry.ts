@@ -48,6 +48,8 @@ export const ALL_SHAPES: readonly NodeShape[] = [
   "note",
   "package",
   "actor",
+  "hexagon",
+  "parallelogram",
 ];
 
 /** `true` si la primitiva se rellena. Las lineas interiores no. */
@@ -79,6 +81,33 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
           radius: CORNER_RADIUS,
         },
       ];
+
+    // El sesgo se limita a un cuarto del ancho: en una caja estrecha, un
+    // sesgo proporcional al alto se la comeria entera.
+    case "hexagon": {
+      const cut = Math.min(h / 2, w / 4);
+      return [
+        {
+          kind: "path",
+          d:
+            `M ${r(i + cut)} ${r(i)} L ${r(w - i - cut)} ${r(i)} ` +
+            `L ${r(w - i)} ${r(h / 2)} L ${r(w - i - cut)} ${r(h - i)} ` +
+            `L ${r(i + cut)} ${r(h - i)} L ${r(i)} ${r(h / 2)} Z`,
+        },
+      ];
+    }
+
+    case "parallelogram": {
+      const skew = Math.min(h / 2, w / 4);
+      return [
+        {
+          kind: "path",
+          d:
+            `M ${r(i + skew)} ${r(i)} L ${r(w - i)} ${r(i)} ` +
+            `L ${r(w - i - skew)} ${r(h - i)} L ${r(i)} ${r(h - i)} Z`,
+        },
+      ];
+    }
 
     case "ellipse":
       return [

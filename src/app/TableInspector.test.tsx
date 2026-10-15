@@ -18,6 +18,7 @@ function erDocument(): Document {
     nodes: [],
     edges: [],
     layout: "manual",
+    direction: "right",
   };
 }
 

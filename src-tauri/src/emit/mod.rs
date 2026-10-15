@@ -5,6 +5,7 @@
 //! diagrama. Las pruebas de ida y vuelta de cada modulo son las que lo fijan.
 
 pub mod dbml;
+pub mod mermaid;
 
 use crate::model::Document;
 use crate::parse::SourceLanguage;
@@ -13,5 +14,6 @@ use crate::parse::SourceLanguage;
 pub fn emit(language: SourceLanguage, doc: &Document) -> String {
     match language {
         SourceLanguage::Dbml => dbml::emit(doc),
+        SourceLanguage::Mermaid => mermaid::emit(doc),
     }
 }

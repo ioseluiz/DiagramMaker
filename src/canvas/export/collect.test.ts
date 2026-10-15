@@ -30,6 +30,7 @@ function doc(nodes: Node[] = [], edges: Document["edges"] = []): Document {
     nodes,
     edges,
     layout: "manual",
+    direction: "right",
   };
 }
 

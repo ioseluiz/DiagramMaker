@@ -19,10 +19,14 @@ import "./CodePanel.css";
 /** Que lenguaje corresponde a cada tipo de diagrama. */
 const LANGUAGE_BY_KIND: Partial<Record<string, SourceLanguage>> = {
   er: "dbml",
+  architecture: "mermaid",
 };
 
-const EXTENSION: Record<SourceLanguage, string> = { dbml: "dbml" };
-const LANGUAGE_NAME: Record<SourceLanguage, string> = { dbml: "DBML" };
+const EXTENSION: Record<SourceLanguage, string> = { dbml: "dbml", mermaid: "mmd" };
+const LANGUAGE_NAME: Record<SourceLanguage, string> = {
+  dbml: "DBML",
+  mermaid: "Mermaid",
+};
 
 /**
  * Espera antes de regenerar. Arrastrar un nodo produce decenas de cambios por

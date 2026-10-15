@@ -20,7 +20,27 @@ Table posts {
 
 const LANGUAGES: { value: SourceLanguage; label: string }[] = [
   { value: "dbml", label: "DBML (dbdiagram.io)" },
+  { value: "mermaid", label: "Mermaid (flowchart)" },
 ];
+
+const EJEMPLO_MERMAID = `flowchart LR
+  usuario([Cliente])
+
+  subgraph servicios[Servicios]
+    api[API REST]
+    cola{{Cola de eventos}}
+  end
+
+  base[(PostgreSQL)]
+
+  usuario -- HTTPS --> api
+  api --> base
+  api -.-> cola`;
+
+const EJEMPLOS: Record<SourceLanguage, string> = {
+  dbml: EJEMPLO_DBML,
+  mermaid: EJEMPLO_MERMAID,
+};
 
 export interface ImportDialogProps {
   onClose: () => void;
@@ -103,7 +123,7 @@ export function ImportDialog({ onClose }: ImportDialogProps) {
             setSource(e.target.value);
             setDiagnostics([]);
           }}
-          placeholder={EJEMPLO_DBML}
+          placeholder={EJEMPLOS[language]}
           spellCheck={false}
           rows={14}
         />
@@ -126,7 +146,11 @@ export function ImportDialog({ onClose }: ImportDialogProps) {
         {error && <p className="modal__error">{error}</p>}
 
         <div className="modal__actions">
-          <button type="button" onClick={() => setSource(EJEMPLO_DBML)} disabled={busy}>
+          <button
+            type="button"
+            onClick={() => setSource(EJEMPLOS[language])}
+            disabled={busy}
+          >
             Usar ejemplo
           </button>
           <span className="modal__spacer" />

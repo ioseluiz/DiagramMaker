@@ -29,6 +29,7 @@ function doc(kind: DiagramKind): Document {
     nodes: [],
     edges: [],
     layout: "manual",
+    direction: "right",
   };
 }
 
@@ -102,7 +103,9 @@ describe("CodePanel", () => {
   });
 
   it("un tipo de diagrama sin generador lo dice en vez de quedarse vacio", async () => {
-    await mount("architecture");
+    // Entidad-relacion genera DBML y arquitectura genera Mermaid; secuencia
+    // todavia no tiene generador.
+    await mount("sequence");
 
     expect(screen.getByText(/no hay generador de código/i)).toBeInTheDocument();
     expect(emitCode).not.toHaveBeenCalled();

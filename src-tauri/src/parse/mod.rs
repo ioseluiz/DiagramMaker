@@ -9,6 +9,7 @@
 //! costar las veinte tablas que vienen detras.
 
 pub mod dbml;
+pub mod mermaid;
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -48,12 +49,15 @@ impl ImportResult {
 pub enum SourceLanguage {
     /// Sintaxis de dbdiagram.io.
     Dbml,
+    /// `flowchart` / `graph` de Mermaid.
+    Mermaid,
 }
 
 impl SourceLanguage {
     pub fn label(self) -> &'static str {
         match self {
             SourceLanguage::Dbml => "DBML (dbdiagram.io)",
+            SourceLanguage::Mermaid => "Mermaid (flowchart)",
         }
     }
 }
@@ -62,5 +66,6 @@ impl SourceLanguage {
 pub fn import(language: SourceLanguage, source: &str, now_ms: i64) -> ImportResult {
     match language {
         SourceLanguage::Dbml => dbml::import(source, now_ms),
+        SourceLanguage::Mermaid => mermaid::import(source, now_ms),
     }
 }

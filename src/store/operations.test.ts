@@ -40,6 +40,7 @@ function emptyDoc(): Document {
     nodes: [],
     edges: [],
     layout: "auto",
+    direction: "right",
   };
 }
 

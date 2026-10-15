@@ -1,6 +1,7 @@
 import ELK, { type ElkNode, type LayoutOptions } from "elkjs/lib/elk.bundled.js";
 
 import type { Document } from "@/model/generated/Document";
+import type { LayoutDirection } from "@/model/generated/LayoutDirection";
 import { defaultSizeFor } from "@/model/shapes";
 import { tableSize } from "@/model/table";
 
@@ -16,10 +17,17 @@ import { tableSize } from "@/model/table";
 
 const elk = new ELK();
 
-/** Opciones de ELK. Capas de izquierda a derecha, que es como se lee un ER. */
+/** Como llama ELK a cada direccion. */
+const ELK_DIRECTION: Record<LayoutDirection, string> = {
+  right: "RIGHT",
+  left: "LEFT",
+  down: "DOWN",
+  up: "UP",
+};
+
+/** Opciones de ELK. La direccion la pone el documento. */
 const OPTIONS: LayoutOptions = {
   "elk.algorithm": "layered",
-  "elk.direction": "RIGHT",
   "elk.layered.spacing.nodeNodeBetweenLayers": "90",
   "elk.spacing.nodeNode": "48",
   "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
@@ -45,6 +53,11 @@ export function sizeOf(node: Document["nodes"][number]): {
 
 /** Convierte el documento al grafo jerarquico que espera ELK. */
 function toElkGraph(doc: Document): ElkNode {
+  const layoutOptions: LayoutOptions = {
+    ...OPTIONS,
+    "elk.direction": ELK_DIRECTION[doc.direction],
+  };
+
   const byParent = new Map<string | null, ElkNode[]>();
 
   for (const node of doc.nodes) {
@@ -78,7 +91,7 @@ function toElkGraph(doc: Document): ElkNode {
 
   return {
     id: "root",
-    layoutOptions: OPTIONS,
+    layoutOptions,
     children: byParent.get(null) ?? [],
     edges: doc.edges
       // ELK no entiende los bucles sobre un mismo nodo; los coloca mal y

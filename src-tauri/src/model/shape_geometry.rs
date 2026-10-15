@@ -161,6 +161,47 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
             radius: Some(CORNER_RADIUS),
         }],
 
+        // El sesgo del hexagono y del paralelogramo se limita a un cuarto del
+        // ancho: en una caja estrecha, un sesgo proporcional al alto se las
+        // comeria enteras.
+        NodeShape::Hexagon => {
+            let cut = (h / 2.0).min(w / 4.0);
+            vec![Primitive::Path {
+                d: format!(
+                    "M {} {} L {} {} L {} {} L {} {} L {} {} L {} {} Z",
+                    r(i + cut),
+                    r(i),
+                    r(w - i - cut),
+                    r(i),
+                    r(w - i),
+                    r(h / 2.0),
+                    r(w - i - cut),
+                    r(h - i),
+                    r(i + cut),
+                    r(h - i),
+                    r(i),
+                    r(h / 2.0)
+                ),
+            }]
+        }
+
+        NodeShape::Parallelogram => {
+            let skew = (h / 2.0).min(w / 4.0);
+            vec![Primitive::Path {
+                d: format!(
+                    "M {} {} L {} {} L {} {} L {} {} Z",
+                    r(i + skew),
+                    r(i),
+                    r(w - i),
+                    r(i),
+                    r(w - i - skew),
+                    r(h - i),
+                    r(i),
+                    r(h - i)
+                ),
+            }]
+        }
+
         NodeShape::Ellipse => vec![Primitive::Ellipse {
             cx: r(w / 2.0),
             cy: r(h / 2.0),
@@ -317,7 +358,7 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
 
 /// Formas de contorno fijo, las que dibuja `primitives`. Quedan fuera la
 /// tabla, cuyo contorno depende de los datos, y el texto, que no tiene.
-pub const ALL_SHAPES: [NodeShape; 8] = [
+pub const ALL_SHAPES: [NodeShape; 10] = [
     NodeShape::Rectangle,
     NodeShape::RoundedRect,
     NodeShape::Ellipse,
@@ -326,6 +367,8 @@ pub const ALL_SHAPES: [NodeShape; 8] = [
     NodeShape::Note,
     NodeShape::Package,
     NodeShape::Actor,
+    NodeShape::Hexagon,
+    NodeShape::Parallelogram,
 ];
 
 #[cfg(test)]

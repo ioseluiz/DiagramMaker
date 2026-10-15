@@ -35,6 +35,7 @@ function doc(nodes: Node[], edges: Edge[] = []): Document {
     nodes,
     edges,
     layout: "manual",
+    direction: "right",
   };
 }
 

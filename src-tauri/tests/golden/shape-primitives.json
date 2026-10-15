@@ -228,6 +228,50 @@
     ]
   },
   {
+    "shape": "hexagon",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 30.75 0.75 L 129.25 0.75 L 159.25 30 L 129.25 59.25 L 30.75 59.25 L 0.75 30 Z"
+      }
+    ]
+  },
+  {
+    "shape": "hexagon",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 30.75 0.75 L 89.25 0.75 L 119.25 45 L 89.25 89.25 L 30.75 89.25 L 0.75 45 Z"
+      }
+    ]
+  },
+  {
+    "shape": "hexagon",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 10.75 0.75 L 29.25 0.75 L 39.25 40 L 29.25 79.25 L 10.75 79.25 L 0.75 40 Z"
+      }
+    ]
+  },
+  {
+    "shape": "hexagon",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 6.75 0.75 L 17.25 0.75 L 23.25 10 L 17.25 19.25 L 6.75 19.25 L 0.75 10 Z"
+      }
+    ]
+  },
+  {
     "shape": "note",
     "width": 160.0,
     "height": 60.0,
@@ -356,6 +400,50 @@
         "y": 22.75,
         "width": 22.5,
         "height": -3.5
+      }
+    ]
+  },
+  {
+    "shape": "parallelogram",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 30.75 0.75 L 159.25 0.75 L 129.25 59.25 L 0.75 59.25 Z"
+      }
+    ]
+  },
+  {
+    "shape": "parallelogram",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 30.75 0.75 L 119.25 0.75 L 89.25 89.25 L 0.75 89.25 Z"
+      }
+    ]
+  },
+  {
+    "shape": "parallelogram",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 10.75 0.75 L 39.25 0.75 L 29.25 79.25 L 0.75 79.25 Z"
+      }
+    ]
+  },
+  {
+    "shape": "parallelogram",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 6.75 0.75 L 23.25 0.75 L 17.25 19.25 L 0.75 19.25 Z"
       }
     ]
   },

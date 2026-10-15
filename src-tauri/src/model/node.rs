@@ -19,6 +19,10 @@ pub enum NodeShape {
     Note,
     Package,
     Actor,
+    /// Hexagono: preparacion en un diagrama de flujo, sistema externo en C4.
+    Hexagon,
+    /// Paralelogramo: entrada o salida de datos.
+    Parallelogram,
     /// Texto suelto, sin recuadro: una anotacion sobre el lienzo.
     Text,
     /// Tabla de un diagrama entidad-relacion: cabecera mas una fila por

@@ -638,3 +638,124 @@ fn un_cruce_se_marca_con_un_puente() {
         std::fs::write(dir.join("cruce.png"), &png).unwrap();
     }
 }
+
+/* --- Mermaid: del codigo al PNG ------------------------------------------ */
+
+const ARQUITECTURA_MERMAID: &str = r#"
+flowchart LR
+  usuario([Cliente])
+
+  subgraph frontal[Capa publica]
+    web[Portal web]
+  end
+
+  subgraph servicios[Servicios]
+    api[API REST]
+    cola{{Cola de eventos}}
+  end
+
+  base[(PostgreSQL)]
+  pagos[/Pasarela/]
+
+  usuario --> web
+  web -- HTTPS --> api
+  api --> base
+  api -.-> cola
+  api ==> pagos
+"#;
+
+/// Coloca los nodos en una rejilla, respetando el anidamiento. En la
+/// aplicacion lo hace ELK desde el frontend.
+fn place_grid(doc: &mut diagrammaker_lib::model::Document) {
+    use diagrammaker_lib::model::{NodeShape, Rect};
+
+    let mut x = 40.0;
+    for index in 0..doc.nodes.len() {
+        let is_group = doc.nodes[index].shape == NodeShape::Package;
+        let y = if doc.nodes[index].parent.is_some() {
+            150.0
+        } else {
+            40.0
+        };
+
+        doc.nodes[index].geometry = Some(Rect::new(
+            x,
+            y,
+            if is_group { 240.0 } else { 170.0 },
+            if is_group { 200.0 } else { 60.0 },
+        ));
+        x += 270.0;
+    }
+}
+
+#[test]
+fn un_flowchart_de_mermaid_llega_hasta_el_png() {
+    let imported = diagrammaker_lib::parse::mermaid::import(ARQUITECTURA_MERMAID, 0);
+    assert!(
+        imported.ok(),
+        "el Mermaid de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    place_grid(&mut doc);
+
+    let mut labels = HashMap::new();
+    for node in &doc.nodes {
+        let placement = if node.shape == diagrammaker_lib::model::NodeShape::Package {
+            LabelPlacement::Tab
+        } else {
+            LabelPlacement::Center
+        };
+        labels.insert(node.id.clone(), label(&node.label, 13.0, placement));
+    }
+
+    let mut edges = HashMap::new();
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        if let Some(text) = &edge.label {
+            labels.insert(edge.id.clone(), label(text, 11.0, LabelPlacement::Center));
+        }
+    }
+
+    let input = RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+    };
+
+    let out = svg::render(&input);
+
+    for text in ["Cliente", "Portal web", "API REST", "PostgreSQL", "HTTPS"] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    let png = raster::to_png(&out, 1.5).unwrap();
+    assert!(painted_pixels(&png) > 5_000);
+
+    if let Ok(dir) = std::env::var("EXPORT_SAMPLE_DIR") {
+        let dir = std::path::Path::new(&dir);
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("mermaid.png"), &png).unwrap();
+    }
+}

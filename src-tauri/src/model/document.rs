@@ -43,6 +43,22 @@ impl DiagramKind {
     }
 }
 
+/// Hacia donde crece el grafo cuando lo coloca el auto-layout.
+///
+/// Es la direccion de Mermaid (`TD`, `LR`...) y la que recibe ELK. Se guarda
+/// en el documento para que una importacion no la pierda: un diagrama
+/// pensado de arriba abajo leido de izquierda a derecha deja de entenderse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/model/generated/")]
+pub enum LayoutDirection {
+    #[default]
+    Right,
+    Down,
+    Left,
+    Up,
+}
+
 /// Como se decide la posicion de los nodos.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -96,6 +112,9 @@ pub struct Document {
 
     #[serde(default)]
     pub layout: LayoutMode,
+
+    #[serde(default)]
+    pub direction: LayoutDirection,
 }
 
 impl Document {
@@ -113,6 +132,7 @@ impl Document {
             nodes: Vec::new(),
             edges: Vec::new(),
             layout: LayoutMode::default(),
+            direction: LayoutDirection::default(),
         }
     }
 

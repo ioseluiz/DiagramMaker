@@ -42,7 +42,7 @@ const golden = readGolden<GoldenCase[]>("shape-primitives.json");
 const tableGolden = readGolden<TableCase[]>("table-primitives.json");
 
 describe("shapeGeometry contra el fichero dorado de Rust", () => {
-  it("el fichero cubre las ocho formas", () => {
+  it("el fichero cubre todas las formas de contorno fijo", () => {
     expect(new Set(golden.map((c) => c.shape)).size).toBe(ALL_SHAPES.length);
   });
 
