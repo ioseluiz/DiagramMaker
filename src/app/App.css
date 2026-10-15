@@ -74,12 +74,25 @@
   cursor: default;
 }
 
-.toolbar__shape {
+/*
+ * El selector lleva `.toolbar` delante a proposito: `.toolbar button` tiene
+ * mas especificidad que una sola clase, y sin esto el `padding: 0` nunca
+ * ganaba al `padding: 0 10px` de los botones normales.
+ */
+.toolbar .toolbar__shape {
   display: grid;
   place-items: center;
   width: 30px;
   padding: 0;
   color: var(--text-muted);
+}
+
+/*
+ * Un `<svg>` es `inline` por defecto y se apoya en la linea base del texto
+ * del boton, lo que lo subia unos pixeles. En bloque lo centra la rejilla.
+ */
+.toolbar__icon {
+  display: block;
 }
 
 .toolbar__shape:hover:not(:disabled) {

@@ -169,40 +169,59 @@ export function Toolbar() {
   );
 }
 
-/** Miniatura de cada forma para el boton de la paleta. */
+/**
+ * Miniatura de cada forma para el boton de la paleta.
+ *
+ * Todas se dibujan en una rejilla cuadrada de 24x24 y ocupan el mismo
+ * recuadro interior (de 3 a 21 en ambos ejes), de modo que el conjunto se ve
+ * alineado aunque las formas sean muy distintas entre si. Antes el `viewBox`
+ * era 24x20 y se pintaba a 20x17: dos relaciones de aspecto distintas.
+ */
 function ShapeIcon({ shape }: { shape: NodeShape }) {
   const common = {
     fill: "none",
     stroke: "currentColor",
     strokeWidth: 1.5,
+    strokeLinejoin: "round" as const,
+    strokeLinecap: "round" as const,
   };
 
   return (
-    <svg viewBox="0 0 24 20" width="20" height="17" aria-hidden>
-      {shape === "rectangle" && <rect x="2" y="4" width="20" height="12" {...common} />}
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+      focusable="false"
+      className="toolbar__icon"
+    >
+      {shape === "rectangle" && <rect x="3" y="6" width="18" height="12" {...common} />}
       {shape === "roundedRect" && (
-        <rect x="2" y="4" width="20" height="12" rx="4" {...common} />
+        <rect x="3" y="6" width="18" height="12" rx="4" {...common} />
       )}
-      {shape === "ellipse" && <ellipse cx="12" cy="10" rx="10" ry="6" {...common} />}
-      {shape === "diamond" && <path d="M12 3 L22 10 L12 17 L2 10 Z" {...common} />}
+      {shape === "ellipse" && <ellipse cx="12" cy="12" rx="9" ry="6" {...common} />}
+      {shape === "diamond" && <path d="M12 4 L21 12 L12 20 L3 12 Z" {...common} />}
       {shape === "cylinder" && (
         <>
-          <path d="M3 6 A9 3 0 0 1 21 6 L21 14 A9 3 0 0 1 3 14 Z" {...common} />
-          <path d="M3 6 A9 3 0 0 0 21 6" {...common} />
+          <path
+            d="M3 7.5 A9 2.5 0 0 1 21 7.5 L21 16.5 A9 2.5 0 0 1 3 16.5 Z"
+            {...common}
+          />
+          <path d="M3 7.5 A9 2.5 0 0 0 21 7.5" {...common} />
         </>
       )}
-      {shape === "note" && <path d="M3 3 L17 3 L21 7 L21 17 L3 17 Z" {...common} />}
+      {shape === "note" && <path d="M4 5 L17 5 L20 8 L20 19 L4 19 Z" {...common} />}
       {shape === "package" && (
         <>
-          <path d="M2 6 L2 3 L10 3 L10 6" {...common} />
-          <rect x="2" y="6" width="20" height="11" {...common} />
+          <path d="M3 8 L3 5 L10 5 L10 8" {...common} />
+          <rect x="3" y="8" width="18" height="11" {...common} />
         </>
       )}
       {shape === "actor" && (
         <>
-          <circle cx="12" cy="5" r="2.5" {...common} />
+          <circle cx="12" cy="6.5" r="2.5" {...common} />
           <path
-            d="M12 7.5 L12 13 M7 9.5 L17 9.5 M12 13 L8 18 M12 13 L16 18"
+            d="M12 9 L12 15 M7 11.5 L17 11.5 M12 15 L8.5 20 M12 15 L15.5 20"
             {...common}
           />
         </>
