@@ -48,7 +48,8 @@ importar DBML y dibujar diagramas entidad-relación (F3).
   anidamiento circular.
 - Autoguardado de recuperación cada 10 s en el directorio de datos de la
   aplicación. **Nunca escribe sobre el `.dgm` del usuario**: al arrancar
-  ofrece recuperar, no lo hace solo.
+  ofrece recuperar en un aviso flotante, no lo hace solo. Cerrar el aviso no
+  borra nada; para eso está «Descartar».
 - Exportación a SVG, PNG (1× a 4×) y PDF, con margen configurable y fondo
   opcionalmente transparente. También copia el SVG al portapapeles.
 

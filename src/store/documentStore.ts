@@ -63,7 +63,10 @@ export interface DocumentActions {
   autosave(): Promise<void>;
   checkRecovery(): Promise<void>;
   restoreRecovery(): void;
+  /** Borra la copia del disco. */
   discardRecovery(): Promise<void>;
+  /** Solo esconde el aviso; la copia sigue ahi. */
+  dismissRecovery(): void;
 }
 
 export type DocumentStore = DocumentState & DocumentActions;
@@ -249,6 +252,10 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
     } catch (error) {
       set({ error: describe(error) });
     }
+  },
+
+  dismissRecovery() {
+    set({ recovery: null });
   },
 }));
 

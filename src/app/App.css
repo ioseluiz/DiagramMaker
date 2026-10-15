@@ -196,35 +196,6 @@
   cursor: pointer;
 }
 
-/* --- Aviso de recuperacion --------------------------------------------- */
-
-.recovery-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: var(--accent-soft);
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-}
-
-.recovery-banner button {
-  height: 26px;
-  padding: 0 10px;
-  background: var(--surface-0);
-  color: var(--text);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  font: inherit;
-  cursor: pointer;
-}
-
-.recovery-banner__primary {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: var(--accent);
-}
-
 /* --- Menu de recientes -------------------------------------------------- */
 
 .recent-menu {
@@ -436,5 +407,111 @@
 }
 
 .modal__actions .modal__primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, black);
+}
+
+/* --- Aviso de recuperacion --------------------------------------------- */
+
+/*
+ * Flota sobre el lienzo, encima de la barra de estado. No entra en la rejilla
+ * de `.app-shell`, asi que aparecer y desaparecer no reorganiza la ventana.
+ */
+.recovery-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 38px;
+  z-index: 50;
+  width: 236px;
+  padding: 10px 12px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  animation: recovery-toast-in 160ms ease-out;
+}
+
+@keyframes recovery-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recovery-toast {
+    animation: none;
+  }
+}
+
+.recovery-toast__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.recovery-toast__title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.recovery-toast__close {
+  width: 20px;
+  height: 20px;
+  margin: -3px -4px 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.recovery-toast__close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.recovery-toast__detail {
+  margin: 1px 0 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recovery-toast__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.recovery-toast__actions button {
+  height: 24px;
+  padding: 0 10px;
+  background: var(--surface-1);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.recovery-toast__actions button:hover {
+  background: var(--surface-2);
+}
+
+.recovery-toast__actions .recovery-toast__primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.recovery-toast__actions .recovery-toast__primary:hover {
   background: color-mix(in srgb, var(--accent) 88%, black);
 }

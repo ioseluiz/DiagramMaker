@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { GraphCanvas } from "@/canvas/graph/GraphCanvas";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { Inspector } from "./Inspector";
-import { RecoveryBanner } from "./RecoveryBanner";
+import { RecoveryToast } from "./RecoveryToast";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 import { useAutosave } from "./useAutosave";
@@ -29,7 +29,6 @@ export function App() {
   return (
     <div className="app-shell">
       <Toolbar />
-      <RecoveryBanner />
 
       <div className="app-body">
         <main className="app-canvas">
@@ -44,6 +43,8 @@ export function App() {
 
         <Inspector />
       </div>
+
+      <RecoveryToast />
 
       <StatusBar />
     </div>

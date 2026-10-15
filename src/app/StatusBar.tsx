@@ -1,11 +1,7 @@
 import { useEffect } from "react";
 
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
-
-/** Nombre del archivo a partir de su ruta completa. */
-function basename(path: string): string {
-  return path.split(/[\\/]/).pop() ?? path;
-}
+import { basename } from "./time";
 
 export function StatusBar() {
   const doc = useDocumentStore(selectDocument);
