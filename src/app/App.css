@@ -820,3 +820,30 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* --- Pie: version y repositorio ----------------------------------------- */
+
+.status-bar__version {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+.status-bar__repo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 6px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.status-bar__repo:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}

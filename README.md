@@ -130,6 +130,7 @@ se sincronice degrada el build severamente y puede corromperlo.
 | `npm run lint`                                    | ESLint, cero advertencias toleradas                            |
 | `npm run format`                                  | Prettier sobre `src/`                                          |
 | `npm run bindings`                                | Regenera los tipos TypeScript desde Rust (ts-rs)               |
+| `npm run icon`                                    | Regenera los iconos desde `src-tauri/assets/icon.svg`          |
 | `cargo test --manifest-path src-tauri/Cargo.toml` | Pruebas del backend                                            |
 
 ## Arquitectura

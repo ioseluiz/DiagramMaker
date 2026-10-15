@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Icono de la aplicacion.
+
+    Dos cajas unidas por un conector en angulo recto: es lo que hace el
+    programa, dicho con el minimo de trazos. Se dibuja solo con contorno
+    grueso y sin detalle fino porque a 16 px, que es como se ve en la barra
+    de tareas, cualquier matiz desaparece.
+
+    El conector sale del centro del lado derecho de la caja de arriba y
+    termina **en el borde** superior de la de abajo, alineado con su centro.
+    Si lo pasa, el remate redondo asoma dentro de la caja y se ve como un
+    muñon.
+  -->
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="232" ry="232" fill="url(#fondo)"/>
+
+  <g fill="none" stroke="#ffffff" stroke-width="58"
+     stroke-linecap="round" stroke-linejoin="round">
+    <!-- (460,295) es el centro del lado derecho de la caja de arriba;
+         714 es el centro horizontal de la de abajo; 624 su borde superior. -->
+    <path d="M 460 295 H 714 V 624"/>
+
+    <rect x="160" y="190" width="300" height="210" rx="54" ry="54"/>
+    <rect x="564" y="624" width="300" height="210" rx="54" ry="54"/>
+  </g>
+</svg>

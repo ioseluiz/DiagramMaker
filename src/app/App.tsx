@@ -8,6 +8,7 @@ import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 import { useAutosave } from "./useAutosave";
 import { useCanvasToolShortcuts } from "./useCanvasTool";
+import { useWindowTitle } from "./useWindowTitle";
 import "./App.css";
 
 export function App() {
@@ -18,6 +19,7 @@ export function App() {
 
   useAutosave();
   useCanvasToolShortcuts();
+  useWindowTitle();
 
   useEffect(() => {
     // Arrancar con un lienzo en blanco en vez de una pantalla vacia.
