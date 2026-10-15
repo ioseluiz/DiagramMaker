@@ -1,0 +1,478 @@
+[
+  {
+    "shape": "actor",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 80.0,
+        "cy": 10.75,
+        "r": 10.0
+      },
+      {
+        "kind": "line",
+        "d": "M 80 20.75 L 80 40 M 0.75 26.525 L 159.25 26.525 M 80 40 L 0.75 59.25 M 80 40 L 159.25 59.25"
+      }
+    ]
+  },
+  {
+    "shape": "actor",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 60.0,
+        "cy": 15.75,
+        "r": 15.0
+      },
+      {
+        "kind": "line",
+        "d": "M 60 30.75 L 60 60 M 0.75 39.525 L 119.25 39.525 M 60 60 L 0.75 89.25 M 60 60 L 119.25 89.25"
+      }
+    ]
+  },
+  {
+    "shape": "actor",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 20.0,
+        "cy": 14.0833,
+        "r": 13.3333
+      },
+      {
+        "kind": "line",
+        "d": "M 20 27.4167 L 20 53.3333 M 0.75 35.1917 L 39.25 35.1917 M 20 53.3333 L 0.75 79.25 M 20 53.3333 L 39.25 79.25"
+      }
+    ]
+  },
+  {
+    "shape": "actor",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 12.0,
+        "cy": 4.0833,
+        "r": 3.3333
+      },
+      {
+        "kind": "line",
+        "d": "M 12 7.4167 L 12 13.3333 M 0.75 9.1917 L 23.25 9.1917 M 12 13.3333 L 0.75 19.25 M 12 13.3333 L 23.25 19.25"
+      }
+    ]
+  },
+  {
+    "shape": "cylinder",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 12.75 A 79.25 12 0 0 1 159.25 12.75 L 159.25 47.25 A 79.25 12 0 0 1 0.75 47.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 12.75 A 79.25 12 0 0 0 159.25 12.75"
+      }
+    ]
+  },
+  {
+    "shape": "cylinder",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 12.75 A 59.25 12 0 0 1 119.25 12.75 L 119.25 77.25 A 59.25 12 0 0 1 0.75 77.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 12.75 A 59.25 12 0 0 0 119.25 12.75"
+      }
+    ]
+  },
+  {
+    "shape": "cylinder",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 12.75 A 19.25 12 0 0 1 39.25 12.75 L 39.25 67.25 A 19.25 12 0 0 1 0.75 67.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 12.75 A 19.25 12 0 0 0 39.25 12.75"
+      }
+    ]
+  },
+  {
+    "shape": "cylinder",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 5.75 A 11.25 5 0 0 1 23.25 5.75 L 23.25 14.25 A 11.25 5 0 0 1 0.75 14.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 5.75 A 11.25 5 0 0 0 23.25 5.75"
+      }
+    ]
+  },
+  {
+    "shape": "diamond",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 80 0.75 L 159.25 30 L 80 59.25 L 0.75 30 Z"
+      }
+    ]
+  },
+  {
+    "shape": "diamond",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 60 0.75 L 119.25 45 L 60 89.25 L 0.75 45 Z"
+      }
+    ]
+  },
+  {
+    "shape": "diamond",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 20 0.75 L 39.25 40 L 20 79.25 L 0.75 40 Z"
+      }
+    ]
+  },
+  {
+    "shape": "diamond",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 12 0.75 L 23.25 10 L 12 19.25 L 0.75 10 Z"
+      }
+    ]
+  },
+  {
+    "shape": "ellipse",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "ellipse",
+        "cx": 80.0,
+        "cy": 30.0,
+        "rx": 79.25,
+        "ry": 29.25
+      }
+    ]
+  },
+  {
+    "shape": "ellipse",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "ellipse",
+        "cx": 60.0,
+        "cy": 45.0,
+        "rx": 59.25,
+        "ry": 44.25
+      }
+    ]
+  },
+  {
+    "shape": "ellipse",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "ellipse",
+        "cx": 20.0,
+        "cy": 40.0,
+        "rx": 19.25,
+        "ry": 39.25
+      }
+    ]
+  },
+  {
+    "shape": "ellipse",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "ellipse",
+        "cx": 12.0,
+        "cy": 10.0,
+        "rx": 11.25,
+        "ry": 9.25
+      }
+    ]
+  },
+  {
+    "shape": "note",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 0.75 L 141.25 0.75 L 159.25 18.75 L 159.25 59.25 L 0.75 59.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 141.25 0.75 L 141.25 18.75 L 159.25 18.75"
+      }
+    ]
+  },
+  {
+    "shape": "note",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 0.75 L 101.25 0.75 L 119.25 18.75 L 119.25 89.25 L 0.75 89.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 101.25 0.75 L 101.25 18.75 L 119.25 18.75"
+      }
+    ]
+  },
+  {
+    "shape": "note",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 0.75 L 29.25 0.75 L 39.25 10.75 L 39.25 79.25 L 0.75 79.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 29.25 0.75 L 29.25 10.75 L 39.25 10.75"
+      }
+    ]
+  },
+  {
+    "shape": "note",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 0.75 L 17.25 0.75 L 23.25 6.75 L 23.25 19.25 L 0.75 19.25 Z"
+      },
+      {
+        "kind": "line",
+        "d": "M 17.25 0.75 L 17.25 6.75 L 23.25 6.75"
+      }
+    ]
+  },
+  {
+    "shape": "package",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 22.75 L 0.75 0.75 L 72 0.75 L 72 22.75"
+      },
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 22.75,
+        "width": 158.5,
+        "height": 36.5
+      }
+    ]
+  },
+  {
+    "shape": "package",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 22.75 L 0.75 0.75 L 54 0.75 L 54 22.75"
+      },
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 22.75,
+        "width": 118.5,
+        "height": 66.5
+      }
+    ]
+  },
+  {
+    "shape": "package",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 22.75 L 0.75 0.75 L 18 0.75 L 18 22.75"
+      },
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 22.75,
+        "width": 38.5,
+        "height": 56.5
+      }
+    ]
+  },
+  {
+    "shape": "package",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "path",
+        "d": "M 0.75 22.75 L 0.75 0.75 L 10.8 0.75 L 10.8 22.75"
+      },
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 22.75,
+        "width": 22.5,
+        "height": -3.5
+      }
+    ]
+  },
+  {
+    "shape": "rectangle",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 158.5,
+        "height": 58.5
+      }
+    ]
+  },
+  {
+    "shape": "rectangle",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 118.5,
+        "height": 88.5
+      }
+    ]
+  },
+  {
+    "shape": "rectangle",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 38.5,
+        "height": 78.5
+      }
+    ]
+  },
+  {
+    "shape": "rectangle",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 22.5,
+        "height": 18.5
+      }
+    ]
+  },
+  {
+    "shape": "roundedRect",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 158.5,
+        "height": 58.5,
+        "radius": 10.0
+      }
+    ]
+  },
+  {
+    "shape": "roundedRect",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 118.5,
+        "height": 88.5,
+        "radius": 10.0
+      }
+    ]
+  },
+  {
+    "shape": "roundedRect",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 38.5,
+        "height": 78.5,
+        "radius": 10.0
+      }
+    ]
+  },
+  {
+    "shape": "roundedRect",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 22.5,
+        "height": 18.5,
+        "radius": 10.0
+      }
+    ]
+  }
+]

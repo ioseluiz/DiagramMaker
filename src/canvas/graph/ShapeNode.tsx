@@ -1,8 +1,9 @@
 import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import { MIN_NODE_SIZE, defaultSizeFor, labelPlacement } from "@/model/shapes";
 import { nodeStyle } from "@/model/style";
+import { LINE_HEIGHT, fontSizeFor, labelMaxWidth, wrapText } from "@/canvas/text";
 import { ShapeBody } from "./ShapeBody";
 import type { DiagramFlowNode } from "./adapter";
 import "./ShapeNode.css";
@@ -28,6 +29,20 @@ function ShapeNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowN
 
   const style = nodeStyle(node);
   const placement = labelPlacement(node.shape);
+  const fontSize = style.fontSize ?? fontSizeFor(node.shape);
+
+  // El texto se parte aqui, no con CSS: son las mismas lineas que recibe el
+  // exportador, asi que el SVG exportado rompe por donde rompe el lienzo.
+  const lines = useMemo(
+    () =>
+      wrapText(label, {
+        maxWidth: labelMaxWidth(node.shape, w),
+        size: fontSize,
+        bold: style.bold,
+        italic: style.italic,
+      }),
+    [label, node.shape, w, fontSize, style.bold, style.italic],
+  );
 
   return (
     <>
@@ -62,12 +77,17 @@ function ShapeNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowN
           data-placement={placement}
           style={{
             color: style.textColor,
-            fontSize: style.fontSize,
+            fontSize,
+            lineHeight: `${LINE_HEIGHT}px`,
             fontWeight: style.bold ? 600 : undefined,
             fontStyle: style.italic ? "italic" : undefined,
           }}
         >
-          {label}
+          {lines.map((line, index) => (
+            <span key={index} className="shape-node__line">
+              {line.text}
+            </span>
+          ))}
         </span>
       </div>
 

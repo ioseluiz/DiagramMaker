@@ -23,6 +23,10 @@ thiserror = "2"
 ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-dialog = "2"
+# resvg trae usvg, tiny-skia y fontdb; svg2pdf reutiliza ese mismo arbol,
+# asi que PNG y PDF parten del mismo SVG y del mismo motor de texto.
+resvg = "0.48"
+svg2pdf = "0.13"
 
 [dev-dependencies]
 insta = { version = "1", features = ["json", "redactions"] }

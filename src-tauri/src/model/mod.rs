@@ -11,6 +11,7 @@ pub mod document;
 pub mod edge;
 pub mod geometry;
 pub mod node;
+pub mod shape_geometry;
 pub mod style;
 pub mod validate;
 
@@ -19,5 +20,6 @@ pub use document::{DiagramKind, Document, LayoutMode, Meta, SCHEMA_VERSION};
 pub use edge::{Edge, EdgeKind, Endpoint, Routing};
 pub use geometry::{Point, Rect, Size};
 pub use node::{Node, NodeData, NodeShape};
+pub use shape_geometry::{Primitive, primitives};
 pub use style::{EdgeStyle, NodeStyle};
 pub use validate::validate;

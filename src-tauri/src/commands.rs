@@ -9,6 +9,7 @@ use crate::error::AppResult;
 use crate::io;
 use crate::io::workspace::{self, RecentFile, Recovery};
 use crate::model::{DiagramKind, Document, Report, SCHEMA_VERSION, validate};
+use crate::render::{self, RenderInput};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +58,52 @@ pub fn document_save(path: PathBuf, document: Document) -> AppResult<()> {
 #[tauri::command]
 pub fn document_validate(document: Document) -> AppResult<Report> {
     Ok(validate(&document))
+}
+
+/* --- Exportacion -------------------------------------------------------- */
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/model/generated/")]
+pub enum ExportFormat {
+    Svg,
+    Png,
+    Pdf,
+}
+
+impl ExportFormat {
+    pub fn extension(self) -> &'static str {
+        match self {
+            ExportFormat::Svg => "svg",
+            ExportFormat::Png => "png",
+            ExportFormat::Pdf => "pdf",
+        }
+    }
+}
+
+/// SVG como texto, para copiarlo al portapapeles o previsualizarlo.
+#[tauri::command]
+pub fn export_svg(input: RenderInput) -> AppResult<String> {
+    Ok(render::svg::render(&input))
+}
+
+/// Exporta a disco.
+///
+/// Los bytes no cruzan el puente IPC: un PNG a escala 4 de un diagrama grande
+/// son decenas de megabytes, y serializarlos a JSON para que el frontend los
+/// devuelva a Rust no tendria ningun sentido.
+#[tauri::command]
+pub fn export_to_file(input: RenderInput, path: PathBuf, format: ExportFormat) -> AppResult<()> {
+    let svg = render::svg::render(&input);
+
+    let bytes = match format {
+        ExportFormat::Svg => svg.into_bytes(),
+        ExportFormat::Png => render::raster::to_png(&svg, input.options.scale)?,
+        ExportFormat::Pdf => render::pdf::to_pdf(&svg)?,
+    };
+
+    std::fs::write(&path, bytes)?;
+    Ok(())
 }
 
 /* --- Espacio de trabajo: recientes y recuperacion ----------------------- */

@@ -2,6 +2,7 @@ pub mod commands;
 pub mod error;
 pub mod io;
 pub mod model;
+pub mod render;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,6 +15,8 @@ pub fn run() {
             commands::document_open,
             commands::document_save,
             commands::document_validate,
+            commands::export_svg,
+            commands::export_to_file,
             commands::recent_list,
             commands::recent_remember,
             commands::recent_forget,

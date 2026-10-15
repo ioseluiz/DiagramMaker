@@ -17,15 +17,15 @@ Construido con Rust + Tauri 2 y React.
 
 ## Estado
 
-**F1 — documento y lienzo.** Ya se dibuja: crear formas, moverlas,
-redimensionarlas, conectarlas, deshacer y rehacer, guardar y abrir `.dgm`, con
-autoguardado de recuperación y archivos recientes. Falta la exportación (F2).
+**F2 — exportación.** El diagrama ya sale de la aplicación: SVG vectorial, PNG
+a la resolución que elijas y PDF con el texto seleccionable. Lo siguiente es
+importar DBML y dibujar diagramas entidad-relación (F3).
 
 | Fase | Alcance                                              |
 | ---- | ---------------------------------------------------- |
 | F0   | Andamiaje, CI, instaladores ✅                       |
 | F1   | IR del documento, lienzo, undo/redo, persistencia ✅ |
-| F2   | Exportación SVG / PNG / PDF                          |
+| F2   | Exportación SVG / PNG / PDF ✅                       |
 | F3   | Entidad-relación + importador DBML                   |
 | F4   | Arquitectura / C4 + `flowchart` de Mermaid           |
 | F5   | Secuencia (renderizador de carriles propio)          |
@@ -45,6 +45,8 @@ autoguardado de recuperación y archivos recientes. Falta la exportación (F2).
 - Autoguardado de recuperación cada 10 s en el directorio de datos de la
   aplicación. **Nunca escribe sobre el `.dgm` del usuario**: al arrancar
   ofrece recuperar, no lo hace solo.
+- Exportación a SVG, PNG (1× a 4×) y PDF, con margen configurable y fondo
+  opcionalmente transparente. También copia el SVG al portapapeles.
 
 ### Atajos
 
@@ -106,9 +108,24 @@ Dos invariantes que sostienen el diseño:
 1. **El esquema vive en Rust.** `src-tauri/src/model/` es la fuente única de
    verdad; los tipos TypeScript de `src/model/generated/` los genera `ts-rs` y
    **no se editan a mano**. CI falla si quedan desincronizados.
-2. **El SVG se genera en Rust**, a partir del documento más la geometría
-   resuelta — nunca se extrae del DOM. PNG y PDF derivan de ese mismo SVG, así
-   que las tres salidas coinciden por construcción.
+2. **Hay un solo generador de SVG, en Rust.** PNG (resvg) y PDF (svg2pdf)
+   derivan de su salida, así que las tres exportaciones no pueden diferir
+   entre sí.
+
+   Rust no recalcula lo que solo el navegador sabe. Dos cosas llegan medidas
+   desde el lienzo dentro de `RenderInput`:
+
+   - **Las líneas de texto y su ancho.** `src/canvas/text.ts` parte y mide el
+     texto; el lienzo pinta esas líneas y la exportación manda esas mismas.
+     Rust solo las coloca. Es lo que evita que el PNG rompa el texto por otro
+     sitio que la pantalla.
+   - **El trazado de cada arista**, que calcula React Flow con su propio
+     ruteo. Reimplementarlo en Rust daría curvas parecidas, no iguales.
+
+   Lo que sí es matemática pura —el contorno de cada forma— vive en Rust
+   (`model/shape_geometry.rs`). TypeScript lo reimplementa por rendimiento, y
+   un fichero dorado compartido (`tests/golden/shape-primitives.json`) hace
+   fallar una prueba en cuanto las dos versiones divergen.
 
 ### Estructura
 
@@ -119,13 +136,15 @@ src-tauri/src/
   model/          el IR del documento (F1)
   parse/          importadores DBML / Mermaid / PlantUML (F3-F6)
   emit/           generadores de código (F3-F6)
-  render/         svg.rs, raster.rs, pdf.rs (F2)
+  render/         svg.rs (único generador), raster.rs (PNG), pdf.rs
   io/             .dgm versionado, recientes y copia de recuperación
 
 src/
   model/          api.ts (único punto de invoke) + generated/
   store/          history.ts (undo/redo), operations.ts, documentStore.ts
+  canvas/text.ts  medición y partido del texto (lo usan lienzo y exportación)
   canvas/graph/   adapter.ts (IR <-> React Flow), ShapeBody, ShapeNode
+  canvas/export/  recolección de la geometría medida para exportar
   canvas/lane/    renderizador de secuencia (F5)
   layout/         worker de elkjs (F3)
   theme/          tokens de color y preferencia de tema

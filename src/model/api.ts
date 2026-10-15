@@ -3,11 +3,22 @@ import { invoke } from "@tauri-apps/api/core";
 import type { AppInfo } from "./generated/AppInfo";
 import type { DiagramKind } from "./generated/DiagramKind";
 import type { Document } from "./generated/Document";
+import type { ExportFormat } from "./generated/ExportFormat";
 import type { RecentFile } from "./generated/RecentFile";
+import type { RenderInput } from "./generated/RenderInput";
 import type { Recovery } from "./generated/Recovery";
 import type { Report } from "./generated/Report";
 
-export type { AppInfo, DiagramKind, Document, RecentFile, Recovery, Report };
+export type {
+  AppInfo,
+  DiagramKind,
+  Document,
+  ExportFormat,
+  RecentFile,
+  Recovery,
+  RenderInput,
+  Report,
+};
 
 /**
  * Forma de los errores que devuelve el backend (ver `src-tauri/src/error.rs`).
@@ -50,6 +61,25 @@ export function documentSave(path: string, document: Document): Promise<void> {
 
 export function documentValidate(document: Document): Promise<Report> {
   return invoke<Report>("document_validate", { document });
+}
+
+/* --- Exportacion -------------------------------------------------------- */
+
+/** SVG como texto, para el portapapeles o una vista previa. */
+export function exportSvg(input: RenderInput): Promise<string> {
+  return invoke<string>("export_svg", { input });
+}
+
+/**
+ * Exporta a disco. Los bytes no vuelven por el puente IPC: un PNG grande
+ * son decenas de megabytes que no tienen por que pasar por el frontend.
+ */
+export function exportToFile(
+  input: RenderInput,
+  path: string,
+  format: ExportFormat,
+): Promise<void> {
+  return invoke<void>("export_to_file", { input, path, format });
 }
 
 /* --- Espacio de trabajo ------------------------------------------------- */

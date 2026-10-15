@@ -9,6 +9,9 @@ import {
 } from "@/store/documentStore";
 import { addNode } from "@/store/operations";
 import { useTheme, type ThemePreference } from "@/theme/useTheme";
+import { useState } from "react";
+
+import { ExportDialog } from "./ExportDialog";
 import { RecentMenu } from "./RecentMenu";
 import { useDocumentCommands } from "./useDocumentCommands";
 
@@ -62,6 +65,7 @@ export function Toolbar() {
 
   const { createNew, openFile, saveFile } = useDocumentCommands();
   const { preference, setPreference } = useTheme();
+  const [exporting, setExporting] = useState(false);
 
   const addShape = (shape: NodeShape) => {
     const position = nextPosition(doc?.nodes.length ?? 0);
@@ -87,6 +91,14 @@ export function Toolbar() {
           title="Guardar (Ctrl+S)"
         >
           Guardar{dirty ? " •" : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => setExporting(true)}
+          disabled={!doc}
+          title="Exportar a SVG, PNG o PDF"
+        >
+          Exportar
         </button>
       </div>
 
@@ -141,6 +153,8 @@ export function Toolbar() {
           ))}
         </select>
       </label>
+
+      {exporting && <ExportDialog onClose={() => setExporting(false)} />}
     </header>
   );
 }

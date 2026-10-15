@@ -1,0 +1,177 @@
+import type { NodeShape } from "./generated/NodeShape";
+import type { Primitive } from "./generated/Primitive";
+
+/**
+ * Contorno de cada forma, en primitivas SVG.
+ *
+ * Reimplementa `src-tauri/src/model/shape_geometry.rs` porque el lienzo
+ * repinta decenas de nodos por fotograma y no puede cruzar el puente IPC para
+ * cada uno. La duplicacion esta vigilada: `shapeGeometry.test.ts` y
+ * `src-tauri/tests/golden_shapes.rs` comparan ambas implementaciones contra el
+ * mismo `src-tauri/tests/golden/shape-primitives.json`, asi que si una cambia
+ * sin la otra, falla una prueba.
+ *
+ * **Cualquier cambio aqui tiene que hacerse tambien en el lado de Rust.**
+ */
+
+export type { Primitive };
+
+const CORNER_RADIUS = 10;
+/** Alto de la solapa del paquete. */
+const TAB_HEIGHT = 22;
+/** Alto maximo de la tapa eliptica del cilindro. */
+const CYLINDER_LIP = 12;
+
+/**
+ * El trazo se dibuja centrado en el borde, asi que medio grosor se sale de la
+ * caja. Encogiendo este margen por lado, el contorno queda dentro.
+ */
+const INSET = 0.75;
+
+/**
+ * Redondea a 4 decimales. Sin esto, el mismo calculo en Rust y en JavaScript
+ * diverge en el ultimo bit y el fichero dorado deja de coincidir por ruido.
+ */
+function r(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
+}
+
+export const ALL_SHAPES: readonly NodeShape[] = [
+  "rectangle",
+  "roundedRect",
+  "ellipse",
+  "diamond",
+  "cylinder",
+  "note",
+  "package",
+  "actor",
+];
+
+/** `true` si la primitiva se rellena. Las lineas interiores no. */
+export function isFilled(primitive: Primitive): boolean {
+  return primitive.kind !== "line";
+}
+
+/**
+ * Contorno de `shape` dentro de una caja de `w` x `h`, en coordenadas locales
+ * (origen en la esquina superior izquierda de la caja).
+ */
+export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive[] {
+  const i = INSET;
+
+  switch (shape) {
+    case "rectangle":
+      return [
+        { kind: "rect", x: r(i), y: r(i), width: r(w - i * 2), height: r(h - i * 2) },
+      ];
+
+    case "roundedRect":
+      return [
+        {
+          kind: "rect",
+          x: r(i),
+          y: r(i),
+          width: r(w - i * 2),
+          height: r(h - i * 2),
+          radius: CORNER_RADIUS,
+        },
+      ];
+
+    case "ellipse":
+      return [
+        {
+          kind: "ellipse",
+          cx: r(w / 2),
+          cy: r(h / 2),
+          rx: r(w / 2 - i),
+          ry: r(h / 2 - i),
+        },
+      ];
+
+    case "diamond":
+      return [
+        {
+          kind: "path",
+          d:
+            `M ${r(w / 2)} ${r(i)} L ${r(w - i)} ${r(h / 2)} ` +
+            `L ${r(w / 2)} ${r(h - i)} L ${r(i)} ${r(h / 2)} Z`,
+        },
+      ];
+
+    case "cylinder": {
+      const ry = Math.min(CYLINDER_LIP, h / 4);
+      const rx = w / 2 - i;
+      return [
+        {
+          kind: "path",
+          d:
+            `M ${r(i)} ${r(ry + i)} A ${r(rx)} ${r(ry)} 0 0 1 ${r(w - i)} ${r(ry + i)} ` +
+            `L ${r(w - i)} ${r(h - ry - i)} ` +
+            `A ${r(rx)} ${r(ry)} 0 0 1 ${r(i)} ${r(h - ry - i)} Z`,
+        },
+        {
+          kind: "line",
+          d: `M ${r(i)} ${r(ry + i)} A ${r(rx)} ${r(ry)} 0 0 0 ${r(w - i)} ${r(ry + i)}`,
+        },
+      ];
+    }
+
+    case "note": {
+      const fold = Math.min(18, w / 4, h / 3);
+      return [
+        {
+          kind: "path",
+          d:
+            `M ${r(i)} ${r(i)} L ${r(w - fold - i)} ${r(i)} L ${r(w - i)} ${r(fold + i)} ` +
+            `L ${r(w - i)} ${r(h - i)} L ${r(i)} ${r(h - i)} Z`,
+        },
+        {
+          kind: "line",
+          d:
+            `M ${r(w - fold - i)} ${r(i)} L ${r(w - fold - i)} ${r(fold + i)} ` +
+            `L ${r(w - i)} ${r(fold + i)}`,
+        },
+      ];
+    }
+
+    case "package": {
+      const tabWidth = Math.min(w * 0.45, 120);
+      return [
+        {
+          kind: "path",
+          d:
+            `M ${r(i)} ${r(TAB_HEIGHT + i)} L ${r(i)} ${r(i)} ` +
+            `L ${r(tabWidth)} ${r(i)} L ${r(tabWidth)} ${r(TAB_HEIGHT + i)}`,
+        },
+        {
+          kind: "rect",
+          x: r(i),
+          y: r(TAB_HEIGHT + i),
+          width: r(w - i * 2),
+          height: r(h - TAB_HEIGHT - i * 2),
+        },
+      ];
+    }
+
+    case "actor": {
+      const cx = w / 2;
+      const headR = Math.min(w / 3, h / 6);
+      const headCy = headR + i;
+      const neck = headCy + headR;
+      const hip = neck + (h - neck - i) * 0.5;
+      const arms = neck + (hip - neck) * 0.3;
+
+      return [
+        { kind: "circle", cx: r(cx), cy: r(headCy), r: r(headR) },
+        {
+          kind: "line",
+          d:
+            `M ${r(cx)} ${r(neck)} L ${r(cx)} ${r(hip)} ` +
+            `M ${r(i)} ${r(arms)} L ${r(w - i)} ${r(arms)} ` +
+            `M ${r(cx)} ${r(hip)} L ${r(i)} ${r(h - i)} ` +
+            `M ${r(cx)} ${r(hip)} L ${r(w - i)} ${r(h - i)}`,
+        },
+      ];
+    }
+  }
+}
