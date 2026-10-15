@@ -23,7 +23,7 @@ import "./CodePanel.css";
 const LANGUAGES_BY_KIND: Partial<Record<string, SourceLanguage[]>> = {
   er: ["dbml"],
   architecture: ["mermaid", "plantUml"],
-  sequence: ["mermaid"],
+  sequence: ["mermaid", "plantUml"],
 };
 
 const EXTENSION: Record<SourceLanguage, string> = {

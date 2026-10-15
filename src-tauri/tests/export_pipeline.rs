@@ -1141,3 +1141,89 @@ fn una_secuencia_de_mermaid_llega_hasta_el_png() {
 
     check_png(&out, "secuencia-mermaid");
 }
+
+/// El mismo diagrama que `SECUENCIA_MERMAID`, escrito en PlantUML.
+const SECUENCIA_PLANTUML: &str = r#"
+@startuml
+title Compra de un pedido
+actor Cliente
+participant "Portal web" as web
+participant "API de pedidos" as api
+participant "Pasarela" as pago
+
+Cliente -> web ++ : comprar
+note over web, api : todo sobre TLS
+web -> api ++ : POST /pedidos
+api -> api : validar carrito
+alt pago autorizado
+  api -> pago ++ : cobrar
+  pago --> api -- : autorizado
+  api --> web -- : 201 Created
+else rechazado
+  api --> web : 402 Rechazado
+end
+web --> Cliente -- : confirmacion
+api -> pago !! : cerrar sesion
+@enduml
+"#;
+
+/// Resumen de un guion, sin ids: lo que tiene que coincidir entre idiomas.
+fn resumen(steps: &[diagrammaker_lib::model::Step]) -> Vec<String> {
+    use diagrammaker_lib::model::Step;
+
+    steps
+        .iter()
+        .map(|step| match step {
+            Step::Message(m) => format!(
+                "msg {:?} {} {}{}",
+                m.kind,
+                m.text,
+                if m.activate { "+" } else { "" },
+                if m.deactivate { "-" } else { "" }
+            ),
+            Step::Note(n) => format!("note {:?} x{}", n.placement, n.participants.len()),
+            Step::Block(b) => format!(
+                "block {:?} [{}]",
+                b.kind,
+                b.branches
+                    .iter()
+                    .map(|r| format!("{}:{}", r.label, resumen(&r.steps).join("|")))
+                    .collect::<Vec<_>>()
+                    .join(" / ")
+            ),
+        })
+        .collect()
+}
+
+#[test]
+fn el_mismo_diagrama_en_mermaid_y_en_plantuml_da_el_mismo_documento() {
+    // Es la prueba que de verdad valida los dos importadores: no que cada
+    // uno lea algo, sino que los dos lean lo mismo.
+    let de_mermaid = diagrammaker_lib::parse::mermaid::import(SECUENCIA_MERMAID, 0);
+    let de_plantuml = diagrammaker_lib::parse::plantuml::import(SECUENCIA_PLANTUML, 0);
+
+    assert!(de_mermaid.ok(), "{:#?}", de_mermaid.diagnostics);
+    assert!(de_plantuml.ok(), "{:#?}", de_plantuml.diagnostics);
+
+    let (a, b) = (de_mermaid.document, de_plantuml.document);
+
+    assert_eq!(a.kind, b.kind);
+    assert_eq!(a.meta.title, b.meta.title);
+    assert_eq!(
+        a.nodes
+            .iter()
+            .map(|n| (n.label.as_str(), n.shape))
+            .collect::<Vec<_>>(),
+        b.nodes
+            .iter()
+            .map(|n| (n.label.as_str(), n.shape))
+            .collect::<Vec<_>>(),
+        "distintos participantes"
+    );
+
+    assert_eq!(
+        resumen(&a.script.unwrap_or_default().steps),
+        resumen(&b.script.unwrap_or_default().steps),
+        "distinto guion"
+    );
+}

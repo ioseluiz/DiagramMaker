@@ -17,6 +17,8 @@ use std::fmt::Write as _;
 use crate::model::{Document, LayoutDirection, NodeShape};
 use crate::parse::plantuml::{arrow_for, keyword_for};
 
+pub mod sequence;
+
 /// Sangria de cada nivel de bloque.
 const INDENT: &str = "  ";
 

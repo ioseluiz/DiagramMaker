@@ -21,7 +21,7 @@ Table posts {
 const LANGUAGES: { value: SourceLanguage; label: string }[] = [
   { value: "dbml", label: "DBML (dbdiagram.io)" },
   { value: "mermaid", label: "Mermaid (flowchart y secuencia)" },
-  { value: "plantUml", label: "PlantUML (componentes)" },
+  { value: "plantUml", label: "PlantUML (componentes y secuencia)" },
 ];
 
 const EJEMPLO_MERMAID = `flowchart LR
