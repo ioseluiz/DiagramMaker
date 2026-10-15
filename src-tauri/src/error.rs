@@ -12,6 +12,9 @@ pub enum AppError {
 
     #[error("no soportado: {0}")]
     Unsupported(String),
+
+    #[error("error de serializacion: {0}")]
+    Serde(#[from] serde_json::Error),
 }
 
 impl AppError {
@@ -20,6 +23,7 @@ impl AppError {
             AppError::Io(_) => "io",
             AppError::InvalidDocument(_) => "invalidDocument",
             AppError::Unsupported(_) => "unsupported",
+            AppError::Serde(_) => "invalidDocument",
         }
     }
 }

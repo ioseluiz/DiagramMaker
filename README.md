@@ -17,19 +17,44 @@ Construido con Rust + Tauri 2 y React.
 
 ## Estado
 
-**F0 — andamiaje.** El shell de la aplicación arranca, el puente IPC con Rust
-responde y el tema claro/oscuro funciona. El lienzo llega en F1.
+**F1 — documento y lienzo.** Ya se dibuja: crear formas, moverlas,
+redimensionarlas, conectarlas, deshacer y rehacer, guardar y abrir `.dgm`, con
+autoguardado de recuperación y archivos recientes. Falta la exportación (F2).
 
-| Fase | Alcance                                             |
-| ---- | --------------------------------------------------- |
-| F0   | Andamiaje, CI, instaladores ✅                      |
-| F1   | IR del documento, lienzo, undo/redo, persistencia    |
+| Fase | Alcance                                              |
+| ---- | ---------------------------------------------------- |
+| F0   | Andamiaje, CI, instaladores ✅                       |
+| F1   | IR del documento, lienzo, undo/redo, persistencia ✅ |
 | F2   | Exportación SVG / PNG / PDF                          |
 | F3   | Entidad-relación + importador DBML                   |
 | F4   | Arquitectura / C4 + `flowchart` de Mermaid           |
 | F5   | Secuencia (renderizador de carriles propio)          |
 | F6   | Clases, casos de uso, actividad, estado              |
 | F7   | Pulido, plantillas, instalador firmado               |
+
+### Lo que ya funciona
+
+- Ocho formas (rectángulo, redondeado, elipse, rombo, cilindro, nota, paquete,
+  actor) dibujadas en SVG, con anidamiento dentro de paquetes.
+- Ocho tipos de relación con su semántica UML: triángulo hueco para herencia,
+  rombos para composición y agregación, trazo punteado para dependencia.
+- Deshacer y rehacer sobre parches de immer. Un arrastre completo colapsa en
+  un solo paso, no en cien.
+- Validación estructural continua: ids duplicados, aristas colgando,
+  anidamiento circular.
+- Autoguardado de recuperación cada 10 s en el directorio de datos de la
+  aplicación. **Nunca escribe sobre el `.dgm` del usuario**: al arrancar
+  ofrece recuperar, no lo hace solo.
+
+### Atajos
+
+| Atajo                  | Acción             |
+| ---------------------- | ------------------ |
+| `Ctrl+N`               | Nuevo              |
+| `Ctrl+O`               | Abrir              |
+| `Ctrl+S` / `Ctrl+Shift+S` | Guardar / Guardar como |
+| `Ctrl+Z` / `Ctrl+Shift+Z` | Deshacer / Rehacer |
+| `Supr`                 | Borrar la selección |
 
 ## Requisitos
 
@@ -95,12 +120,12 @@ src-tauri/src/
   parse/          importadores DBML / Mermaid / PlantUML (F3-F6)
   emit/           generadores de código (F3-F6)
   render/         svg.rs, raster.rs, pdf.rs (F2)
-  io/             .dgm, autosave, recientes (F1)
+  io/             .dgm versionado, recientes y copia de recuperación
 
 src/
   model/          api.ts (único punto de invoke) + generated/
-  store/          estado y undo/redo (F1)
-  canvas/graph/   nodos y aristas de React Flow (F1)
+  store/          history.ts (undo/redo), operations.ts, documentStore.ts
+  canvas/graph/   adapter.ts (IR <-> React Flow), ShapeBody, ShapeNode
   canvas/lane/    renderizador de secuencia (F5)
   layout/         worker de elkjs (F3)
   theme/          tokens de color y preferencia de tema

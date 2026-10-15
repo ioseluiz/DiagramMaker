@@ -4,38 +4,98 @@
   height: 100%;
 }
 
-.app-bar,
-.status-bar {
+.app-body {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  min-height: 0;
+}
+
+.app-canvas {
+  position: relative;
+  min-width: 0;
+  background: var(--canvas-bg);
+}
+
+.app-placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 32px;
+  max-width: 48ch;
+  margin: 0 auto;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* --- Barra de herramientas -------------------------------------------- */
+
+.toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  height: 44px;
   padding: 0 12px;
   background: var(--surface-0);
   border-bottom: 1px solid var(--border);
 }
 
-.app-bar {
-  height: 40px;
+.toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.status-bar {
-  height: 26px;
-  border-bottom: none;
-  border-top: 1px solid var(--border);
+.toolbar__group + .toolbar__group::before {
+  content: "";
+  width: 1px;
+  height: 20px;
+  margin-right: 12px;
+  background: var(--border);
+}
+
+.toolbar button {
+  height: 28px;
+  padding: 0 10px;
+  background: var(--surface-1);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar button:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+.toolbar button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.toolbar__shape {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  padding: 0;
   color: var(--text-muted);
-  font-size: 12px;
 }
 
-.app-bar__title {
-  font-weight: 600;
-  letter-spacing: 0.01em;
+.toolbar__shape:hover:not(:disabled) {
+  color: var(--accent);
 }
 
-.app-bar__spacer {
+.toolbar__spacer {
   flex: 1;
 }
 
-.app-bar__field {
+.toolbar__kind {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.toolbar__field {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -43,57 +103,198 @@
   font-size: 12px;
 }
 
-.app-bar__field select {
-  background: var(--surface-2);
+.toolbar__field select,
+.inspector select,
+.inspector input {
+  background: var(--surface-1);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 3px 6px;
+  padding: 4px 6px;
   font: inherit;
 }
 
-.app-main {
-  overflow: auto;
-  background: var(--canvas-bg);
-  display: grid;
-  place-items: center;
-}
+/* --- Inspector --------------------------------------------------------- */
 
-.placeholder {
-  max-width: 54ch;
-  padding: 32px;
-  text-align: center;
-}
-
-.placeholder h1 {
-  margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.placeholder p {
-  margin: 0 0 20px;
-  color: var(--text-muted);
-}
-
-.kv {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  margin: 0;
+.inspector {
+  width: 260px;
   padding: 12px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  text-align: left;
-  font-size: 12px;
+  background: var(--surface-0);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
 }
 
-.kv dt {
+.inspector__title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-faint);
 }
 
-.kv dd {
-  margin: 0;
+.inspector__field {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.inspector__label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.inspector__readonly {
+  padding: 4px 0;
   font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.inspector__hint {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* --- Barra de estado --------------------------------------------------- */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 26px;
+  padding: 0 12px;
+  background: var(--surface-0);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.status-bar__spacer {
+  flex: 1;
+}
+
+.status-bar__file {
+  color: var(--text);
+}
+
+.status-bar__problem {
+  color: var(--warning);
+  cursor: help;
+}
+
+.status-bar__error {
+  max-width: 50ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  color: var(--danger);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- Aviso de recuperacion --------------------------------------------- */
+
+.recovery-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.recovery-banner button {
+  height: 26px;
+  padding: 0 10px;
+  background: var(--surface-0);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.recovery-banner__primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+/* --- Menu de recientes -------------------------------------------------- */
+
+.recent-menu {
+  position: relative;
+}
+
+.recent-menu__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  width: 340px;
+  max-height: 60vh;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  overflow-y: auto;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}
+
+.recent-menu__list li {
+  display: flex;
+  align-items: center;
+}
+
+.recent-menu__item {
+  flex: 1;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  height: auto;
+  padding: 5px 8px;
+  background: none;
+  border: none;
+  text-align: left;
+}
+
+.recent-menu__item:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.recent-menu__name {
+  font-size: 13px;
+}
+
+.recent-menu__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.recent-menu__forget {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.recent-menu__forget:hover {
+  color: var(--danger);
+  background: none;
 }
