@@ -9,7 +9,9 @@
 }
 
 .context-menu__item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   height: 26px;
   padding: 0 8px;
@@ -41,4 +43,15 @@
   margin-top: 5px;
   border-top: 1px solid var(--border);
   padding-top: 0;
+}
+
+/*
+ * La marca de seleccion ocupa su hueco siempre, tambien cuando esta vacia:
+ * si no, las opciones bailarian horizontalmente al cambiar cual esta activa.
+ */
+.context-menu__check {
+  flex-shrink: 0;
+  width: 10px;
+  color: var(--accent);
+  font-size: 11px;
 }

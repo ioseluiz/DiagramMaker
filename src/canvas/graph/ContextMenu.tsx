@@ -14,6 +14,8 @@ export interface MenuItem {
   onSelect: () => void;
   /** Dibuja una linea encima para separar grupos. */
   separated?: boolean;
+  /** Marca la opcion que corresponde al estado actual. */
+  checked?: boolean;
   danger?: boolean;
   disabled?: boolean;
 }
@@ -26,7 +28,7 @@ export interface ContextMenuProps {
 }
 
 /** Tamano estimado para decidir si el menu cabe donde se pidio. */
-const WIDTH = 190;
+const WIDTH = 210;
 const ITEM_HEIGHT = 28;
 const MARGIN = 8;
 
@@ -70,16 +72,20 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         <button
           key={index}
           type="button"
-          role="menuitem"
+          // `aria-checked` solo vale en un item de tipo radio o casilla; en
+          // un `menuitem` a secas lo ignoran los lectores de pantalla.
+          role={item.checked === undefined ? "menuitem" : "menuitemradio"}
           className="context-menu__item"
           data-separated={item.separated || undefined}
           data-danger={item.danger || undefined}
+          aria-checked={item.checked}
           disabled={item.disabled}
           onClick={() => {
             item.onSelect();
             onClose();
           }}
         >
+          <span className="context-menu__check">{item.checked ? "✓" : ""}</span>
           {item.label}
         </button>
       ))}

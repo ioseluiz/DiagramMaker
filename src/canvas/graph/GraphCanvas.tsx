@@ -19,14 +19,18 @@ import "@xyflow/react/dist/style.css";
 import type { Document } from "@/model/generated/Document";
 import { useDocumentStore } from "@/store/documentStore";
 import {
+  RELATION_LABELS,
   addColumn,
   connect,
   duplicateNode,
   moveNode,
   reconnect,
+  relationKindOf,
   removeElements,
   resizeNode,
   reverseEdge,
+  setRelationKind,
+  type RelationKind,
 } from "@/store/operations";
 import { erTableOf } from "@/model/table";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
@@ -45,6 +49,13 @@ const SNAP: [number, number] = [8, 8];
 
 /** Boton central del raton, el unico que desplaza el lienzo al arrastrar. */
 const MIDDLE_BUTTON = [1];
+
+const CARDINALITY_LABEL: Record<RelationKind, string> = {
+  manyToOne: "Muchos a uno",
+  oneToMany: "Uno a muchos",
+  oneToOne: "Uno a uno",
+  manyToMany: "Muchos a muchos",
+};
 
 export interface GraphCanvasProps {
   document: Document;
@@ -201,24 +212,43 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
     (event: React.MouseEvent, flowEdge: { id: string }) => {
       event.preventDefault();
 
-      setMenu({
-        x: event.clientX,
-        y: event.clientY,
-        items: [
-          {
-            label: "Invertir sentido",
-            onSelect: () => edit("invertir", (d) => reverseEdge(d, flowEdge.id)),
-          },
-          {
-            label: "Borrar",
-            separated: true,
-            danger: true,
-            onSelect: () => edit("borrar", (d) => removeElements(d, [flowEdge.id])),
-          },
-        ],
+      const relation = document.edges.find((e) => e.id === flowEdge.id);
+      if (!relation) return;
+
+      const items: MenuItem[] = [];
+
+      // En un entidad-relacion, cambiar la cardinalidad es lo que mas se hace
+      // sobre una relacion ya creada; tenerlo aqui ahorra ir al inspector.
+      if (document.kind === "er") {
+        const current = relationKindOf(relation);
+
+        for (const kind of Object.keys(RELATION_LABELS) as RelationKind[]) {
+          const [from, to] = RELATION_LABELS[kind];
+          items.push({
+            label: `${CARDINALITY_LABEL[kind]}  (${from} → ${to})`,
+            checked: kind === current,
+            onSelect: () =>
+              edit("cardinalidad", (d) => setRelationKind(d, relation.id, kind)),
+          });
+        }
+      }
+
+      items.push({
+        label: "Invertir sentido",
+        separated: items.length > 0,
+        onSelect: () => edit("invertir", (d) => reverseEdge(d, relation.id)),
       });
+
+      items.push({
+        label: "Borrar",
+        separated: true,
+        danger: true,
+        onSelect: () => edit("borrar", (d) => removeElements(d, [relation.id])),
+      });
+
+      setMenu({ x: event.clientX, y: event.clientY, items });
     },
-    [edit],
+    [document, edit],
   );
 
   const onPaneContextMenu = useCallback(
