@@ -43,10 +43,15 @@ const ROW_SIDES = [
 function TableNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowNode>) {
   const { node } = data;
   const table = erTableOf(node);
-  const fallback = tableSize(node);
 
-  const w = width ?? node.geometry?.width ?? fallback.width;
-  const h = height ?? node.geometry?.height ?? fallback.height;
+  // `tableSize` mide texto; solo se llama si de verdad falta algun tamano.
+  const knownWidth = width ?? node.geometry?.width;
+  const knownHeight = height ?? node.geometry?.height;
+  const fallback =
+    knownWidth === undefined || knownHeight === undefined ? tableSize(node) : null;
+
+  const w = knownWidth ?? fallback!.width;
+  const h = knownHeight ?? fallback!.height;
   const style = nodeStyle(node);
 
   const columns = table?.columns ?? [];

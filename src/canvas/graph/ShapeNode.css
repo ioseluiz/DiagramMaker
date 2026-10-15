@@ -78,6 +78,12 @@
   background: var(--surface-0);
   border: 1.5px solid var(--accent);
   opacity: 0;
+  /*
+   * Invisible **y** intangible. Con `opacity: 0` a secas el conector seguia
+   * capturando el raton, asi que pulsar cerca del borde de una fila no
+   * seleccionaba la tabla: empezaba una conexion.
+   */
+  pointer-events: none;
   transition: opacity 120ms ease;
 }
 
@@ -86,6 +92,7 @@
 .react-flow__node.selected .shape-node__handle,
 .react-flow__node:hover .shape-node__handle {
   opacity: 1;
+  pointer-events: all;
 }
 
 /* --- Redimensionado ---------------------------------------------------- */

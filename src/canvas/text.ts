@@ -33,6 +33,23 @@ function measureContext(): CanvasRenderingContext2D | null {
   return context;
 }
 
+/**
+ * Cache de anchos ya medidos.
+ *
+ * El lienzo mide el mismo texto una y otra vez: cada repintado de una tabla
+ * pregunta por el nombre y el tipo de todas sus columnas. `measureText` no es
+ * gratis, y con una decena de tablas eso son cientos de llamadas por
+ * fotograma.
+ *
+ * La clave no incluye la familia tipografica porque `--font-diagram` es fija
+ * y no cambia con el tema. El dia que se pueda elegir, la cache hay que
+ * vaciarla al cambiarla o devolvera medidas de la anterior.
+ */
+const widths = new Map<string, number>();
+
+/** Mas alla de esto la cache se vacia; un diagrama no tiene tanto texto. */
+const CACHE_LIMIT = 4_000;
+
 /** Familia tipografica efectiva del diagrama, resuelta desde el tema. */
 export function diagramFontFamily(): string {
   const value = getComputedStyle(document.documentElement)
@@ -53,14 +70,23 @@ export function measureWidth(
   bold = false,
   italic = false,
 ) {
+  if (text === "") return 0;
+
+  const key = `${size}|${bold ? 1 : 0}${italic ? 1 : 0}|${text}`;
+  const cached = widths.get(key);
+  if (cached !== undefined) return cached;
+
   const ctx = measureContext();
-  if (!ctx) {
-    // Sin canvas (jsdom, por ejemplo) una estimacion basta: lo unico que
-    // depende de esto es el ancho, y no hay nada que dibujar.
-    return text.length * size * 0.55;
-  }
-  ctx.font = fontString(size, bold, italic);
-  return ctx.measureText(text).width;
+  // Sin canvas (jsdom, por ejemplo) una estimacion basta: lo unico que
+  // depende de esto es el ancho, y no hay nada que dibujar.
+  const width = ctx
+    ? ((ctx.font = fontString(size, bold, italic)), ctx.measureText(text).width)
+    : text.length * size * 0.55;
+
+  if (widths.size >= CACHE_LIMIT) widths.clear();
+  widths.set(key, width);
+
+  return width;
 }
 
 export interface WrapOptions {

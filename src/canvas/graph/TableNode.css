@@ -89,6 +89,12 @@
   background: var(--surface-0);
   border: 1.5px solid var(--accent);
   opacity: 0;
+  /*
+   * Invisible **y** intangible. Con `opacity: 0` a secas el conector seguia
+   * capturando el raton, asi que pulsar cerca del borde de una fila no
+   * seleccionaba la tabla: empezaba una conexion.
+   */
+  pointer-events: none;
   transition: opacity 120ms ease;
 }
 
@@ -97,6 +103,7 @@
 .table-node__port.connectingfrom,
 .table-node__port.connectingto {
   opacity: 1;
+  pointer-events: all;
 }
 
 .table-node__port:hover {

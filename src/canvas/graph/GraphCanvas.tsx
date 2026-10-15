@@ -387,6 +387,12 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
         onPaneContextMenu={onPaneContextMenu}
         connectionMode={ConnectionMode.Loose}
         /*
+         * Conectar es arrastrar. Con el valor por defecto, un clic suelto
+         * sobre un conector dejaba el lienzo en modo "conectando" hasta el
+         * siguiente clic, y eso se siente como que la aplicacion se colgo.
+         */
+        connectOnClick={false}
+        /*
          * Arrastrar sobre el lienzo vacio selecciona por rectangulo, que es
          * lo que se espera en una herramienta de dibujo. Para desplazar el
          * lienzo quedan la rueda del raton, el boton central y la barra

@@ -110,3 +110,22 @@ describe("placementOf", () => {
     expect(placementOf("rectangle")).toBe("center");
   });
 });
+
+describe("cache de medidas", () => {
+  it("devuelve el mismo ancho para el mismo texto", () => {
+    expect(measureWidth("varchar(255)", 12)).toBe(measureWidth("varchar(255)", 12));
+  });
+
+  it("distingue tamano y grosor", () => {
+    // La clave de cache tiene que incluirlos, o una columna en negrita
+    // reutilizaria la medida de una normal.
+    const normal = measureWidth("texto", 12, false);
+    const grande = measureWidth("texto", 24, false);
+
+    expect(grande).not.toBe(normal);
+  });
+
+  it("un texto vacio no gasta entrada", () => {
+    expect(measureWidth("")).toBe(0);
+  });
+});

@@ -197,7 +197,20 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
     set({ history: redo(history), dirty: true, report: null });
   },
 
+  /**
+   * React Flow emite su evento de seleccion en cada repintado, no solo
+   * cuando cambia. Escribir un array nuevo cada vez cambiaba la identidad de
+   * `selection`, lo que recalculaba todos los nodos y aristas del lienzo y
+   * disparaba otro repintado: un bucle que se nota como latencia al pulsar.
+   */
   select(ids) {
+    const current = get().selection;
+    if (
+      current.length === ids.length &&
+      current.every((id, index) => id === ids[index])
+    ) {
+      return;
+    }
     set({ selection: ids });
   },
 

@@ -48,6 +48,14 @@ export function isDashed(edge: Edge): boolean {
   return edgeStyle(edge).dashed ?? DASHED_KINDS.has(edge.kind);
 }
 
+/** Tamano de un nodo que todavia no tiene geometria. */
+function fallbackSize(node: Node): { width: number; height: number } {
+  if (node.shape === "table") return tableSize(node);
+
+  const [width, height] = defaultSizeFor(node.shape);
+  return { width, height };
+}
+
 /**
  * Origen del contenedor de un nodo. El IR guarda absolutas, asi que el origen
  * del padre es directamente su geometria; no hay que recorrer la cadena.
@@ -71,17 +79,10 @@ export function toFlowNodes(
 
   return ordered.map((node) => {
     const isTable = node.shape === "table";
-    const [shapeWidth, shapeHeight] = defaultSizeFor(node.shape);
-    const fallback = isTable
-      ? tableSize(node)
-      : { width: shapeWidth, height: shapeHeight };
 
-    const geometry = node.geometry ?? {
-      x: 0,
-      y: 0,
-      width: fallback.width,
-      height: fallback.height,
-    };
+    // El tamano de una tabla sale de medir su texto, que no es gratis. Solo
+    // se calcula cuando hace falta: un nodo ya colocado trae el suyo.
+    const geometry = node.geometry ?? { x: 0, y: 0, ...fallbackSize(node) };
     const origin = parentOrigin(doc, node);
 
     const flow: DiagramFlowNode = {
