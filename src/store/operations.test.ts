@@ -7,10 +7,12 @@ import {
   connect,
   moveNode,
   newId,
+  reconnect,
   removeElements,
   resizeNode,
   setEdgeKind,
   setEndpointLabel,
+  setEndpointSide,
   setLabel,
 } from "./operations";
 
@@ -91,6 +93,28 @@ describe("connect", () => {
       kind: "flow",
       routing: "orthogonal",
     });
+  });
+
+  it("guarda el lado desde el que arrastro el usuario", () => {
+    const doc = run(emptyDoc(), (d) => {
+      const a = addNode(d, { shape: "rectangle", x: 0, y: 0 });
+      const b = addNode(d, { shape: "rectangle", x: 300, y: 0 });
+      connect(d, a, b, "association", { source: "bottom", target: "top" });
+    });
+
+    expect(doc.edges[0]!.source.side).toBe("bottom");
+    expect(doc.edges[0]!.target.side).toBe("top");
+  });
+
+  it("sin lado elegido no fija ninguno y decide el lienzo", () => {
+    const doc = run(emptyDoc(), (d) => {
+      const a = addNode(d, { shape: "rectangle", x: 0, y: 0 });
+      const b = addNode(d, { shape: "rectangle", x: 300, y: 0 });
+      connect(d, a, b);
+    });
+
+    expect(doc.edges[0]!.source.side).toBeUndefined();
+    expect(doc.edges[0]!.target.side).toBeUndefined();
   });
 
   it("rechaza conectar con un nodo inexistente", () => {
@@ -227,6 +251,55 @@ describe("removeElements", () => {
 
     expect(doc.nodes).toHaveLength(2);
     expect(doc.edges).toHaveLength(0);
+  });
+});
+
+describe("reconnect", () => {
+  function base() {
+    const ids = { a: "", b: "", c: "", e: null as string | null };
+    const doc = run(emptyDoc(), (d) => {
+      ids.a = addNode(d, { shape: "rectangle", x: 0, y: 0 });
+      ids.b = addNode(d, { shape: "rectangle", x: 300, y: 0 });
+      ids.c = addNode(d, { shape: "rectangle", x: 600, y: 0 });
+      ids.e = connect(d, ids.a, ids.b, "flow", { source: "right", target: "left" });
+    });
+    return { doc, ids };
+  }
+
+  it("mueve un extremo a otro nodo conservando tipo y etiqueta", () => {
+    const { doc: before, ids } = base();
+    const conEtiqueta = run(before, (d) => setLabel(d, ids.e!, "usa"));
+
+    const doc = run(conEtiqueta, (d) => reconnect(d, ids.e!, "target", ids.c, "top"));
+
+    expect(doc.edges[0]!.target.node).toBe(ids.c);
+    expect(doc.edges[0]!.target.side).toBe("top");
+    expect(doc.edges[0]!.kind).toBe("flow");
+    expect(doc.edges[0]!.label).toBe("usa");
+  });
+
+  it("reenganchar sin lado vuelve el extremo a automatico", () => {
+    const { doc: before, ids } = base();
+
+    const doc = run(before, (d) => reconnect(d, ids.e!, "source", ids.a));
+
+    expect(doc.edges[0]!.source.side).toBeUndefined();
+  });
+
+  it("ignora un nodo destino inexistente", () => {
+    const { doc: before, ids } = base();
+
+    const doc = run(before, (d) => reconnect(d, ids.e!, "target", "fantasma", "top"));
+
+    expect(doc.edges[0]!.target.node).toBe(ids.b);
+  });
+
+  it("setEndpointSide libera el lado al pasar undefined", () => {
+    const { doc: before, ids } = base();
+
+    const doc = run(before, (d) => setEndpointSide(d, ids.e!, "source", undefined));
+
+    expect(doc.edges[0]!.source.side).toBeUndefined();
   });
 });
 

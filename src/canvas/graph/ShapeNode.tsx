@@ -13,12 +13,15 @@ import "./ShapeNode.css";
  * `ConnectionMode.Loose` en el lienzo, React Flow acepta unir dos `source`.
  * Asi se tira una arista desde cualquier borde sin decidir antes el sentido,
  * que es como se dibuja en una herramienta de diagramas.
+ *
+ * Los ids son literalmente los valores de `Side`, de modo que lo que React
+ * Flow devuelve en `onConnect` se guarda en el documento sin traducir.
  */
 const SIDES = [
-  { id: "t", position: Position.Top },
-  { id: "r", position: Position.Right },
-  { id: "b", position: Position.Bottom },
-  { id: "l", position: Position.Left },
+  { id: "top", position: Position.Top },
+  { id: "right", position: Position.Right },
+  { id: "bottom", position: Position.Bottom },
+  { id: "left", position: Position.Left },
 ] as const;
 
 function ShapeNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowNode>) {

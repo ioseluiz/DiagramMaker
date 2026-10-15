@@ -45,6 +45,32 @@ pub enum Routing {
     Bezier,
 }
 
+/// Lado de la caja por el que entra o sale una arista.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/model/generated/")]
+pub enum Side {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
+impl Side {
+    pub fn opposite(self) -> Side {
+        match self {
+            Side::Top => Side::Bottom,
+            Side::Bottom => Side::Top,
+            Side::Left => Side::Right,
+            Side::Right => Side::Left,
+        }
+    }
+
+    pub fn is_horizontal(self) -> bool {
+        matches!(self, Side::Left | Side::Right)
+    }
+}
+
 /// Un extremo de la arista.
 ///
 /// `label` es el texto pegado a ese extremo concreto: la cardinalidad en ER
@@ -56,9 +82,18 @@ pub struct Endpoint {
     pub node: String,
 
     /// Punto de anclaje concreto dentro del nodo: en ER identifica la columna.
-    /// `None` = el borde del nodo, que el ruteo elige.
+    /// `None` = el nodo entero.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub port: Option<String>,
+
+    /// Lado por el que el usuario engancho la arista.
+    ///
+    /// `None` significa "decidelo tu": el lienzo lo calcula de la posicion
+    /// relativa de las cajas. Es el caso de todo diagrama importado, que
+    /// llega sin que nadie haya elegido nada.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub side: Option<Side>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
@@ -69,6 +104,7 @@ impl Endpoint {
         Endpoint {
             node: node.into(),
             port: None,
+            side: None,
             label: None,
         }
     }
@@ -80,6 +116,11 @@ impl Endpoint {
 
     pub fn with_port(mut self, port: impl Into<String>) -> Self {
         self.port = Some(port.into());
+        self
+    }
+
+    pub fn with_side(mut self, side: Side) -> Self {
+        self.side = Some(side);
         self
     }
 }
@@ -154,6 +195,32 @@ mod tests {
         assert!(EdgeKind::Dependency.is_dashed_by_default());
         assert!(EdgeKind::Realization.is_dashed_by_default());
         assert!(!EdgeKind::Inheritance.is_dashed_by_default());
+    }
+
+    #[test]
+    fn un_extremo_nuevo_no_fija_lado() {
+        // Sin lado elegido, el lienzo lo calcula de la geometria.
+        assert_eq!(Endpoint::new("a").side, None);
+    }
+
+    #[test]
+    fn el_lado_elegido_sobrevive_al_viaje_por_json() {
+        let mut e = Edge::new("e1", "a", "b", EdgeKind::Association);
+        e.source = Endpoint::new("a").with_side(Side::Right);
+        e.target = Endpoint::new("b").with_side(Side::Left);
+
+        let back: Edge = serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+
+        assert_eq!(back.source.side, Some(Side::Right));
+        assert_eq!(back.target.side, Some(Side::Left));
+    }
+
+    #[test]
+    fn los_lados_opuestos_se_emparejan() {
+        assert_eq!(Side::Top.opposite(), Side::Bottom);
+        assert_eq!(Side::Left.opposite(), Side::Right);
+        assert!(Side::Left.is_horizontal());
+        assert!(!Side::Top.is_horizontal());
     }
 
     #[test]

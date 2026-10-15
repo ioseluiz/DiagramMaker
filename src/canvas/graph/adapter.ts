@@ -7,6 +7,7 @@ import type { Node } from "@/model/generated/Node";
 import type { Routing } from "@/model/generated/Routing";
 import { defaultSizeFor, isContainer } from "@/model/shapes";
 import { edgeStyle } from "@/model/style";
+import { resolveSides } from "./sides";
 
 /**
  * Traduccion entre el IR y lo que React Flow espera.
@@ -102,14 +103,28 @@ export function toFlowNodes(
 }
 
 export function toFlowEdges(doc: Document, selection: ReadonlySet<string>): FlowEdge[] {
+  const geometryOf = (id: string) => doc.nodes.find((n) => n.id === id)?.geometry;
+
   return doc.edges.map((edge) => {
     const markers = MARKERS[edge.kind];
     const style = edgeStyle(edge);
+
+    // Sin handle explicito React Flow usa el primero que encuentre, que seria
+    // siempre el de arriba. Hay que darselo resuelto.
+    const sides = resolveSides(
+      { source: edge.source.side ?? undefined, target: edge.target.side ?? undefined },
+      geometryOf(edge.source.node) ?? undefined,
+      geometryOf(edge.target.node) ?? undefined,
+      edge.source.node === edge.target.node,
+    );
 
     return {
       id: edge.id,
       source: edge.source.node,
       target: edge.target.node,
+      sourceHandle: sides.source,
+      targetHandle: sides.target,
+      reconnectable: true,
       type: FLOW_EDGE_TYPE[edge.routing],
       label: edge.label ?? undefined,
       selected: selection.has(edge.id),

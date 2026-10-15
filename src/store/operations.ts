@@ -3,6 +3,7 @@ import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { Node } from "@/model/generated/Node";
 import type { NodeShape } from "@/model/generated/NodeShape";
+import type { Side } from "@/model/generated/Side";
 import { defaultSizeFor } from "@/model/shapes";
 
 /**
@@ -51,11 +52,23 @@ export function addNode(draft: Document, options: AddNodeOptions): string {
   return id;
 }
 
+export interface ConnectSides {
+  source?: Side;
+  target?: Side;
+}
+
+/**
+ * Crea la relacion. `sides` es el borde desde el que arrastro el usuario: se
+ * guarda y manda sobre cualquier calculo automatico. Omitirlo deja que el
+ * lienzo decida segun la posicion de las cajas, que es el caso de los
+ * diagramas importados.
+ */
 export function connect(
   draft: Document,
   source: string,
   target: string,
   kind: EdgeKind = "association",
+  sides: ConnectSides = {},
 ): string | null {
   const exists = (id: string) => draft.nodes.some((n) => n.id === id);
   if (!exists(source) || !exists(target)) return null;
@@ -63,8 +76,8 @@ export function connect(
   const id = newId("e");
   const edge: Edge = {
     id,
-    source: { node: source },
-    target: { node: target },
+    source: { node: source, side: sides.source },
+    target: { node: target, side: sides.target },
     kind,
     routing: "orthogonal",
     style: {},
@@ -72,6 +85,36 @@ export function connect(
 
   draft.edges.push(edge);
   return id;
+}
+
+/**
+ * Reengancha un extremo a otro nodo o a otro lado. Es lo que ocurre al
+ * arrastrar la punta de una arista ya existente.
+ */
+export function reconnect(
+  draft: Document,
+  edgeId: string,
+  end: "source" | "target",
+  node: string,
+  side?: Side,
+): void {
+  const edge = draft.edges.find((e) => e.id === edgeId);
+  if (!edge) return;
+  if (!draft.nodes.some((n) => n.id === node)) return;
+
+  edge[end].node = node;
+  edge[end].side = side;
+}
+
+/** Fija o libera el lado de un extremo. `undefined` vuelve a automatico. */
+export function setEndpointSide(
+  draft: Document,
+  edgeId: string,
+  end: "source" | "target",
+  side: Side | undefined,
+): void {
+  const edge = draft.edges.find((e) => e.id === edgeId);
+  if (edge) edge[end].side = side;
 }
 
 export function moveNode(draft: Document, id: string, x: number, y: number): void {

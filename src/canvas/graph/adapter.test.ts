@@ -154,6 +154,47 @@ describe("toFlowEdges", () => {
     expect(flow!.markerEnd).toBeUndefined();
   });
 
+  it("nunca engancha las dos puntas arriba por defecto", () => {
+    // Regresion: sin `sourceHandle`/`targetHandle` React Flow usaba el primer
+    // handle declarado, que era el superior, y todas las aristas nacian y
+    // morian en el vertice de arriba.
+    const d = doc(two, [edge()]);
+
+    const [flow] = toFlowEdges(d, NONE);
+
+    expect(flow!.sourceHandle).toBe("right");
+    expect(flow!.targetHandle).toBe("left");
+  });
+
+  it("el lado guardado por el usuario manda sobre la geometria", () => {
+    const d = doc(two, [
+      edge({
+        source: { node: "a", side: "bottom" },
+        target: { node: "b", side: "top" },
+      }),
+    ]);
+
+    const [flow] = toFlowEdges(d, NONE);
+
+    expect(flow!.sourceHandle).toBe("bottom");
+    expect(flow!.targetHandle).toBe("top");
+  });
+
+  it("los lados se recalculan al mover las cajas si no estan fijados", () => {
+    const apiladas = [node("a", 0, 0), node("b", 0, 300)];
+
+    const [flow] = toFlowEdges(doc(apiladas, [edge()]), NONE);
+
+    expect(flow!.sourceHandle).toBe("bottom");
+    expect(flow!.targetHandle).toBe("top");
+  });
+
+  it("las aristas se pueden reenganchar arrastrando la punta", () => {
+    const [flow] = toFlowEdges(doc(two, [edge()]), NONE);
+
+    expect(flow!.reconnectable).toBe(true);
+  });
+
   it("una asociacion simple no lleva marcadores", () => {
     const [flow] = toFlowEdges(doc(two, [edge()]), NONE);
 

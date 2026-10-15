@@ -38,6 +38,10 @@ importar DBML y dibujar diagramas entidad-relación (F3).
   actor) dibujadas en SVG, con anidamiento dentro de paquetes.
 - Ocho tipos de relación con su semántica UML: triángulo hueco para herencia,
   rombos para composición y agregación, trazo punteado para dependencia.
+- El borde por el que enganchas una relación se respeta y se guarda. Arrastrar
+  la punta de una arista la reengancha a otro nodo o a otro lado sin perder su
+  etiqueta ni su tipo. Las relaciones importadas, que no traen lado elegido,
+  lo calculan de la posición de las cajas.
 - Deshacer y rehacer sobre parches de immer. Un arrastre completo colapsa en
   un solo paso, no en cien.
 - Validación estructural continua: ids duplicados, aristas colgando,

@@ -7,6 +7,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   type Connection,
+  type Edge as FlowEdge,
   type EdgeChange,
   type NodeChange,
   type OnSelectionChangeParams,
@@ -16,7 +17,14 @@ import "@xyflow/react/dist/style.css";
 
 import type { Document } from "@/model/generated/Document";
 import { useDocumentStore } from "@/store/documentStore";
-import { connect, moveNode, removeElements, resizeNode } from "@/store/operations";
+import type { Side } from "@/model/generated/Side";
+import {
+  connect,
+  moveNode,
+  reconnect,
+  removeElements,
+  resizeNode,
+} from "@/store/operations";
 import { EdgeMarkers } from "./EdgeMarkers";
 import { ShapeNode } from "./ShapeNode";
 import { toAbsolute, toFlowEdges, toFlowNodes, type DiagramFlowNode } from "./adapter";
@@ -90,7 +98,31 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
     (connection: Connection) => {
       if (!connection.source || !connection.target) return;
       edit("conectar", (draft) => {
-        connect(draft, connection.source, connection.target);
+        connect(draft, connection.source, connection.target, "association", {
+          source: (connection.sourceHandle as Side | null) ?? undefined,
+          target: (connection.targetHandle as Side | null) ?? undefined,
+        });
+      });
+    },
+    [edit],
+  );
+
+  /**
+   * Arrastrar la punta de una arista la reengancha a otro nodo o a otro lado.
+   * Es la forma de corregir un lado sin tener que borrar y rehacer la
+   * relacion, que perderia su etiqueta y su tipo.
+   */
+  const onReconnect = useCallback(
+    (previous: FlowEdge, connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+
+      const movedTarget = previous.source === connection.source;
+      const end = movedTarget ? "target" : "source";
+      const node = movedTarget ? connection.target : connection.source;
+      const handle = movedTarget ? connection.targetHandle : connection.sourceHandle;
+
+      edit("reenganchar", (draft) => {
+        reconnect(draft, previous.id, end, node, (handle as Side | null) ?? undefined);
       });
     },
     [edit],
@@ -113,6 +145,7 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onReconnect={onReconnect}
         onSelectionChange={onSelectionChange}
         connectionMode={ConnectionMode.Loose}
         snapToGrid
