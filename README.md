@@ -82,6 +82,10 @@ La paleta de formas depende del tipo de diagrama, que se elige en la barra de
 herramientas: en un entidad-relación ofrece tablas, grupos y notas; en el
 resto, el juego general de ocho formas.
 
+En el lienzo, arrastrar sobre el fondo selecciona por rectángulo. Para
+desplazarlo: rueda del ratón, botón central o barra espaciadora. El clic
+derecho abre un menú contextual sobre nodos, relaciones y el propio lienzo.
+
 ## Requisitos
 
 | Herramienta      | Versión verificada |

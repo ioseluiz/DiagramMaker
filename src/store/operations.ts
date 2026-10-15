@@ -1,3 +1,5 @@
+import { current, isDraft } from "immer";
+
 import type { DiagramKind } from "@/model/generated/DiagramKind";
 import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
@@ -461,4 +463,84 @@ export function setTableAlias(draft: Document, nodeId: string, alias: string): v
 export function setTableNote(draft: Document, nodeId: string, note: string): void {
   const table = tableOf(draft, nodeId);
   if (table) table.note = note.trim() || undefined;
+}
+
+/* --- Operaciones de menu contextual ------------------------------------- */
+
+/** Cuanto se desplaza una copia respecto al original. */
+const DUPLICATE_OFFSET = 24;
+
+/**
+ * Duplica un nodo y lo que contiene.
+ *
+ * Arrastra a los descendientes: duplicar un paquete y obtener una caja vacia
+ * no es lo que nadie espera. Las relaciones **no** se copian — una copia de
+ * una tabla no hereda sus claves ajenas, que apuntarian a las mismas
+ * columnas del original.
+ *
+ * Las columnas reciben ids nuevos: son estables dentro de su tabla, y dos
+ * tablas no pueden compartirlos.
+ */
+export function duplicateNode(draft: Document, nodeId: string): string | null {
+  const original = draft.nodes.find((n) => n.id === nodeId);
+  if (!original) return null;
+
+  // Recoger el nodo y toda su descendencia.
+  const family = [original];
+  for (let i = 0; i < family.length; i++) {
+    const parent = family[i]!;
+    for (const node of draft.nodes) {
+      if (node.parent === parent.id) family.push(node);
+    }
+  }
+
+  const renamed = new Map<string, string>();
+  for (const node of family) renamed.set(node.id, newId("n"));
+
+  for (const node of family) {
+    // Un borrador de immer es un proxy y `structuredClone` no sabe copiarlo;
+    // `current` devuelve la instantanea plana que hay detras.
+    const copy = structuredClone(isDraft(node) ? current(node) : node) as Node;
+    copy.id = renamed.get(node.id)!;
+
+    // Todos se desplazan lo mismo: la geometria es absoluta, asi que mover
+    // padre e hijos por igual conserva sus posiciones relativas.
+    if (copy.geometry) {
+      copy.geometry.x += DUPLICATE_OFFSET;
+      copy.geometry.y += DUPLICATE_OFFSET;
+    }
+
+    // La copia raiz se queda en el mismo contenedor que el original; sus
+    // descendientes cuelgan de la copia correspondiente.
+    copy.parent = node.id === nodeId ? node.parent : renamed.get(node.parent ?? "");
+
+    if (copy.data.type === "er") {
+      copy.data.columns = copy.data.columns.map((column) => ({
+        ...column,
+        id: newId("c"),
+        // La copia no hereda las claves ajenas: sus relaciones no se copian.
+        foreignKey: false,
+      }));
+    }
+
+    draft.nodes.push(copy);
+  }
+
+  return renamed.get(nodeId)!;
+}
+
+/**
+ * Invierte el sentido de una relacion.
+ *
+ * Cambia los dos extremos enteros —nodo, columna, lado y cardinalidad— de
+ * modo que `posts.user_id * → 1 users.id` pasa a `users.id 1 → * posts.user_id`:
+ * la misma relacion leida al reves, no una distinta.
+ */
+export function reverseEdge(draft: Document, edgeId: string): void {
+  const edge = draft.edges.find((e) => e.id === edgeId);
+  if (!edge) return;
+
+  const { source, target } = edge;
+  edge.source = target;
+  edge.target = source;
 }

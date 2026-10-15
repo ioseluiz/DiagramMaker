@@ -8,9 +8,11 @@ import {
   addNode,
   addTable,
   connect,
+  duplicateNode,
   moveColumn,
   relationKindOf,
   removeColumn,
+  reverseEdge,
   setRelationKind,
   setTableAlias,
   setTableNote,
@@ -723,5 +725,163 @@ describe("relaciones entre columnas", () => {
     );
 
     expect(doc.edges[0]!.target.port).toBe(otra);
+  });
+});
+
+describe("duplicateNode", () => {
+  it("copia el nodo desplazado y con id nuevo", () => {
+    let id = "";
+    const base = run(emptyDoc(), (d) => {
+      id = addNode(d, { shape: "rectangle", x: 100, y: 50, label: "API" });
+    });
+
+    const doc = run(base, (d) => void duplicateNode(d, id));
+
+    expect(doc.nodes).toHaveLength(2);
+    const [original, copia] = doc.nodes;
+    expect(copia!.id).not.toBe(original!.id);
+    expect(copia!.label).toBe("API");
+    expect(copia!.geometry).toMatchObject({ x: 124, y: 74 });
+  });
+
+  it("arrastra a los descendientes", () => {
+    let pkg = "";
+    const base = run(emptyDoc(), (d) => {
+      pkg = addNode(d, { shape: "package", x: 0, y: 0 });
+      const medio = addNode(d, { shape: "package", x: 10, y: 10, parent: pkg });
+      addNode(d, { shape: "rectangle", x: 20, y: 20, parent: medio });
+    });
+
+    const doc = run(base, (d) => void duplicateNode(d, pkg));
+
+    expect(doc.nodes).toHaveLength(6);
+  });
+
+  it("la copia de un contenedor conserva su propia jerarquia", () => {
+    let pkg = "";
+    const base = run(emptyDoc(), (d) => {
+      pkg = addNode(d, { shape: "package", x: 0, y: 0 });
+      addNode(d, { shape: "rectangle", x: 10, y: 10, parent: pkg });
+    });
+
+    let copiaId = "";
+    const doc = run(base, (d) => {
+      copiaId = duplicateNode(d, pkg)!;
+    });
+
+    const hijos = doc.nodes.filter((n) => n.parent === copiaId);
+    expect(hijos).toHaveLength(1);
+    // Y el original no gano hijos de prestado.
+    expect(doc.nodes.filter((n) => n.parent === pkg)).toHaveLength(1);
+  });
+
+  it("las columnas de una tabla copiada reciben ids nuevos", () => {
+    let id = "";
+    const base = run({ ...emptyDoc(), kind: "er" }, (d) => {
+      id = addTable(d, { x: 0, y: 0 });
+      addColumn(d, id, "email");
+    });
+
+    const doc = run(base, (d) => void duplicateNode(d, id));
+
+    const todas = doc.nodes.flatMap((n) =>
+      n.data.type === "er" ? n.data.columns.map((c) => c.id) : [],
+    );
+    expect(new Set(todas).size).toBe(todas.length);
+  });
+
+  it("la copia no hereda las claves ajenas: sus relaciones no se copian", () => {
+    let a = "";
+    let b = "";
+    const base = run({ ...emptyDoc(), kind: "er" }, (d) => {
+      a = addTable(d, { x: 0, y: 0 });
+      b = addTable(d, { x: 400, y: 0 });
+      const ca = addColumn(d, a, "user_id")!;
+      const cb = (
+        d.nodes.find((n) => n.id === b)!.data as { columns: { id: string }[] }
+      ).columns[0]!.id;
+      connect(d, a, b, "association", {}, { source: ca, target: cb });
+    });
+
+    const doc = run(base, (d) => void duplicateNode(d, a));
+
+    const copia = doc.nodes.at(-1)!;
+    expect(copia.data.type).toBe("er");
+    if (copia.data.type !== "er") throw new Error("imposible");
+    expect(copia.data.columns.some((c) => c.foreignKey)).toBe(false);
+    // Las relaciones no se duplican.
+    expect(doc.edges).toHaveLength(1);
+  });
+
+  it("duplicar un id inexistente no hace nada", () => {
+    const base = emptyDoc();
+
+    expect(run(base, (d) => void duplicateNode(d, "fantasma"))).toEqual(base);
+  });
+});
+
+describe("reverseEdge", () => {
+  it("intercambia los extremos enteros", () => {
+    let a = "";
+    let b = "";
+    let edgeId: string | null = "";
+    const base = run({ ...emptyDoc(), kind: "er" }, (d) => {
+      a = addTable(d, { x: 0, y: 0 });
+      b = addTable(d, { x: 400, y: 0 });
+      const ca = addColumn(d, a, "user_id")!;
+      const cb = (
+        d.nodes.find((n) => n.id === b)!.data as { columns: { id: string }[] }
+      ).columns[0]!.id;
+      edgeId = connect(d, a, b, "association", {}, { source: ca, target: cb });
+    });
+
+    const antes = base.edges[0]!;
+    const doc = run(base, (d) => reverseEdge(d, edgeId!));
+    const despues = doc.edges[0]!;
+
+    expect(despues.source.node).toBe(antes.target.node);
+    expect(despues.target.node).toBe(antes.source.node);
+    expect(despues.source.port).toBe(antes.target.port);
+    expect(despues.target.port).toBe(antes.source.port);
+  });
+
+  it("la cardinalidad viaja con su extremo", () => {
+    let a = "";
+    let b = "";
+    let edgeId: string | null = "";
+    const base = run({ ...emptyDoc(), kind: "er" }, (d) => {
+      a = addTable(d, { x: 0, y: 0 });
+      b = addTable(d, { x: 400, y: 0 });
+      const ca = addColumn(d, a, "user_id")!;
+      const cb = (
+        d.nodes.find((n) => n.id === b)!.data as { columns: { id: string }[] }
+      ).columns[0]!.id;
+      edgeId = connect(d, a, b, "association", {}, { source: ca, target: cb });
+    });
+
+    // Nace como muchos a uno; al invertirla debe leerse uno a muchos.
+    const doc = run(base, (d) => reverseEdge(d, edgeId!));
+
+    expect(doc.edges[0]!.source.label).toBe("1");
+    expect(doc.edges[0]!.target.label).toBe("*");
+    expect(relationKindOf(doc.edges[0]!)).toBe("oneToMany");
+  });
+
+  it("invertir dos veces deja la relacion como estaba", () => {
+    let a = "";
+    let b = "";
+    let edgeId: string | null = "";
+    const base = run(emptyDoc(), (d) => {
+      a = addNode(d, { shape: "rectangle", x: 0, y: 0 });
+      b = addNode(d, { shape: "rectangle", x: 300, y: 0 });
+      edgeId = connect(d, a, b);
+    });
+
+    const doc = run(base, (d) => {
+      reverseEdge(d, edgeId!);
+      reverseEdge(d, edgeId!);
+    });
+
+    expect(doc.edges[0]).toEqual(base.edges[0]);
   });
 });
