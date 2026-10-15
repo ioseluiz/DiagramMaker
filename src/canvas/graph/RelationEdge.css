@@ -1,0 +1,36 @@
+/*
+ * Las etiquetas van en `EdgeLabelRenderer`, que las saca del SVG y las pone
+ * en una capa HTML encima del lienzo. Eso las mantiene nitidas a cualquier
+ * zoom, a cambio de tener que desactivar los eventos de raton para no tapar
+ * la arista.
+ */
+.relation-edge__label,
+.relation-edge__cardinality {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--font-diagram);
+  white-space: nowrap;
+}
+
+.relation-edge__label {
+  padding: 1px 5px;
+  background: var(--canvas-bg);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.relation-edge__label[data-selected] {
+  color: var(--accent);
+}
+
+/*
+ * La cardinalidad no lleva fondo: cae justo fuera de la caja, sobre el
+ * lienzo, y un recuadro ahi solo anadiria ruido.
+ */
+.relation-edge__cardinality {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

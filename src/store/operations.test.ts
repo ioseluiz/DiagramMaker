@@ -9,7 +9,9 @@ import {
   addTable,
   connect,
   moveColumn,
+  relationKindOf,
   removeColumn,
+  setRelationKind,
   setTableAlias,
   setTableNote,
   updateColumn,
@@ -563,5 +565,163 @@ describe("tablas entidad-relacion", () => {
     });
 
     expect(doc.nodes[0]!.data.type).toBe("plain");
+  });
+});
+
+describe("relaciones entre columnas", () => {
+  function erDoc(): Document {
+    return { ...emptyDoc(), kind: "er" };
+  }
+
+  function twoTables() {
+    const ids = { a: "", b: "", ca: "", cb: "" };
+    const doc = run(erDoc(), (d) => {
+      ids.a = addTable(d, { x: 0, y: 0, label: "posts" });
+      ids.b = addTable(d, { x: 400, y: 0, label: "users" });
+      ids.ca = addColumn(d, ids.a, "user_id")!;
+      ids.cb = (
+        d.nodes.find((n) => n.id === ids.b)!.data as { columns: { id: string }[] }
+      ).columns[0]!.id;
+    });
+    return { doc, ids };
+  }
+
+  function columnOf(doc: Document, nodeId: string, columnId: string) {
+    const node = doc.nodes.find((n) => n.id === nodeId)!;
+    if (node.data.type !== "er") throw new Error("no es una tabla");
+    return node.data.columns.find((c) => c.id === columnId)!;
+  }
+
+  it("unir dos columnas guarda ambos extremos", () => {
+    const { doc: base, ids } = twoTables();
+
+    const doc = run(base, (d) => {
+      connect(d, ids.a, ids.b, "association", {}, { source: ids.ca, target: ids.cb });
+    });
+
+    expect(doc.edges[0]!.source.port).toBe(ids.ca);
+    expect(doc.edges[0]!.target.port).toBe(ids.cb);
+  });
+
+  it("una relacion entre columnas nace como muchos a uno", () => {
+    const { doc: base, ids } = twoTables();
+
+    const doc = run(base, (d) => {
+      connect(d, ids.a, ids.b, "association", {}, { source: ids.ca, target: ids.cb });
+    });
+
+    expect(doc.edges[0]!.source.label).toBe("*");
+    expect(doc.edges[0]!.target.label).toBe("1");
+  });
+
+  it("el lado muchos queda marcado como clave ajena", () => {
+    const { doc: base, ids } = twoTables();
+
+    const doc = run(base, (d) => {
+      connect(d, ids.a, ids.b, "association", {}, { source: ids.ca, target: ids.cb });
+    });
+
+    expect(columnOf(doc, ids.a, ids.ca).foreignKey).toBe(true);
+    expect(columnOf(doc, ids.b, ids.cb).foreignKey).toBe(false);
+  });
+
+  it("cambiar la cardinalidad mueve la clave ajena al otro lado", () => {
+    const { doc: base, ids } = twoTables();
+    let edgeId: string | null = "";
+    const conectado = run(base, (d) => {
+      edgeId = connect(
+        d,
+        ids.a,
+        ids.b,
+        "association",
+        {},
+        { source: ids.ca, target: ids.cb },
+      );
+    });
+
+    const doc = run(conectado, (d) => setRelationKind(d, edgeId!, "oneToMany"));
+
+    expect(doc.edges[0]!.source.label).toBe("1");
+    expect(doc.edges[0]!.target.label).toBe("*");
+    expect(columnOf(doc, ids.a, ids.ca).foreignKey).toBe(false);
+    expect(columnOf(doc, ids.b, ids.cb).foreignKey).toBe(true);
+  });
+
+  it("uno a uno y muchos a muchos no marcan ninguna clave ajena", () => {
+    const { doc: base, ids } = twoTables();
+    let edgeId: string | null = "";
+    const conectado = run(base, (d) => {
+      edgeId = connect(
+        d,
+        ids.a,
+        ids.b,
+        "association",
+        {},
+        { source: ids.ca, target: ids.cb },
+      );
+    });
+
+    for (const kind of ["oneToOne", "manyToMany"] as const) {
+      const doc = run(conectado, (d) => setRelationKind(d, edgeId!, kind));
+
+      expect(columnOf(doc, ids.a, ids.ca).foreignKey, kind).toBe(false);
+      expect(columnOf(doc, ids.b, ids.cb).foreignKey, kind).toBe(false);
+    }
+  });
+
+  it("relationKindOf reconoce las cuatro de vuelta", () => {
+    const { doc: base, ids } = twoTables();
+    let edgeId: string | null = "";
+    const conectado = run(base, (d) => {
+      edgeId = connect(
+        d,
+        ids.a,
+        ids.b,
+        "association",
+        {},
+        { source: ids.ca, target: ids.cb },
+      );
+    });
+
+    for (const kind of ["manyToOne", "oneToMany", "oneToOne", "manyToMany"] as const) {
+      const doc = run(conectado, (d) => setRelationKind(d, edgeId!, kind));
+      expect(relationKindOf(doc.edges[0]!)).toBe(kind);
+    }
+  });
+
+  it("fuera de un diagrama ER no se inventa cardinalidad", () => {
+    let a = "";
+    let b = "";
+    const doc = run(emptyDoc(), (d) => {
+      a = addNode(d, { shape: "rectangle", x: 0, y: 0 });
+      b = addNode(d, { shape: "rectangle", x: 300, y: 0 });
+      connect(d, a, b);
+    });
+
+    expect(doc.edges[0]!.source.label).toBeUndefined();
+    expect(doc.edges[0]!.target.label).toBeUndefined();
+  });
+
+  it("reenganchar a otra columna mueve el anclaje", () => {
+    const { doc: base, ids } = twoTables();
+    let edgeId: string | null = "";
+    let otra: string | null = "";
+    const conectado = run(base, (d) => {
+      otra = addColumn(d, ids.b, "alias");
+      edgeId = connect(
+        d,
+        ids.a,
+        ids.b,
+        "association",
+        {},
+        { source: ids.ca, target: ids.cb },
+      );
+    });
+
+    const doc = run(conectado, (d) =>
+      reconnect(d, edgeId!, "target", ids.b, "left", otra!),
+    );
+
+    expect(doc.edges[0]!.target.port).toBe(otra);
   });
 });

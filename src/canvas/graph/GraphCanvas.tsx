@@ -17,7 +17,6 @@ import "@xyflow/react/dist/style.css";
 
 import type { Document } from "@/model/generated/Document";
 import { useDocumentStore } from "@/store/documentStore";
-import type { Side } from "@/model/generated/Side";
 import {
   connect,
   moveNode,
@@ -26,12 +25,15 @@ import {
   resizeNode,
 } from "@/store/operations";
 import { EdgeMarkers } from "./EdgeMarkers";
+import { decodeHandle } from "./handles";
+import { RelationEdge } from "./RelationEdge";
 import { ShapeNode } from "./ShapeNode";
 import { TableNode } from "./TableNode";
 import { toAbsolute, toFlowEdges, toFlowNodes, type DiagramFlowNode } from "./adapter";
 import "./GraphCanvas.css";
 
 const NODE_TYPES = { shape: ShapeNode, table: TableNode };
+const EDGE_TYPES = { relation: RelationEdge };
 
 const SNAP: [number, number] = [8, 8];
 
@@ -98,11 +100,21 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
   const onConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) return;
+
+      // Un conector de tabla trae ademas la columna; es lo que convierte la
+      // union de dos cajas en una clave ajena concreta.
+      const from = decodeHandle(connection.sourceHandle);
+      const to = decodeHandle(connection.targetHandle);
+
       edit("conectar", (draft) => {
-        connect(draft, connection.source, connection.target, "association", {
-          source: (connection.sourceHandle as Side | null) ?? undefined,
-          target: (connection.targetHandle as Side | null) ?? undefined,
-        });
+        connect(
+          draft,
+          connection.source,
+          connection.target,
+          "association",
+          { source: from?.side, target: to?.side },
+          { source: from?.column, target: to?.column },
+        );
       });
     },
     [edit],
@@ -120,10 +132,12 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
       const movedTarget = previous.source === connection.source;
       const end = movedTarget ? "target" : "source";
       const node = movedTarget ? connection.target : connection.source;
-      const handle = movedTarget ? connection.targetHandle : connection.sourceHandle;
+      const handle = decodeHandle(
+        movedTarget ? connection.targetHandle : connection.sourceHandle,
+      );
 
       edit("reenganchar", (draft) => {
-        reconnect(draft, previous.id, end, node, (handle as Side | null) ?? undefined);
+        reconnect(draft, previous.id, end, node, handle?.side, handle?.column);
       });
     },
     [edit],
@@ -143,6 +157,7 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

@@ -125,7 +125,7 @@
 /* --- Inspector --------------------------------------------------------- */
 
 .inspector {
-  width: 300px;
+  width: 340px;
   padding: 12px;
   background: var(--surface-0);
   border-left: 1px solid var(--border);
@@ -657,12 +657,18 @@
   font-size: 12px;
 }
 
-.columns__name {
-  flex: 1.2;
+/*
+ * Nombre y tipo se reparten la linea a partes iguales. El boton de borrar
+ * bajo a la segunda linea para dejarles el ancho completo: con el aqui, un
+ * `timestamp with time zone` no cabia ni de lejos.
+ */
+.columns__name,
+.columns__type {
+  flex: 1;
+  width: 0;
 }
 
 .columns__type {
-  flex: 1;
   font-family: var(--font-mono);
   font-size: 11px;
 }

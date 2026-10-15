@@ -4,10 +4,10 @@ import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { Node } from "@/model/generated/Node";
-import type { Routing } from "@/model/generated/Routing";
 import { defaultSizeFor, isContainer } from "@/model/shapes";
 import { tableSize } from "@/model/table";
 import { edgeStyle } from "@/model/style";
+import { encodeHandle } from "./handles";
 import { resolveSides } from "./sides";
 
 /**
@@ -26,12 +26,6 @@ export interface ShapeNodeData extends Record<string, unknown> {
 
 /** Las tablas usan su propio componente; el resto comparte `ShapeNode`. */
 export type DiagramFlowNode = FlowNode<ShapeNodeData, "shape" | "table">;
-
-const FLOW_EDGE_TYPE: Record<Routing, string> = {
-  orthogonal: "smoothstep",
-  straight: "straight",
-  bezier: "default",
-};
 
 /** Marcadores SVG definidos en `EdgeMarkers.tsx`. */
 const MARKERS: Record<EdgeKind, { start?: string; end?: string }> = {
@@ -129,11 +123,13 @@ export function toFlowEdges(doc: Document, selection: ReadonlySet<string>): Flow
       id: edge.id,
       source: edge.source.node,
       target: edge.target.node,
-      sourceHandle: sides.source,
-      targetHandle: sides.target,
+      sourceHandle: encodeHandle(sides.source, edge.source.port ?? undefined),
+      targetHandle: encodeHandle(sides.target, edge.target.port ?? undefined),
       reconnectable: true,
-      type: FLOW_EDGE_TYPE[edge.routing],
-      label: edge.label ?? undefined,
+      // Un solo tipo de arista para todo: `RelationEdge` elige el trazado
+      // segun `routing` y ademas dibuja las cardinalidades de los extremos,
+      // que React Flow por si solo no sabe poner.
+      type: "relation",
       selected: selection.has(edge.id),
       markerStart: markers.start ? `url(#${markers.start})` : undefined,
       markerEnd: markers.end ? `url(#${markers.end})` : undefined,
@@ -142,7 +138,13 @@ export function toFlowEdges(doc: Document, selection: ReadonlySet<string>): Flow
         strokeWidth: style.strokeWidth ?? 1.5,
         strokeDasharray: isDashed(edge) ? "6 4" : undefined,
       },
-      data: { edge },
+      data: {
+        edge,
+        routing: edge.routing,
+        sourceLabel: edge.source.label ?? undefined,
+        targetLabel: edge.target.label ?? undefined,
+        centerLabel: edge.label ?? undefined,
+      },
     } satisfies FlowEdge;
   });
 }

@@ -126,18 +126,57 @@ describe("toFlowEdges", () => {
 
   const two = [node("a", 0, 0), node("b", 300, 0)];
 
-  it("traduce el ruteo al tipo de arista de React Flow", () => {
+  it("todas las aristas usan el mismo componente y el ruteo viaja en los datos", () => {
+    // `RelationEdge` elige el trazado y ademas dibuja las cardinalidades,
+    // que React Flow por si solo no sabe poner en los extremos.
     const d = doc(two, [
       edge({ id: "e1", routing: "orthogonal" }),
       edge({ id: "e2", routing: "straight" }),
       edge({ id: "e3", routing: "bezier" }),
     ]);
 
-    expect(toFlowEdges(d, NONE).map((e) => e.type)).toEqual([
-      "smoothstep",
+    const flow = toFlowEdges(d, NONE);
+
+    expect(flow.map((e) => e.type)).toEqual(["relation", "relation", "relation"]);
+    expect(flow.map((e) => e.data!.routing)).toEqual([
+      "orthogonal",
       "straight",
-      "default",
+      "bezier",
     ]);
+  });
+
+  it("las cardinalidades de los extremos llegan al lienzo", () => {
+    // Antes solo salian al exportar: en pantalla no se veia si una relacion
+    // era de uno a muchos o de muchos a muchos.
+    const d = doc(two, [
+      edge({
+        source: { node: "a", label: "*" },
+        target: { node: "b", label: "1" },
+        label: "pertenece a",
+      }),
+    ]);
+
+    const [flow] = toFlowEdges(d, NONE);
+
+    expect(flow!.data).toMatchObject({
+      sourceLabel: "*",
+      targetLabel: "1",
+      centerLabel: "pertenece a",
+    });
+  });
+
+  it("una arista anclada a columnas usa los conectores de fila", () => {
+    const d = doc(two, [
+      edge({
+        source: { node: "a", port: "c_1" },
+        target: { node: "b", port: "c_2" },
+      }),
+    ]);
+
+    const [flow] = toFlowEdges(d, NONE);
+
+    expect(flow!.sourceHandle).toBe("c_1@right");
+    expect(flow!.targetHandle).toBe("c_2@left");
   });
 
   it("pone el triangulo hueco al final de una herencia", () => {

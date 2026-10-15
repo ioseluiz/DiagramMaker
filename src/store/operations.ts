@@ -61,6 +61,38 @@ export interface ConnectSides {
   target?: Side;
 }
 
+/** Columnas concretas a las que se engancha cada extremo, si las hay. */
+export interface ConnectPorts {
+  source?: string;
+  target?: string;
+}
+
+/**
+ * Cardinalidad de una relacion, como par de etiquetas de extremo.
+ *
+ * Son las cuatro que entiende DBML, con los mismos simbolos que usa el
+ * importador para no tener dos vocabularios.
+ */
+export type RelationKind = "manyToOne" | "oneToMany" | "oneToOne" | "manyToMany";
+
+export const RELATION_LABELS: Record<RelationKind, [string, string]> = {
+  manyToOne: ["*", "1"],
+  oneToMany: ["1", "*"],
+  oneToOne: ["1", "1"],
+  manyToMany: ["*", "*"],
+};
+
+/** Deduce la cardinalidad a partir de las etiquetas guardadas. */
+export function relationKindOf(edge: Edge): RelationKind {
+  const from = edge.source.label === "*";
+  const to = edge.target.label === "*";
+
+  if (from && to) return "manyToMany";
+  if (from) return "manyToOne";
+  if (to) return "oneToMany";
+  return "oneToOne";
+}
+
 /**
  * Crea la relacion. `sides` es el borde desde el que arrastro el usuario: se
  * guarda y manda sobre cualquier calculo automatico. Omitirlo deja que el
@@ -73,6 +105,7 @@ export function connect(
   target: string,
   kind: EdgeKind = "association",
   sides: ConnectSides = {},
+  ports: ConnectPorts = {},
 ): string | null {
   const exists = (id: string) => draft.nodes.some((n) => n.id === id);
   if (!exists(source) || !exists(target)) return null;
@@ -80,15 +113,58 @@ export function connect(
   const id = newId("e");
   const edge: Edge = {
     id,
-    source: { node: source, side: sides.source },
-    target: { node: target, side: sides.target },
+    source: { node: source, side: sides.source, port: ports.source },
+    target: { node: target, side: sides.target, port: ports.target },
     kind,
     routing: "orthogonal",
     style: {},
   };
 
   draft.edges.push(edge);
+
+  // Unir dos columnas en un entidad-relacion es declarar una clave ajena. El
+  // caso corriente con diferencia es muchos-a-uno: la columna desde la que se
+  // arrastra apunta a la clave de la otra tabla. Se deja puesto y editable en
+  // vez de obligar a rellenarlo cada vez.
+  if (draft.kind === "er" && ports.source && ports.target) {
+    setRelationKind(draft, id, "manyToOne");
+  }
+
   return id;
+}
+
+/**
+ * Fija la cardinalidad y recalcula que columna es la clave ajena.
+ *
+ * La clave ajena vive en el lado "muchos": es la tabla que repite valores de
+ * la otra. En uno-a-uno y muchos-a-muchos no hay un lado evidente, asi que no
+ * se marca nada.
+ */
+export function setRelationKind(
+  draft: Document,
+  edgeId: string,
+  kind: RelationKind,
+): void {
+  const edge = draft.edges.find((e) => e.id === edgeId);
+  if (!edge) return;
+
+  const [from, to] = RELATION_LABELS[kind];
+  edge.source.label = from;
+  edge.target.label = to;
+
+  const many =
+    from === "*" && to === "1"
+      ? edge.source
+      : to === "*" && from === "1"
+        ? edge.target
+        : null;
+
+  for (const end of [edge.source, edge.target]) {
+    if (!end.port) continue;
+    const table = tableOf(draft, end.node);
+    const column = table?.columns.find((c) => c.id === end.port);
+    if (column) column.foreignKey = end === many;
+  }
 }
 
 /**
@@ -101,6 +177,7 @@ export function reconnect(
   end: "source" | "target",
   node: string,
   side?: Side,
+  port?: string,
 ): void {
   const edge = draft.edges.find((e) => e.id === edgeId);
   if (!edge) return;
@@ -108,6 +185,7 @@ export function reconnect(
 
   edge[end].node = node;
   edge[end].side = side;
+  edge[end].port = port;
 }
 
 /** Fija o libera el lado de un extremo. `undefined` vuelve a automatico. */

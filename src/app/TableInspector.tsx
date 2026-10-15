@@ -138,17 +138,6 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
           aria-label="Tipo de la columna"
           onChange={(e) => change({ dataType: e.target.value }, true)}
         />
-        <button
-          type="button"
-          className="columns__delete"
-          title="Borrar columna"
-          aria-label={`Borrar ${column.name}`}
-          onClick={() =>
-            edit("borrar columna", (d) => removeColumn(d, nodeId, column.id))
-          }
-        >
-          ×
-        </button>
       </div>
 
       <div className="columns__line">
@@ -208,6 +197,17 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
           }
         >
           ▼
+        </button>
+        <button
+          type="button"
+          className="columns__delete"
+          title="Borrar columna"
+          aria-label={`Borrar ${column.name}`}
+          onClick={() =>
+            edit("borrar columna", (d) => removeColumn(d, nodeId, column.id))
+          }
+        >
+          ×
         </button>
       </div>
     </li>

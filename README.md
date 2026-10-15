@@ -57,6 +57,10 @@ con importador de Mermaid (F4).
   y ajenas, unicidad y nulabilidad, agrupadas en contenedores. Se crean desde
   la paleta y se editan en el inspector: añadir, renombrar, reordenar y borrar
   columnas, cambiar su tipo y sus restricciones.
+- **Claves ajenas columna a columna**: cada fila de una tabla tiene su propio
+  conector. Arrastrar de una columna a otra declara la relación, marca la FK
+  en el lado «muchos» y deja la cardinalidad elegible entre las cuatro de
+  DBML. Las cardinalidades se ven en el lienzo, no solo al exportar.
 - **Importador de DBML** (sintaxis de dbdiagram.io): `Table` con sus ajustes,
   `Ref` sueltas y en línea, `Enum`, `TableGroup`, `Project` y notas. Lo que no
   entiende lo reporta con línea y columna en vez de adivinarlo, y sigue

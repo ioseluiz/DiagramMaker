@@ -1,10 +1,28 @@
+import type { Document } from "@/model/generated/Document";
+import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import { SHAPE_LABEL } from "@/model/shapes";
 import { erTableOf } from "@/model/table";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { TableInspector } from "./TableInspector";
-import { setEdgeKind, setEndpointLabel, setLabel, setTitle } from "@/store/operations";
+import {
+  RELATION_LABELS,
+  relationKindOf,
+  setEdgeKind,
+  setEndpointLabel,
+  setLabel,
+  setRelationKind,
+  setTitle,
+  type RelationKind,
+} from "@/store/operations";
+
+const RELATION_LABEL: Record<RelationKind, string> = {
+  manyToOne: "Muchos a uno  (* → 1)",
+  oneToMany: "Uno a muchos  (1 → *)",
+  oneToOne: "Uno a uno  (1 → 1)",
+  manyToMany: "Muchos a muchos  (* → *)",
+};
 
 const EDGE_KIND_LABEL: Record<EdgeKind, string> = {
   association: "Asociacion",
@@ -103,32 +121,64 @@ export function Inspector() {
               ))}
             </select>
           </Field>
-          <Field label="Cardinalidad origen">
-            <input
-              value={edge.source.label ?? ""}
-              placeholder="1"
-              onChange={(e) =>
-                edit(
-                  `card:${edge.id}:source`,
-                  (d) => setEndpointLabel(d, edge.id, "source", e.target.value),
-                  true,
-                )
-              }
-            />
-          </Field>
-          <Field label="Cardinalidad destino">
-            <input
-              value={edge.target.label ?? ""}
-              placeholder="0..*"
-              onChange={(e) =>
-                edit(
-                  `card:${edge.id}:target`,
-                  (d) => setEndpointLabel(d, edge.id, "target", e.target.value),
-                  true,
-                )
-              }
-            />
-          </Field>
+          {/*
+            En un entidad-relacion la cardinalidad son cuatro casos, no texto
+            libre: dejarla abierta invita a escribir `N` o `muchos` y que
+            luego el generador de DBML no sepa que hacer con ello. En el
+            resto de diagramas la multiplicidad si es libre.
+          */}
+          {doc.kind === "er" ? (
+            <>
+              <Field label="Cardinalidad">
+                <select
+                  value={relationKindOf(edge)}
+                  onChange={(e) =>
+                    edit("cardinalidad", (d) =>
+                      setRelationKind(d, edge.id, e.target.value as RelationKind),
+                    )
+                  }
+                >
+                  {(Object.keys(RELATION_LABELS) as RelationKind[]).map((kind) => (
+                    <option key={kind} value={kind}>
+                      {RELATION_LABEL[kind]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Columnas">
+                <span className="inspector__readonly">{columnsOf(doc, edge)}</span>
+              </Field>
+            </>
+          ) : (
+            <>
+              <Field label="Multiplicidad origen">
+                <input
+                  value={edge.source.label ?? ""}
+                  placeholder="1"
+                  onChange={(e) =>
+                    edit(
+                      `card:${edge.id}:source`,
+                      (d) => setEndpointLabel(d, edge.id, "source", e.target.value),
+                      true,
+                    )
+                  }
+                />
+              </Field>
+              <Field label="Multiplicidad destino">
+                <input
+                  value={edge.target.label ?? ""}
+                  placeholder="0..*"
+                  onChange={(e) =>
+                    edit(
+                      `card:${edge.id}:target`,
+                      (d) => setEndpointLabel(d, edge.id, "target", e.target.value),
+                      true,
+                    )
+                  }
+                />
+              </Field>
+            </>
+          )}
         </>
       )}
 
@@ -156,6 +206,23 @@ export function Inspector() {
       )}
     </aside>
   );
+}
+
+/**
+ * Que columnas une la relacion, en texto. Si algun extremo no esta anclado a
+ * una columna concreta se dice, porque es justo lo que hay que arreglar para
+ * que el DBML generado tenga sentido.
+ */
+function columnsOf(doc: Document, edge: Edge): string {
+  const side = (end: Edge["source"]) => {
+    const node = doc.nodes.find((n) => n.id === end.node);
+    if (!node) return "?";
+    const table = erTableOf(node);
+    const column = end.port ? table?.columns.find((c) => c.id === end.port) : undefined;
+    return column ? `${node.label}.${column.name}` : `${node.label} (tabla)`;
+  };
+
+  return `${side(edge.source)} → ${side(edge.target)}`;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

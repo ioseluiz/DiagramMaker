@@ -12,6 +12,7 @@ import {
   tableSize,
 } from "@/model/table";
 import type { DiagramFlowNode } from "./adapter";
+import { encodeHandle } from "./handles";
 import "./TableNode.css";
 
 /**
@@ -28,6 +29,16 @@ const SIDES = [
   { id: "bottom", position: Position.Bottom },
   { id: "left", position: Position.Left },
 ] as const;
+
+/**
+ * Lados por los que se engancha una columna. Solo izquierda y derecha: una
+ * fila mide 22 px, y conectores arriba y abajo de cada una se pisarian entre
+ * si.
+ */
+const ROW_SIDES = [
+  { side: "left" as const, position: Position.Left },
+  { side: "right" as const, position: Position.Right },
+];
 
 function TableNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowNode>) {
   const { node } = data;
@@ -100,8 +111,32 @@ function TableNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowN
           className="shape-node__handle"
         />
       ))}
+
+      {/*
+        Un conector por columna y lado. Es lo que permite que una relacion
+        diga que clave ajena apunta a que clave: sin esto solo se puede unir
+        una tabla con otra, que es la mitad de la informacion.
+      */}
+      {columns.map((column, index) =>
+        ROW_SIDES.map(({ side, position }) => (
+          <Handle
+            key={`${column.id}-${side}`}
+            id={encodeHandle(side, column.id)}
+            type="source"
+            position={position}
+            className="table-node__port"
+            style={{ top: rowCenter(index) }}
+            title={column.name}
+          />
+        )),
+      )}
     </>
   );
+}
+
+/** Centro vertical de la fila `index`, en pixeles desde el borde del nodo. */
+function rowCenter(index: number): number {
+  return TABLE_HEADER_HEIGHT + index * TABLE_ROW_HEIGHT + TABLE_ROW_HEIGHT / 2;
 }
 
 function Row({ column }: { column: ErColumn }) {
