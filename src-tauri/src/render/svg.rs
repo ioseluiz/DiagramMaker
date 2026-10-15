@@ -745,6 +745,23 @@ mod tests {
     }
 
     #[test]
+    fn el_relleno_y_el_color_de_texto_de_un_nodo_llegan_al_svg() {
+        // Es lo que hace posible un estilo de relleno solido, como los
+        // niveles del modelo C4: sin el color de texto propio, el del tema
+        // quedaria ilegible encima.
+        let mut input = fixtures::input();
+        input.document.nodes[0].style.fill = Some("#08427B".into());
+        input.document.nodes[0].style.stroke = Some("#073B6F".into());
+        input.document.nodes[0].style.text_color = Some("#FFFFFF".into());
+
+        let svg = render(&input);
+
+        assert!(svg.contains(r##"fill="#08427B""##), "{svg}");
+        assert!(svg.contains(r##"stroke="#073B6F""##), "{svg}");
+        assert!(svg.contains(r##"fill="#FFFFFF""##), "{svg}");
+    }
+
+    #[test]
     fn una_dependencia_sale_punteada() {
         let mut input = fixtures::input();
         input.document.edges[0].kind = EdgeKind::Dependency;

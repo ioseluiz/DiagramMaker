@@ -9,7 +9,8 @@ import type { NodeShape } from "@/model/generated/NodeShape";
 import type { ErColumn } from "@/model/generated/ErColumn";
 import type { ErTable } from "@/model/generated/ErTable";
 import type { Side } from "@/model/generated/Side";
-import { defaultSizeFor } from "@/model/shapes";
+import type { C4Level } from "@/model/c4";
+import { defaultSizeFor, labelPlacement } from "@/model/shapes";
 import { tableSize } from "@/model/table";
 
 /**
@@ -561,7 +562,46 @@ export function setNodeFill(
   fill: string | null,
 ): void {
   const node = draft.nodes.find((n) => n.id === nodeId);
-  if (node) node.style = { ...node.style, fill: fill ?? undefined };
+  if (!node) return;
+
+  // Borde y texto vuelven a los del tema. Los tintes de la paleta estan
+  // pensados para leerse asi; si el nodo venia de un nivel C4, conservar su
+  // texto blanco sobre un tinte palido lo dejaria invisible.
+  node.style = {
+    ...node.style,
+    fill: fill ?? undefined,
+    stroke: undefined,
+    textColor: undefined,
+  };
+}
+
+/**
+ * Aplica —o quita— el estilo de un nivel del modelo C4.
+ *
+ * Escribe relleno, borde y color de texto de una vez porque los tres van
+ * juntos: el relleno de C4 es solido y saturado, y con el texto del tema no
+ * se leeria. Queda como un unico paso de deshacer.
+ */
+export function setNodeC4Level(
+  draft: Document,
+  nodeId: string,
+  level: C4Level | null,
+): void {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  if (!node) return;
+
+  // El color de texto de un nivel esta calculado para leerse *sobre* su
+  // relleno. En las formas cuya etiqueta va fuera de la caja —el actor la
+  // lleva debajo— el texto cae sobre el fondo del lienzo, donde el blanco de
+  // C4 desapareceria; alli manda el color del tema.
+  const onFill = labelPlacement(node.shape) !== "below";
+
+  node.style = {
+    ...node.style,
+    fill: level?.fill,
+    stroke: level?.stroke,
+    textColor: level && onFill ? level.textColor : undefined,
+  };
 }
 
 /* --- Agrupar y desagrupar ------------------------------------------------ */

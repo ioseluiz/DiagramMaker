@@ -2,6 +2,7 @@ import { produce } from "immer";
 import { describe, expect, it } from "vitest";
 
 import type { Document } from "@/model/generated/Document";
+import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
 import { TABLE_ROW_HEIGHT } from "@/model/tableMetrics";
 import {
   addColumn,
@@ -23,6 +24,8 @@ import {
   setEndpointLabel,
   setEndpointSide,
   setLabel,
+  setNodeC4Level,
+  setNodeFill,
   setNodeParent,
   setRelationKind,
   setTableAlias,
@@ -1082,5 +1085,88 @@ describe("tipo por defecto de una columna nueva", () => {
     if (node.data.type !== "er") throw new Error("no es una tabla");
 
     expect(node.data.columns[1]!.dataType).not.toBe("");
+  });
+});
+
+describe("niveles C4", () => {
+  /** Un documento con un nodo suelto y su id. */
+  function conNodo(): { doc: Document; id: string } {
+    let id = "";
+    const doc = run(emptyDoc(), (d) => {
+      id = addNode(d, { shape: "rectangle", x: 0, y: 0 });
+    });
+    return { doc, id };
+  }
+
+  const persona = c4LevelById("person")!;
+
+  it("aplicar un nivel escribe relleno, borde y color de texto", () => {
+    // Los tres van juntos: el relleno de C4 es solido, y con el texto del
+    // tema encima no se leeria.
+    const { doc: base, id } = conNodo();
+
+    const doc = run(base, (d) => setNodeC4Level(d, id, persona));
+
+    expect(doc.nodes[0]!.style).toMatchObject({
+      fill: persona.fill,
+      stroke: persona.stroke,
+      textColor: persona.textColor,
+    });
+  });
+
+  it("el nivel se deduce de vuelta del relleno", () => {
+    const { doc: base, id } = conNodo();
+
+    const doc = run(base, (d) => setNodeC4Level(d, id, persona));
+
+    expect(c4LevelOf(doc.nodes[0]!.style?.fill)).toBe(persona);
+  });
+
+  it("quitar el nivel devuelve el nodo al estilo del tema", () => {
+    const { doc: base, id } = conNodo();
+
+    const doc = run(base, (d) => {
+      setNodeC4Level(d, id, persona);
+      setNodeC4Level(d, id, null);
+    });
+
+    expect(doc.nodes[0]!.style?.fill).toBeUndefined();
+    expect(doc.nodes[0]!.style?.stroke).toBeUndefined();
+    expect(doc.nodes[0]!.style?.textColor).toBeUndefined();
+  });
+
+  it("elegir un color despues de un nivel no deja el texto blanco", () => {
+    // El texto blanco de C4 sobre un tinte palido de la paleta seria
+    // ilegible, asi que el color lo devuelve al del tema.
+    const { doc: base, id } = conNodo();
+
+    const doc = run(base, (d) => {
+      setNodeC4Level(d, id, persona);
+      setNodeFill(d, id, "rgb(37 99 235 / 0.16)");
+    });
+
+    expect(doc.nodes[0]!.style?.textColor).toBeUndefined();
+    expect(doc.nodes[0]!.style?.stroke).toBeUndefined();
+  });
+
+  it("una forma con la etiqueta fuera de la caja conserva el texto del tema", () => {
+    // El actor es una figura de lineas y su etiqueta va debajo, sobre el
+    // fondo: el blanco de C4 la dejaria invisible.
+    let id = "";
+    const base = run(emptyDoc(), (d) => {
+      id = addNode(d, { shape: "actor", x: 0, y: 0 });
+    });
+
+    const doc = run(base, (d) => setNodeC4Level(d, id, persona));
+
+    expect(doc.nodes[0]!.style?.fill).toBe(persona.fill);
+    expect(doc.nodes[0]!.style?.textColor).toBeUndefined();
+  });
+
+  it("ningun nivel comparte relleno con otro", () => {
+    // El nivel se deduce del relleno; dos iguales lo harian ambiguo.
+    const fills = C4_LEVELS.map((level) => level.fill);
+
+    expect(new Set(fills).size).toBe(fills.length);
   });
 });

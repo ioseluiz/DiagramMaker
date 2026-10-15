@@ -688,6 +688,20 @@ fn place_grid(doc: &mut diagrammaker_lib::model::Document) {
     }
 }
 
+/// Donde va la etiqueta de cada forma. Espejo de `labelPlacement` del
+/// frontend, que es quien lo decide en la aplicacion.
+///
+/// Un actor es una figura de lineas: su etiqueta no cabe dentro, va debajo.
+fn placement_for(shape: diagrammaker_lib::model::NodeShape) -> LabelPlacement {
+    use diagrammaker_lib::model::NodeShape;
+
+    match shape {
+        NodeShape::Package => LabelPlacement::Tab,
+        NodeShape::Actor => LabelPlacement::Below,
+        _ => LabelPlacement::Center,
+    }
+}
+
 /// Coloca, mide y dibuja un diagrama de arquitectura recien importado.
 ///
 /// Hace a mano lo que en la aplicacion hacen ELK y el navegador: repartir las
@@ -699,12 +713,10 @@ fn render_arquitectura(mut doc: diagrammaker_lib::model::Document) -> String {
 
     let mut labels = HashMap::new();
     for node in &doc.nodes {
-        let placement = if node.shape == diagrammaker_lib::model::NodeShape::Package {
-            LabelPlacement::Tab
-        } else {
-            LabelPlacement::Center
-        };
-        labels.insert(node.id.clone(), label(&node.label, 13.0, placement));
+        labels.insert(
+            node.id.clone(),
+            label(&node.label, 13.0, placement_for(node.shape)),
+        );
     }
 
     let mut edges = HashMap::new();

@@ -2,6 +2,7 @@ import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
 import type { NodeShape } from "@/model/generated/NodeShape";
+import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
 import { SHAPE_LABEL } from "@/model/shapes";
 import { nodeStyle } from "@/model/style";
 import { erTableOf } from "@/model/table";
@@ -14,6 +15,7 @@ import {
   setEdgeKind,
   setEndpointLabel,
   setLabel,
+  setNodeC4Level,
   setNodeFill,
   setRelationKind,
   setTitle,
@@ -82,6 +84,31 @@ export function Inspector() {
               {SHAPE_LABEL[node.shape as NodeShape]}
             </span>
           </Field>
+          {/*
+            C4 no es otro tipo de diagrama, es una convencion de colores
+            sobre uno de arquitectura: el nivel se ofrece ahi y en ningun
+            otro sitio. Elegir uno pisa el color, y elegir un color quita el
+            nivel; son dos maneras de escribir lo mismo.
+          */}
+          {doc.kind === "architecture" && (
+            <Field label="Nivel C4">
+              <select
+                value={c4LevelOf(nodeStyle(node).fill)?.id ?? ""}
+                onChange={(e) =>
+                  edit("nivel C4", (d) =>
+                    setNodeC4Level(d, node.id, c4LevelById(e.target.value) ?? null),
+                  )
+                }
+              >
+                <option value="">Ninguno</option>
+                {C4_LEVELS.map((level) => (
+                  <option key={level.id} value={level.id} title={level.hint}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <div className="inspector__field">
             <span className="inspector__label">Color</span>
             <ColorPicker
