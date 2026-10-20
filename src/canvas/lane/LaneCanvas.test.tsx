@@ -153,6 +153,23 @@ describe("LaneCanvas", () => {
     expect(container.querySelector(".lane-arrow[data-chosen]")).not.toBeNull();
   });
 
+  it("arrastrar el fondo no revienta donde no hay captura de puntero", async () => {
+    // jsdom no implementa `setPointerCapture`; llamarla a secas lanzaba una
+    // excepcion que no tumbaba ninguna asercion pero si hacia que vitest
+    // terminara con error. Es lo que tenia la CI en rojo.
+    const { container } = render(<LaneCanvas document={doc()} />);
+    const surface = container.querySelector(".lane-canvas__surface")!;
+
+    await userEvent.pointer([
+      { target: surface, keys: "[MouseLeft>]", coords: { clientX: 10, clientY: 10 } },
+      { target: surface, coords: { clientX: 60, clientY: 40 } },
+      { target: surface, keys: "[/MouseLeft]" },
+    ]);
+
+    // El encuadre se movio: el grupo lleva su `transform`.
+    expect(container.querySelector("g[transform]")).not.toBeNull();
+  });
+
   it("sin participantes lo dice en vez de quedarse en blanco", () => {
     const vacio: Document = { ...doc(), nodes: [], script: { steps: [] } };
     render(<LaneCanvas document={vacio} />);

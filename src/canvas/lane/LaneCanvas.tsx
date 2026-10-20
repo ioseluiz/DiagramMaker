@@ -112,7 +112,7 @@ export function LaneCanvas({ document: doc }: LaneCanvasProps) {
     // Arrastrar sobre el fondo desplaza; sobre una pieza, no.
     if (event.button !== 0 && event.button !== 1) return;
     panning.current = { x: event.clientX, y: event.clientY, view };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    capturePointer(event.currentTarget, event.pointerId);
   }
 
   function onPointerMove(event: React.PointerEvent<SVGSVGElement>) {
@@ -128,9 +128,7 @@ export function LaneCanvas({ document: doc }: LaneCanvasProps) {
 
   function endPan(event: React.PointerEvent<SVGSVGElement>) {
     panning.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+    releasePointer(event.currentTarget, event.pointerId);
   }
 
   /** Elegir una pieza sin que el clic llegue al fondo y la deseleccione. */
@@ -399,6 +397,29 @@ export function LaneCanvas({ document: doc }: LaneCanvasProps) {
 /** Medio alto de un bloque de texto, para centrarlo verticalmente. */
 function headerHalf(label?: { lines: unknown[]; lineHeight: number }): number {
   return label ? (label.lines.length * label.lineHeight) / 2 : 0;
+}
+
+/**
+ * Captura el puntero, si el entorno sabe hacerlo.
+ *
+ * La captura es lo que deja seguir desplazando cuando el raton se sale del
+ * lienzo, pero es una mejora y no un requisito: sin ella el desplazamiento
+ * funciona igual mientras el puntero siga encima. jsdom no implementa esa
+ * parte del DOM, asi que llamarla a secas revienta en las pruebas.
+ */
+function capturePointer(target: Element, pointerId: number): void {
+  if (typeof target.setPointerCapture === "function") {
+    target.setPointerCapture(pointerId);
+  }
+}
+
+function releasePointer(target: Element, pointerId: number): void {
+  if (
+    typeof target.hasPointerCapture === "function" &&
+    target.hasPointerCapture(pointerId)
+  ) {
+    target.releasePointerCapture(pointerId);
+  }
 }
 
 /**
