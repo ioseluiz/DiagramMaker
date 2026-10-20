@@ -7,11 +7,12 @@ import {
   selectDocument,
   useDocumentStore,
 } from "@/store/documentStore";
-import { addClass, addNode, addTable, setDiagramKind } from "@/store/operations";
+import { setDiagramKind } from "@/store/operations";
 import { useTheme, type ThemePreference } from "@/theme/useTheme";
+import { useAddShape } from "./useAddShape";
 import { useCanvasTool, type CanvasTool } from "./useCanvasTool";
 import { useCodePanel } from "./useCodePanel";
-import { useState } from "react";
+import { useDialogs } from "./useDialogs";
 
 import { ExportDialog } from "./ExportDialog";
 import { ImportDialog } from "./ImportDialog";
@@ -34,69 +35,6 @@ const THEME_LABEL: Record<ThemePreference, string> = {
   dark: "Oscuro",
 };
 
-/**
- * Formas que ofrece la paleta, segun el tipo de diagrama.
- *
- * En un entidad-relacion lo que se dibuja son tablas; ofrecer un rombo o un
- * actor seria ruido. El resto de tipos comparten el juego general hasta que
- * cada uno tenga el suyo.
- */
-const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
-  er: ["table", "package", "note", "text"],
-  class: ["class", "package", "note", "text"],
-  // En una maquina de estados lo que se dibuja son estados redondeados, sus
-  // extremos y las bifurcaciones; un cilindro o un actor ahi serian ruido.
-  state: [
-    "roundedRect",
-    "initialNode",
-    "finalNode",
-    "diamond",
-    "bar",
-    "package",
-    "note",
-    "text",
-  ],
-  activity: [
-    "roundedRect",
-    "initialNode",
-    "finalNode",
-    "diamond",
-    "bar",
-    "package",
-    "note",
-    "text",
-  ],
-  // Un caso de uso es una elipse dentro de la frontera del sistema, y quien
-  // lo usa, un actor.
-  useCase: ["ellipse", "actor", "package", "rectangle", "note", "text"],
-  // Una secuencia no se dibuja colocando formas: sus participantes y sus
-  // pasos se anaden desde el panel del guion, que es donde esta el orden.
-  sequence: [],
-};
-
-const DEFAULT_PALETTE: NodeShape[] = [
-  "rectangle",
-  "roundedRect",
-  "ellipse",
-  "diamond",
-  "cylinder",
-  "note",
-  "package",
-  "actor",
-  "text",
-];
-
-/**
- * Coloca los nodos nuevos en cascada para que no se apilen uno encima de otro.
- * No intenta adivinar el centro del viewport: una cascada predecible molesta
- * menos que un nodo que aparece donde el usuario no mira.
- */
-function nextPosition(count: number): { x: number; y: number } {
-  const column = count % 4;
-  const row = Math.floor(count / 4);
-  return { x: 80 + column * 200, y: 80 + row * 120 };
-}
-
 export function Toolbar() {
   const doc = useDocumentStore(selectDocument);
   const dirty = useDocumentStore((s) => s.dirty);
@@ -113,26 +51,11 @@ export function Toolbar() {
   const setTool = useCanvasTool((s) => s.setTool);
   const codeOpen = useCodePanel((s) => s.open);
   const toggleCode = useCodePanel((s) => s.toggle);
-  const [exporting, setExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const dialog = useDialogs((s) => s.dialog);
+  const showDialog = useDialogs((s) => s.show);
+  const closeDialog = useDialogs((s) => s.close);
 
-  const palette = (doc && PALETTE_BY_KIND[doc.kind]) ?? DEFAULT_PALETTE;
-
-  const addShape = (shape: NodeShape) => {
-    const position = nextPosition(doc?.nodes.length ?? 0);
-
-    edit("anadir", (draft) => {
-      if (shape === "table") {
-        addTable(draft, position);
-        return;
-      }
-      if (shape === "class") {
-        addClass(draft, position);
-        return;
-      }
-      addNode(draft, { shape, label: SHAPE_LABEL[shape], ...position });
-    });
-  };
+  const { palette, addShape } = useAddShape();
 
   return (
     <header className="toolbar">
@@ -175,14 +98,14 @@ export function Toolbar() {
         </button>
         <button
           type="button"
-          onClick={() => setImporting(true)}
+          onClick={() => showDialog("import")}
           title="Importar desde DBML"
         >
           Importar
         </button>
         <button
           type="button"
-          onClick={() => setExporting(true)}
+          onClick={() => showDialog("export")}
           disabled={!doc}
           title="Exportar a SVG, PNG o PDF"
         >
@@ -267,8 +190,8 @@ export function Toolbar() {
         </select>
       </label>
 
-      {exporting && <ExportDialog onClose={() => setExporting(false)} />}
-      {importing && <ImportDialog onClose={() => setImporting(false)} />}
+      {dialog === "export" && <ExportDialog onClose={closeDialog} />}
+      {dialog === "import" && <ImportDialog onClose={closeDialog} />}
     </header>
   );
 }

@@ -1,0 +1,93 @@
+/* La paleta no se centra del todo: cae en el tercio alto, que es donde la
+   vista la busca y donde no tapa el lienzo entero. */
+.command-palette__backdrop {
+  align-items: start;
+  padding-top: 12vh;
+}
+
+.command-palette {
+  display: flex;
+  flex-direction: column;
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}
+
+.command-palette__input {
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.command-palette__input:focus {
+  outline: none;
+}
+
+.command-palette__list {
+  max-height: 46vh;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.command-palette__item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  cursor: default;
+}
+
+.command-palette__item[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+
+.command-palette__item[aria-disabled] {
+  color: var(--text-faint);
+}
+
+/* El grupo va delante y en columna fija: de un vistazo se ve si lo que se
+   busca es de archivo o de edicion. El ancho da para el nombre mas largo que
+   hay; si alguno creciera, se recorta antes que descuadrar la columna de
+   titulos. */
+.command-palette__group {
+  flex: 0 0 90px;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.command-palette__title {
+  flex: 1 1 auto;
+}
+
+.command-palette__key {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.command-palette__empty {
+  margin: 0;
+  padding: 16px 14px;
+  color: var(--text-muted);
+}

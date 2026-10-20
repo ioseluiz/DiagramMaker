@@ -4,3 +4,7 @@ import "@testing-library/jest-dom/vitest";
 // `null` es exactamente lo que ocurre cuando no hay contexto 2D, que es el
 // caso que `@/canvas/text` ya contempla con su estimacion de respaldo.
 HTMLCanvasElement.prototype.getContext = () => null;
+
+// Tampoco implementa `scrollIntoView`, que en un navegador existe siempre.
+// Sin esto, cualquier lista que siga a la fila elegida revienta en pruebas.
+Element.prototype.scrollIntoView = () => {};

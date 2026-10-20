@@ -4,6 +4,9 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { basename } from "./time";
 import { useAppInfo } from "./useAppInfo";
+import { useCommandPalette } from "./useCommandPalette";
+import { PALETTE_SHORTCUT } from "./CommandPalette";
+import { formatShortcut } from "./commands";
 
 const REPOSITORY = "https://github.com/ioseluiz/DiagramMaker";
 const AUTHOR = "ioseluiz";
@@ -18,6 +21,7 @@ export function StatusBar() {
   const clearError = useDocumentStore((s) => s.clearError);
   const validate = useDocumentStore((s) => s.validate);
   const info = useAppInfo();
+  const openPalette = useCommandPalette((s) => s.toggle);
 
   // Revalidar cuando el documento cambia, con un respiro para no lanzar una
   // llamada por cada pixel de un arrastre.
@@ -47,6 +51,15 @@ export function StatusBar() {
       )}
 
       <span className="status-bar__spacer" />
+
+      <button
+        type="button"
+        className="status-bar__palette"
+        onClick={openPalette}
+        title="Todo lo que se puede hacer, buscando por su nombre"
+      >
+        Comandos <kbd>{formatShortcut(PALETTE_SHORTCUT)}</kbd>
+      </button>
 
       {busy && <span>Trabajando…</span>}
 

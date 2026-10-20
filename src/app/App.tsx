@@ -4,13 +4,14 @@ import { GraphCanvas } from "@/canvas/graph/GraphCanvas";
 import { LaneCanvas } from "@/canvas/lane/LaneCanvas";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { CodePanel } from "./CodePanel";
+import { CommandPalette } from "./CommandPalette";
 import { Inspector } from "./Inspector";
 import { RecoveryToast } from "./RecoveryToast";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 import { useAutosave } from "./useAutosave";
-import { useCanvasToolShortcuts } from "./useCanvasTool";
 import { useCodePanel } from "./useCodePanel";
+import { useShortcuts } from "./useShortcuts";
 import { useWindowTitle } from "./useWindowTitle";
 import "./App.css";
 
@@ -22,7 +23,7 @@ export function App() {
   const codeOpen = useCodePanel((s) => s.open);
 
   useAutosave();
-  useCanvasToolShortcuts();
+  useShortcuts();
   useWindowTitle();
 
   useEffect(() => {
@@ -48,6 +49,8 @@ export function App() {
 
         <Inspector />
       </div>
+
+      <CommandPalette />
 
       <RecoveryToast />
 

@@ -927,6 +927,36 @@
   color: var(--text);
 }
 
+.status-bar__palette {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 6px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.status-bar__palette:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.status-bar__palette kbd {
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 /* --- Barra de estado en ventanas estrechas ------------------------------ */
 
 /*
@@ -946,6 +976,7 @@
 
 .status-bar__counts,
 .status-bar__problem,
+.status-bar__palette,
 .status-bar__version,
 .status-bar__repo {
   flex-shrink: 0;
