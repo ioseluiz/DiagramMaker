@@ -1,6 +1,6 @@
 .app-shell {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
   height: 100%;
 }
 
@@ -233,7 +233,16 @@
 }
 
 .status-bar__problem {
-  cursor: help;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.status-bar__problem:hover {
+  text-decoration: underline;
 }
 
 .status-bar__problem[data-severity="error"] {

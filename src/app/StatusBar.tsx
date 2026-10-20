@@ -5,6 +5,7 @@ import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { basename } from "./time";
 import { useAppInfo } from "./useAppInfo";
 import { useCommandPalette } from "./useCommandPalette";
+import { useDiagnostics } from "./useDiagnostics";
 import { PALETTE_SHORTCUT } from "./CommandPalette";
 import { formatShortcut } from "./commands";
 
@@ -22,6 +23,7 @@ export function StatusBar() {
   const validate = useDocumentStore((s) => s.validate);
   const info = useAppInfo();
   const openPalette = useCommandPalette((s) => s.toggle);
+  const toggleProblems = useDiagnostics((s) => s.toggle);
 
   // Revalidar cuando el documento cambia, con un respiro para no lanzar una
   // llamada por cada pixel de un arrastre.
@@ -64,23 +66,27 @@ export function StatusBar() {
       {busy && <span>Trabajando…</span>}
 
       {errors.length > 0 && (
-        <span
+        <button
+          type="button"
           className="status-bar__problem"
           data-severity="error"
-          title={errors.map((d) => d.message).join("\n")}
+          onClick={toggleProblems}
+          title="Ver los problemas"
         >
           {errors.length} {errors.length === 1 ? "problema" : "problemas"}
-        </span>
+        </button>
       )}
 
       {warnings.length > 0 && (
-        <span
+        <button
+          type="button"
           className="status-bar__problem"
           data-severity="warning"
-          title={warnings.map((d) => d.message).join("\n")}
+          onClick={toggleProblems}
+          title="Ver los avisos"
         >
           {warnings.length} {warnings.length === 1 ? "aviso" : "avisos"}
-        </span>
+        </button>
       )}
 
       {error && (

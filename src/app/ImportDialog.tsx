@@ -111,7 +111,7 @@ export function ImportDialog({ onClose }: ImportDialogProps) {
       const document = result.document;
       await applyAutoLayout(document);
 
-      replaceDocument(document);
+      replaceDocument(document, result.diagnostics);
       onClose();
     } catch (e) {
       setError(api.isAppError(e) ? e.message : String(e));

@@ -5,12 +5,14 @@ import { LaneCanvas } from "@/canvas/lane/LaneCanvas";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { CodePanel } from "./CodePanel";
 import { CommandPalette } from "./CommandPalette";
+import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { Inspector } from "./Inspector";
 import { RecoveryToast } from "./RecoveryToast";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 import { useAutosave } from "./useAutosave";
 import { useCodePanel } from "./useCodePanel";
+import { useDiagnostics } from "./useDiagnostics";
 import { useShortcuts } from "./useShortcuts";
 import { useWindowTitle } from "./useWindowTitle";
 import "./App.css";
@@ -21,6 +23,7 @@ export function App() {
   const loadRecents = useDocumentStore((s) => s.loadRecents);
   const checkRecovery = useDocumentStore((s) => s.checkRecovery);
   const codeOpen = useCodePanel((s) => s.open);
+  const problemsOpen = useDiagnostics((s) => s.open);
 
   useAutosave();
   useShortcuts();
@@ -51,6 +54,8 @@ export function App() {
       </div>
 
       <CommandPalette />
+
+      {problemsOpen && <DiagnosticsPanel />}
 
       <RecoveryToast />
 

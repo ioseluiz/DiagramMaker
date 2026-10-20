@@ -11,6 +11,7 @@ import { useTheme } from "@/theme/useTheme";
 import { useAddShape } from "./useAddShape";
 import { useCanvasTool } from "./useCanvasTool";
 import { useCodePanel } from "./useCodePanel";
+import { useDiagnostics } from "./useDiagnostics";
 import { useDialogs } from "./useDialogs";
 import { useDocumentCommands } from "./useDocumentCommands";
 
@@ -144,6 +145,7 @@ export function useCommands(): Command[] {
   const setTool = useCanvasTool((s) => s.setTool);
   const toggleCode = useCodePanel((s) => s.toggle);
   const showDialog = useDialogs((s) => s.show);
+  const toggleProblems = useDiagnostics((s) => s.toggle);
   const { palette, addShape } = useAddShape();
 
   return useMemo(() => {
@@ -226,6 +228,13 @@ export function useCommands(): Command[] {
         run: toggleCode,
       },
       {
+        id: "view.problems",
+        title: "Panel de problemas",
+        group: "Ver",
+        enabled: open,
+        run: toggleProblems,
+      },
+      {
         id: "view.theme.light",
         title: "Tema claro",
         group: "Ver",
@@ -294,6 +303,7 @@ export function useCommands(): Command[] {
     setTool,
     showDialog,
     toggleCode,
+    toggleProblems,
     undo,
   ]);
 }

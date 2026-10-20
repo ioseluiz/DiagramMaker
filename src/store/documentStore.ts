@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import type { Diagnostic } from "@/model/generated/Diagnostic";
 import type { DiagramKind } from "@/model/generated/DiagramKind";
 import type { Document } from "@/model/generated/Document";
 import type { RecentFile } from "@/model/generated/RecentFile";
@@ -26,6 +27,15 @@ export interface DocumentState {
   /** Ids de nodos y aristas seleccionados. */
   selection: string[];
   report: Report | null;
+  /**
+   * Diagnosticos de la ultima importacion.
+   *
+   * Se guardan aparte del informe de validacion porque hablan de otra cosa:
+   * el informe dice que le pasa al diagrama de ahora, y estos dicen que se
+   * perdio por el camino al leer el codigo. Duran hasta que llegue otro
+   * documento, que es cuando dejan de venir a cuento.
+   */
+  imported: Diagnostic[];
   busy: boolean;
   error: string | null;
   recents: RecentFile[];
@@ -53,7 +63,7 @@ export interface DocumentActions {
    * ocurre al importar: deshacer hasta antes de la importacion volveria a un
    * documento que ya no tiene nada que ver.
    */
-  replaceDocument(document: Document): void;
+  replaceDocument(document: Document, imported?: Diagnostic[]): void;
   open(path: string): Promise<void>;
   save(path?: string): Promise<void>;
   validate(): Promise<void>;
@@ -83,6 +93,7 @@ const EMPTY: DocumentState = {
   dirty: false,
   selection: [],
   report: null,
+  imported: [],
   busy: false,
   error: null,
   recents: [],
@@ -95,6 +106,7 @@ const FRESH = {
   dirty: false,
   selection: [] as string[],
   report: null,
+  imported: [] as Diagnostic[],
   error: null,
 };
 
@@ -130,8 +142,8 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
     }
   },
 
-  replaceDocument(document) {
-    set({ ...FRESH, history: initHistory(document), dirty: true });
+  replaceDocument(document, imported = []) {
+    set({ ...FRESH, history: initHistory(document), dirty: true, imported });
   },
 
   async open(path) {

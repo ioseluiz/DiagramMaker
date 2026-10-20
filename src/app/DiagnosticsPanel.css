@@ -1,0 +1,105 @@
+/* El panel cruza la ventana entera por debajo del lienzo: los problemas los
+   provoca cualquier parte del diagrama, no un lado. */
+.diagnostics-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 34vh;
+  background: var(--surface-0);
+  border-top: 1px solid var(--border);
+}
+
+.diagnostics-panel__head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.diagnostics-panel__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diagnostics-panel__count {
+  flex: 1 1 auto;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.diagnostics-panel__close {
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.diagnostics-panel__close:hover {
+  color: var(--text);
+}
+
+.diagnostics-panel__body {
+  padding: 8px 12px 12px;
+  overflow-y: auto;
+}
+
+.diagnostics-panel__group {
+  margin: 10px 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.diagnostics-panel__group:first-child {
+  margin-top: 0;
+}
+
+.diagnostics-panel__empty {
+  margin: 4px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* El panel reutiliza la lista del dialogo de importar, pero aqui no hay un
+   alto fijo: manda el del propio panel. */
+.diagnostics-panel .diagnostics {
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+}
+
+.diagnostics__pick {
+  flex: 1 1 auto;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.diagnostics__pick:hover {
+  text-decoration: underline;
+}
+
+.diagnostics__text {
+  flex: 1 1 auto;
+}
+
+.diagnostics__where,
+.diagnostics__code {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.diagnostics__code {
+  font-family: var(--font-mono);
+}
