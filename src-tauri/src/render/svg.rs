@@ -175,22 +175,37 @@ pub fn render(input: &RenderInput) -> String {
 
     // Orden de pintado, de abajo a arriba:
     //
-    //   1. trazados de arista  -> las cajas los tapan donde se solapan
-    //   2. nodos y sus etiquetas
-    //   3. texto de las aristas -> nunca debe quedar debajo de una caja
+    //   1. contenedores        -> son fondo, no estorbo
+    //   2. trazados de arista  -> las cajas hoja los tapan donde se solapan
+    //   3. nodos hoja y sus etiquetas
+    //   4. texto de las aristas -> nunca debe quedar debajo de una caja
     //
-    // El tercer paso existe porque una cardinalidad se dibuja pegada al borde
+    // Los contenedores van antes que las aristas a proposito. Una flecha que
+    // acaba dentro de una frontera —un actor que apunta a un caso de uso, un
+    // componente que entra en un paquete— cruza por fuerza el relleno del
+    // contenedor; si este se pintara encima, desapareceria justo el tramo
+    // final y con el la punta de la flecha.
+    //
+    // El cuarto paso existe porque una cardinalidad se dibuja pegada al borde
     // del nodo: si fuera con el trazado, el relleno de la caja se la comeria.
+    let mut nodes: Vec<&Node> = input.document.nodes.iter().collect();
+    nodes.sort_by_key(|n| depth_of(&input.document, n));
+
+    let (contenedores, hojas): (Vec<&Node>, Vec<&Node>) = nodes
+        .into_iter()
+        .partition(|n| has_children(&input.document, &n.id));
+
+    for node in contenedores {
+        out.push_str(&render_node(node, input));
+    }
+
     for edge in &input.document.edges {
         if let Some(path) = input.edges.get(&edge.id) {
             out.push_str(&render_edge_path(edge, path, &input.theme));
         }
     }
 
-    // Los contenedores se dibujan antes que su contenido.
-    let mut nodes: Vec<&Node> = input.document.nodes.iter().collect();
-    nodes.sort_by_key(|n| depth_of(&input.document, n));
-    for node in nodes {
+    for node in hojas {
         out.push_str(&render_node(node, input));
     }
 
@@ -202,6 +217,11 @@ pub fn render(input: &RenderInput) -> String {
 
     out.push_str("</svg>");
     out
+}
+
+/// `true` si algun nodo lo tiene por padre.
+fn has_children(doc: &Document, id: &str) -> bool {
+    doc.nodes.iter().any(|n| n.parent.as_deref() == Some(id))
 }
 
 /// Cuantos contenedores tiene por encima un nodo.

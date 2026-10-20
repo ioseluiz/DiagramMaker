@@ -541,3 +541,79 @@ api -[#red]-> pasarela : cobro
     assert_eq!(doc.edges[2].source.label.as_deref(), Some("1"));
     assert_eq!(doc.edges[3].kind, EdgeKind::Dependency);
 }
+
+/* --- Casos de uso ---------------------------------------------------------- */
+
+fn count(doc: &Document, shape: NodeShape) -> usize {
+    doc.nodes.iter().filter(|n| n.shape == shape).count()
+}
+
+#[test]
+fn los_parentesis_declaran_un_caso_de_uso() {
+    assert_eq!(
+        node(&body("(Comprar)"), "Comprar").shape,
+        NodeShape::Ellipse
+    );
+}
+
+#[test]
+fn los_dos_puntos_declaran_un_actor() {
+    assert_eq!(node(&body(":Cliente:"), "Cliente").shape, NodeShape::Actor);
+}
+
+#[test]
+fn la_palabra_usecase_declara_lo_mismo_que_los_parentesis() {
+    let doc = body(
+        "usecase \"Comprar\" as uc1
+(Pagar)",
+    );
+
+    assert_eq!(count(&doc, NodeShape::Ellipse), 2);
+}
+
+#[test]
+fn una_forma_corta_en_una_relacion_crea_la_forma_que_toca() {
+    // Nadie ha declarado nada: el signo con el que se les menciona es lo
+    // unico que dice que son.
+    let doc = body(":Cliente: --> (Comprar)");
+
+    assert_eq!(node(&doc, "Cliente").shape, NodeShape::Actor);
+    assert_eq!(node(&doc, "Comprar").shape, NodeShape::Ellipse);
+    assert_eq!(doc.edges.len(), 1);
+}
+
+#[test]
+fn un_alias_declarado_gana_a_la_forma_corta_con_la_que_se_le_mencione() {
+    let doc = body(
+        "actor Cliente
+Cliente --> (Comprar)",
+    );
+
+    assert_eq!(count(&doc, NodeShape::Actor), 1, "no se duplica");
+    assert_eq!(node(&doc, "Cliente").shape, NodeShape::Actor);
+}
+
+#[test]
+fn una_frontera_contiene_sus_casos_de_uso() {
+    let doc = body(
+        "rectangle \"Tienda\" {
+  (Comprar)
+  (Pagar)
+}",
+    );
+
+    let frontera = node(&doc, "Tienda");
+    assert_eq!(frontera.shape, NodeShape::Package);
+    assert_eq!(doc.children_of(Some(&frontera.id)).count(), 2);
+}
+
+#[test]
+fn una_flecha_con_color_no_parte_la_relacion() {
+    // `-[#red]->` lleva un corchete dentro, que es el signo de la forma
+    // corta del componente; quien decide donde esta la flecha es el buscador
+    // de flechas, antes de que nadie mire los extremos.
+    let doc = body("(A) -[#red]-> (B)");
+
+    assert_eq!(count(&doc, NodeShape::Ellipse), 2);
+    assert_eq!(doc.edges.len(), 1);
+}

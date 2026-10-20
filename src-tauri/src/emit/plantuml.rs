@@ -382,6 +382,59 @@ mod tests {
     }
 
     #[test]
+    fn un_diagrama_de_casos_de_uso_sobrevive_la_ida_y_vuelta() {
+        let source = r#"
+@startuml
+left to right direction
+
+actor "Cliente" as cliente
+actor "Almacen" as almacen
+
+rectangle "Tienda" {
+  (Comprar) as comprar
+  (Pagar) as pagar
+  (Enviar) as enviar
+}
+
+cliente --> comprar
+comprar ..> pagar : include
+cliente --> pagar
+almacen --> enviar
+@enduml
+"#;
+
+        let (a, b) = round_trip(source);
+        assert_equivalent(&a, &b);
+
+        // El tipo tiene que sobrevivir el viaje: si el codigo generado no
+        // dejara ninguna pista, al volver a leerlo seria de componentes.
+        assert_eq!(a.kind, DiagramKind::UseCase);
+        assert_eq!(b.kind, DiagramKind::UseCase);
+        assert_eq!(count_shape(&b, NodeShape::Ellipse), 3);
+        assert_eq!(count_shape(&b, NodeShape::Actor), 2);
+    }
+
+    #[test]
+    fn el_generador_publico_tambien_lleva_los_casos_de_uso_a_plantuml() {
+        // Entrando por `emit::emit`, que es por donde entra la aplicacion.
+        let doc = parser::import(
+            "@startuml
+:Cliente: --> (Comprar)
+@enduml",
+            0,
+        )
+        .document;
+        let code = crate::emit::emit(crate::emit::SourceLanguage::PlantUml, &doc);
+
+        assert!(code.contains("usecase"), "{code}");
+        assert!(code.contains("actor"), "{code}");
+    }
+
+    fn count_shape(doc: &Document, shape: NodeShape) -> usize {
+        doc.nodes.iter().filter(|n| n.shape == shape).count()
+    }
+
+    #[test]
     fn un_diagrama_realista_sobrevive_la_ida_y_vuelta() {
         let source = r#"
 @startuml

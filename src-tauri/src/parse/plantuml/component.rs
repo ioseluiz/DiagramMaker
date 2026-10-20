@@ -24,7 +24,18 @@ use super::super::ImportResult;
 use super::{arrows, elements};
 
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
-    let mut parser = Parser::new(now_ms);
+    import_as(source, now_ms, DiagramKind::Architecture)
+}
+
+/// Lo mismo, pero diciendo de que tipo es el documento.
+///
+/// Un diagrama de casos de uso se lee con este mismo parser: estructuralmente
+/// son lo mismo —formas con etiqueta, anidadas en contenedores y unidas por
+/// relaciones con tipo— y lo unico que cambia es que palabras aparecen y que
+/// tipo lleva el documento. Duplicar quinientas lineas para cambiar eso seria
+/// pedir que las dos copias divergieran.
+pub fn import_as(source: &str, now_ms: i64, kind: DiagramKind) -> ImportResult {
+    let mut parser = Parser::new(now_ms, kind);
     parser.run(source);
     parser.finish()
 }
@@ -55,13 +66,9 @@ struct Parser {
 }
 
 impl Parser {
-    fn new(now_ms: i64) -> Self {
+    fn new(now_ms: i64, kind: DiagramKind) -> Self {
         Parser {
-            document: Document::new(
-                uuid::Uuid::new_v4().to_string(),
-                DiagramKind::Architecture,
-                now_ms,
-            ),
+            document: Document::new(uuid::Uuid::new_v4().to_string(), kind, now_ms),
             diagnostics: Vec::new(),
             by_name: HashMap::new(),
             stack: Vec::new(),
@@ -339,7 +346,11 @@ impl Parser {
             return index;
         }
 
-        self.create(NodeShape::Rectangle, &name, &name)
+        // La forma corta con la que se le menciona dice que es: `(Comprar)`
+        // es un caso de uso y `:Cliente:` un actor, aunque nadie los haya
+        // declarado antes.
+        let shape = elements::shorthand_shape(reference).unwrap_or(NodeShape::Rectangle);
+        self.create(shape, &name, &name)
     }
 
     fn create(&mut self, shape: NodeShape, name: &str, label: &str) -> usize {

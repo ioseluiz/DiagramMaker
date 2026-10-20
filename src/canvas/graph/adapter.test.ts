@@ -293,3 +293,25 @@ describe("seleccion de relaciones", () => {
     expect(flow!.style).toHaveProperty("stroke");
   });
 });
+
+describe("orden de pintado de los contenedores", () => {
+  it("deja los contenedores por debajo de las aristas", () => {
+    const d = doc([
+      node("frontera", 100, 100, {}, "package"),
+      node("caso", 140, 140, { parent: "frontera" }, "ellipse"),
+      node("actor", 20, 140, {}, "actor"),
+    ]);
+
+    const byId = new Map(toFlowNodes(d, NONE).map((n) => [n.id, n]));
+
+    expect(byId.get("frontera")!.zIndex).toBe(-1);
+    expect(byId.get("caso")!.zIndex).toBeUndefined();
+    expect(byId.get("actor")!.zIndex).toBeUndefined();
+  });
+
+  it("un paquete vacio se comporta como una caja normal", () => {
+    const d = doc([node("vacio", 0, 0, {}, "package")]);
+
+    expect(toFlowNodes(d, NONE)[0]!.zIndex).toBeUndefined();
+  });
+});

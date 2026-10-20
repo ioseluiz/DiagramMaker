@@ -14,6 +14,10 @@
 //!
 //! Todas se leen igual: palabra clave, nombre visible y, detras, modificadores
 //! en cualquier orden.
+//!
+//! Hay tres formas cortas que se escriben sin palabra clave, una por cada
+//! dibujo que sale lo bastante a menudo como para merecerla: `[Componente]`,
+//! `(Caso de uso)` y `:Actor:`.
 
 use crate::model::NodeShape;
 
@@ -96,9 +100,9 @@ pub fn parse(text: &str) -> Option<Declared> {
         head = head[..head.len() - 1].trim_end();
     }
 
-    // `[Portal web]` es la forma corta de `component "Portal web"`.
-    let (shape, rest) = if head.starts_with('[') {
-        (NodeShape::Rectangle, head)
+    // Las formas cortas no llevan palabra clave: el propio signo la dice.
+    let (shape, rest) = if let Some(shape) = shorthand_shape(head) {
+        (shape, head)
     } else {
         let word = head.split_whitespace().next()?;
         let shape = shape_for(&word.to_lowercase())?;
@@ -170,6 +174,22 @@ pub fn parse(text: &str) -> Option<Declared> {
     })
 }
 
+/// Forma que declara una de las tres formas cortas, si el texto empieza por
+/// una de ellas.
+///
+/// Solo mira el signo que abre, porque detras puede venir cualquier cosa:
+/// `[Portal web] as web #red` es una declaracion y `(A) --> (B)` una relacion,
+/// y las dos empiezan por su signo. De que el signo cierre ya se encarga
+/// `read_token`, que es quien lee el nombre.
+pub fn shorthand_shape(text: &str) -> Option<NodeShape> {
+    match text.trim_start().as_bytes().first()? {
+        b'[' => Some(NodeShape::Rectangle),
+        b'(' => Some(NodeShape::Ellipse),
+        b':' => Some(NodeShape::Actor),
+        _ => None,
+    }
+}
+
 /// Lee el siguiente trozo: una cadena entre comillas, un nombre entre
 /// corchetes o una palabra suelta. Devuelve su contenido y lo que queda.
 pub fn read_token(text: &str) -> Option<(String, &str)> {
@@ -177,6 +197,8 @@ pub fn read_token(text: &str) -> Option<(String, &str)> {
     let close = match text.as_bytes().first()? {
         b'"' => '"',
         b'[' => ']',
+        b'(' => ')',
+        b':' => ':',
         _ => {
             let end = text.find(char::is_whitespace).unwrap_or(text.len());
             return Some((text[..end].to_string(), &text[end..]));
@@ -201,12 +223,12 @@ pub fn strip_word<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     Some(rest)
 }
 
-/// Quita los corchetes o las comillas que rodean a la referencia de un
-/// elemento dentro de una relacion.
+/// Quita los signos que rodean a la referencia de un elemento dentro de una
+/// relacion: los de las tres formas cortas y las comillas.
 pub fn unwrap_reference(text: &str) -> &str {
     let text = text.trim();
 
-    for (open, close) in [('[', ']'), ('"', '"')] {
+    for (open, close) in [('[', ']'), ('(', ')'), (':', ':'), ('"', '"')] {
         if let Some(inner) = text.strip_prefix(open).and_then(|t| t.strip_suffix(close)) {
             return inner.trim();
         }

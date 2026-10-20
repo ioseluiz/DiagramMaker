@@ -12,12 +12,14 @@
 //!    `abstract`, `enum`— es de clases.
 //! 3. Si aparece `state` o un `[*]`, es una maquina de estados: ese corchete
 //!    no existe en ningun otro dialecto.
-//! 4. Si aparece algo que solo existe en un diagrama de componentes —un
+//! 4. Si aparece un `usecase` o una elipse `(Caso de uso)`, es de casos de
+//!    uso: ese parentesis no abre ninguna linea de los demas dialectos.
+//! 5. Si aparece algo que solo existe en un diagrama de componentes —un
 //!    `[Nombre]`, un bloque `package { }`— es de componentes.
-//! 5. Si hay mensajes con etiqueta entre nombres sin declarar
+//! 6. Si hay mensajes con etiqueta entre nombres sin declarar
 //!    (`Alice -> Bob : hola`), es una secuencia: ese es el primer ejemplo de
 //!    la documentacion de PlantUML y seria el peor sitio donde equivocarse.
-//! 6. En cualquier otro caso, componentes.
+//! 7. En cualquier otro caso, componentes.
 //!
 //! Quedan dos casos ambiguos, y en los dos se elige la lectura de
 //! componentes, que es la que ya habia: `A --> B` a secas, sin etiqueta ni
@@ -37,6 +39,7 @@ use super::ImportResult;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Flavor {
     Component,
+    UseCase,
     Sequence,
     Class,
     State,
@@ -80,6 +83,12 @@ const TERMINAL: &str = "[*]";
 /// Palabras que en PlantUML solo tienen sentido en una maquina de estados.
 const STATE_ONLY: &[&str] = &["state"];
 
+/// Palabras que en PlantUML solo tienen sentido en un diagrama de casos de uso.
+///
+/// `actor` queda fuera a proposito: una secuencia y un diagrama de componentes
+/// tambien lo usan, asi que no distinguiria nada.
+const USECASE_ONLY: &[&str] = &["usecase"];
+
 /// Palabras que solo declaran elementos de un diagrama de componentes.
 ///
 /// `actor`, `database` o `queue` quedan fuera a proposito: una secuencia
@@ -93,7 +102,6 @@ const COMPONENT_ONLY: &[&str] = &[
     "folder",
     "frame",
     "card",
-    "usecase",
     "storage",
     "artifact",
     "agent",
@@ -123,6 +131,12 @@ pub fn flavor_of(source: &str) -> Flavor {
         // existe en ningun otro dialecto.
         if STATE_ONLY.contains(&first) || line.contains(TERMINAL) {
             return Flavor::State;
+        }
+        // Una elipse tiene que abrir la linea para contar: en `A --> (B)` el
+        // parentesis tambien dice que `B` es un caso de uso, pero ahi hay un
+        // nombre suelto delante que podria ser cualquier cosa.
+        if USECASE_ONLY.contains(&first) || line.starts_with('(') {
+            return Flavor::UseCase;
         }
 
         // Un `[Nombre]` o una declaracion con palabra propia solo salen en
@@ -171,6 +185,7 @@ fn has_multiplicity(head: &str) -> bool {
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
     match flavor_of(source) {
         Flavor::Component => component::import(source, now_ms),
+        Flavor::UseCase => component::import_as(source, now_ms, crate::model::DiagramKind::UseCase),
         Flavor::Sequence => sequence::import(source, now_ms),
         Flavor::Class => class_diagram::import(source, now_ms),
         Flavor::State => state_diagram::import(source, now_ms),
@@ -216,6 +231,25 @@ mod tests {
             "@startuml\nNuevo --> [*]\n@enduml",
         ] {
             assert_eq!(flavor_of(source), Flavor::State, "{source}");
+        }
+    }
+
+    #[test]
+    fn un_usecase_o_una_elipse_deciden_solos() {
+        for source in [
+            "@startuml
+usecase \"Comprar\" as uc1
+@enduml",
+            "@startuml
+(Comprar)
+@enduml",
+            "@startuml
+left to right direction
+actor Cliente
+(Comprar)
+@enduml",
+        ] {
+            assert_eq!(flavor_of(source), Flavor::UseCase, "{source}");
         }
     }
 
@@ -292,6 +326,10 @@ mod tests {
         assert_eq!(
             import("@startuml\n[A] --> [B]\n@enduml", 0).document.kind,
             DiagramKind::Architecture
+        );
+        assert_eq!(
+            import("@startuml\n(Comprar)\n@enduml", 0).document.kind,
+            DiagramKind::UseCase
         );
     }
 }

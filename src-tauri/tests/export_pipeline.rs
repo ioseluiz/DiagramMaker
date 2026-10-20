@@ -1958,3 +1958,181 @@ fn la_misma_maquina_en_mermaid_y_en_plantuml_da_lo_mismo() {
         "distinto contenido"
     );
 }
+
+/* --- Casos de uso ---------------------------------------------------------- */
+
+/// Un diagrama de casos de uso de PlantUML, con sus dos formas cortas.
+const CASOS_PLANTUML: &str = r#"
+@startuml
+left to right direction
+
+:Cliente: as cliente
+:Almacen: as almacen
+
+rectangle "Tienda en linea" {
+  (Comprar) as comprar
+  (Pagar) as pagar
+  (Preparar envio) as envio
+}
+
+cliente --> comprar
+cliente --> pagar
+comprar ..> pagar : include
+almacen --> envio
+@enduml
+"#;
+
+/// Coloca un diagrama de casos de uso: los actores en una columna a la
+/// izquierda y los casos dentro de su frontera, que se estira para contenerlos.
+///
+/// A diferencia de `place_grid`, aqui la caja del grupo si encierra a sus
+/// hijos, porque lo que se quiere mirar es justo eso: que la frontera se
+/// dibuje por detras y las elipses queden dentro.
+fn place_casos(doc: &mut diagrammaker_lib::model::Document) {
+    use diagrammaker_lib::model::{NodeShape, Rect};
+
+    const CASO: (f64, f64) = (190.0, 54.0);
+    const ACTOR: (f64, f64) = (70.0, 90.0);
+
+    let frontera: Vec<String> = doc
+        .nodes
+        .iter()
+        .filter(|n| n.shape == NodeShape::Package)
+        .map(|n| n.id.clone())
+        .collect();
+
+    let mut y_actor = 60.0;
+    let mut y_caso = 60.0;
+
+    for index in 0..doc.nodes.len() {
+        let shape = doc.nodes[index].shape;
+        if shape == NodeShape::Package {
+            continue;
+        }
+
+        let rect = if shape == NodeShape::Actor {
+            let r = Rect::new(60.0, y_actor, ACTOR.0, ACTOR.1);
+            y_actor += ACTOR.1 + 70.0;
+            r
+        } else {
+            let r = Rect::new(330.0, y_caso, CASO.0, CASO.1);
+            y_caso += CASO.1 + 40.0;
+            r
+        };
+
+        doc.nodes[index].geometry = Some(rect);
+    }
+
+    // La frontera se estira alrededor de lo que contiene, dejando sitio
+    // arriba para su propia etiqueta.
+    for id in frontera {
+        let hijos: Vec<Rect> = doc
+            .children_of(Some(&id))
+            .filter_map(|n| n.geometry)
+            .collect();
+        let Some(first) = hijos.first().copied() else {
+            continue;
+        };
+
+        let top = hijos.iter().fold(first.y, |a, r| a.min(r.y));
+        let bottom = hijos
+            .iter()
+            .fold(first.y + first.height, |a, r| a.max(r.y + r.height));
+
+        let node = doc.nodes.iter_mut().find(|n| n.id == id).unwrap();
+        node.geometry = Some(Rect::new(
+            300.0,
+            top - 50.0,
+            CASO.0 + 60.0,
+            bottom - top + 70.0,
+        ));
+    }
+}
+
+#[test]
+fn un_diagrama_de_casos_de_uso_de_plantuml_llega_hasta_el_png() {
+    let imported = diagrammaker_lib::parse::plantuml::import(CASOS_PLANTUML, 0);
+    assert!(
+        imported.ok(),
+        "el PlantUML de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    assert_eq!(doc.kind, DiagramKind::UseCase);
+
+    // Las dos formas cortas tienen que haber llegado como lo que son.
+    assert_eq!(
+        doc.nodes
+            .iter()
+            .filter(|n| n.shape == NodeShape::Ellipse)
+            .count(),
+        3
+    );
+    assert_eq!(
+        doc.nodes
+            .iter()
+            .filter(|n| n.shape == NodeShape::Actor)
+            .count(),
+        2
+    );
+
+    place_casos(&mut doc);
+
+    let mut labels = HashMap::new();
+    for node in &doc.nodes {
+        labels.insert(
+            node.id.clone(),
+            label(&node.label, 13.0, placement_for(node.shape)),
+        );
+    }
+
+    let mut edges = HashMap::new();
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        if let Some(text) = &edge.label {
+            labels.insert(edge.id.clone(), label(text, 11.0, LabelPlacement::Center));
+        }
+    }
+
+    let out = svg::render(&RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    });
+
+    for text in [
+        "Cliente",
+        "Almacen",
+        "Comprar",
+        "Pagar",
+        "Preparar envio",
+        "Tienda en linea",
+        "include",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "casos-de-uso-plantuml");
+}

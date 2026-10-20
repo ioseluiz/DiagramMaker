@@ -26,6 +26,8 @@ const LANGUAGES_BY_KIND: Partial<Record<string, SourceLanguage[]>> = {
   sequence: ["mermaid", "plantUml"],
   class: ["mermaid", "plantUml"],
   state: ["mermaid", "plantUml"],
+  // Mermaid no tiene dialecto de casos de uso.
+  useCase: ["plantUml"],
 };
 
 const EXTENSION: Record<SourceLanguage, string> = {

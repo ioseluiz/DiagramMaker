@@ -92,6 +92,15 @@ function parentOrigin(doc: Document, node: Node): { x: number; y: number } {
   return parent?.geometry ?? { x: 0, y: 0 };
 }
 
+/** Nodos que son padre de algun otro. */
+function withChildren(doc: Document): ReadonlySet<string> {
+  const out = new Set<string>();
+  for (const node of doc.nodes) {
+    if (node.parent) out.add(node.parent);
+  }
+  return out;
+}
+
 export function toFlowNodes(
   doc: Document,
   selection: ReadonlySet<string>,
@@ -101,6 +110,8 @@ export function toFlowNodes(
   const ordered = [...doc.nodes].sort(
     (a, b) => Number(isContainer(b.shape)) - Number(isContainer(a.shape)),
   );
+
+  const parents = withChildren(doc);
 
   return ordered.map((node) => {
     // El tamano de una tabla o una clase sale de medir su texto, que no es
@@ -122,6 +133,16 @@ export function toFlowNodes(
     if (node.parent) {
       flow.parentId = node.parent;
       flow.extent = "parent";
+    }
+
+    // Un contenedor es fondo, no estorbo. React Flow dibuja las aristas por
+    // debajo de los nodos, asi que sin esto una flecha que acaba dentro de un
+    // paquete —un actor que apunta a un caso de uso de su frontera— se perderia
+    // bajo el relleno justo en el tramo final, punta incluida. Es el mismo
+    // orden que usa el generador de SVG, para que la pantalla y lo exportado
+    // no se contradigan.
+    if (parents.has(node.id)) {
+      flow.zIndex = -1;
     }
 
     return flow;
