@@ -1,0 +1,68 @@
+/* Mas ancha que un dialogo corriente: cada fila lleva tres renglones y a 400
+   pixeles la explicacion se parte. Va con las dos clases para no depender del
+   orden en que Vite junte las hojas. */
+.modal.template-dialog {
+  width: 460px;
+}
+
+.template-dialog__intro {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.template-dialog__list {
+  /* Los siete caben en una ventana normal; en una baja se desplaza. */
+  max-height: 60vh;
+  margin: 0 0 12px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.template-dialog__list li + li {
+  border-top: 1px solid var(--border);
+}
+
+/* Cada ejemplo es un boton de una fila entera: el tipo arriba en pequeno, el
+   nombre, y debajo lo que ensena, que es lo que decide cual abrir. */
+.template-dialog__item {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  padding: 8px 11px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.template-dialog__item:hover:not(:disabled),
+.template-dialog__item:focus-visible {
+  background: var(--surface-1);
+}
+
+.template-dialog__item:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.template-dialog__kind {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.template-dialog__name {
+  font-weight: 600;
+}
+
+.template-dialog__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}

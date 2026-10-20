@@ -161,6 +161,13 @@ export function useCommands(): Command[] {
         run: () => createNew(),
       },
       {
+        id: "file.template",
+        title: "Empezar desde un ejemplo…",
+        group: "Archivo",
+        enabled: true,
+        run: () => showDialog("template"),
+      },
+      {
         id: "file.open",
         title: "Abrir…",
         group: "Archivo",

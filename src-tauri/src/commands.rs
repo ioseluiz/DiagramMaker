@@ -12,6 +12,7 @@ use crate::io::workspace::{self, RecentFile, Recovery};
 use crate::model::{DiagramKind, Document, Report, SCHEMA_VERSION, validate};
 use crate::parse::{self, ImportResult, SourceLanguage};
 use crate::render::{self, RenderInput};
+use crate::templates::{self, Template};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -60,6 +61,13 @@ pub fn document_save(path: PathBuf, document: Document) -> AppResult<()> {
 #[tauri::command]
 pub fn document_validate(document: Document) -> AppResult<Report> {
     Ok(validate(&document))
+}
+
+/// Diagramas de arranque. Son codigo: el frontend los importa como
+/// cualquier otro texto.
+#[tauri::command]
+pub fn template_list() -> AppResult<Vec<Template>> {
+    Ok(templates::all())
 }
 
 /* --- Importacion y generacion de codigo --------------------------------- */

@@ -10,7 +10,7 @@ import { create } from "zustand";
  * Como el resto del estado de vista —la herramienta del lienzo, el panel de
  * codigo— no se guarda, no entra en el historial y no viaja al exportar.
  */
-export type Dialog = "import" | "export";
+export type Dialog = "import" | "export" | "template";
 
 interface DialogState {
   dialog: Dialog | null;

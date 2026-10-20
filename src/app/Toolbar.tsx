@@ -16,6 +16,7 @@ import { useDialogs } from "./useDialogs";
 
 import { ExportDialog } from "./ExportDialog";
 import { ImportDialog } from "./ImportDialog";
+import { TemplateDialog } from "./TemplateDialog";
 import { RecentMenu } from "./RecentMenu";
 import { useDocumentCommands } from "./useDocumentCommands";
 
@@ -83,6 +84,13 @@ export function Toolbar() {
       <div className="toolbar__group">
         <button type="button" onClick={() => createNew()} title="Nuevo (Ctrl+N)">
           Nuevo
+        </button>
+        <button
+          type="button"
+          onClick={() => showDialog("template")}
+          title="Empezar desde un diagrama de ejemplo"
+        >
+          Ejemplos
         </button>
         <button type="button" onClick={() => void openFile()} title="Abrir (Ctrl+O)">
           Abrir
@@ -192,6 +200,7 @@ export function Toolbar() {
 
       {dialog === "export" && <ExportDialog onClose={closeDialog} />}
       {dialog === "import" && <ImportDialog onClose={closeDialog} />}
+      {dialog === "template" && <TemplateDialog onClose={closeDialog} />}
     </header>
   );
 }

@@ -8,6 +8,7 @@ import type { RecentFile } from "./generated/RecentFile";
 import type { ImportResult } from "./generated/ImportResult";
 import type { RenderInput } from "./generated/RenderInput";
 import type { SourceLanguage } from "./generated/SourceLanguage";
+import type { Template } from "./generated/Template";
 import type { Recovery } from "./generated/Recovery";
 import type { Report } from "./generated/Report";
 
@@ -73,6 +74,11 @@ export function documentValidate(document: Document): Promise<Report> {
  * Convierte codigo en un documento. No lanza ante codigo roto: devuelve los
  * diagnosticos con su linea y columna para poder mostrarlos.
  */
+/** Diagramas de arranque. Llegan como codigo: hay que importarlos. */
+export function templateList(): Promise<Template[]> {
+  return invoke<Template[]>("template_list");
+}
+
 export function importCode(
   language: SourceLanguage,
   source: string,

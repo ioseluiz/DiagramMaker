@@ -5,6 +5,7 @@ pub mod io;
 pub mod model;
 pub mod parse;
 pub mod render;
+pub mod templates;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,6 +19,7 @@ pub fn run() {
             commands::document_save,
             commands::document_validate,
             commands::import_code,
+            commands::template_list,
             commands::emit_code,
             commands::emit_code_to_file,
             commands::export_svg,
