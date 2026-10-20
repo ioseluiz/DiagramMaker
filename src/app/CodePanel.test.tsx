@@ -121,14 +121,16 @@ describe("CodePanel", () => {
     expect(emitCode).toHaveBeenLastCalledWith("plantUml", expect.anything());
   });
 
-  it("un tipo de diagrama sin generador lo dice en vez de quedarse vacio", async () => {
-    // El caso va cambiando segun llegan los generadores. Cuando los tengan
-    // todos, esta prueba no se mueve otra vez: se borra, porque el aviso
-    // dejara de poder aparecer.
-    await mount("activity");
+  it("actividad y casos de uso solo ofrecen PlantUML", async () => {
+    // Mermaid no tiene dialecto para ninguno de los dos, asi que no hay nada
+    // que elegir y el panel enseña el nombre en vez de la lista.
+    for (const kind of ["activity", "useCase"] as const) {
+      emitCode.mockClear();
+      await mount(kind);
 
-    expect(screen.getByText(/no hay generador de código/i)).toBeInTheDocument();
-    expect(emitCode).not.toHaveBeenCalled();
+      expect(emitCode).toHaveBeenCalledWith("plantUml", expect.anything());
+      expect(screen.queryByLabelText("Lenguaje del código")).toBeNull();
+    }
   });
 
   it("copia al portapapeles y avisa", async () => {

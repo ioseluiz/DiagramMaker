@@ -17,6 +17,7 @@ use std::fmt::Write as _;
 use crate::model::{DiagramKind, Document, LayoutDirection, NodeShape};
 use crate::parse::plantuml::{arrow_for, keyword_for};
 
+pub mod activity;
 pub mod class_diagram;
 pub mod sequence;
 pub mod state_diagram;
@@ -36,6 +37,9 @@ pub fn emit(doc: &Document) -> String {
     }
     if doc.kind == DiagramKind::State {
         return state_diagram::emit(doc);
+    }
+    if doc.kind == DiagramKind::Activity {
+        return activity::emit(doc);
     }
 
     let mut out = String::from("@startuml\n");

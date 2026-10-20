@@ -82,9 +82,6 @@ const CLASS_ONLY: &[&str] = &[
     "metaclass",
 ];
 
-/// Signos con los que PlantUML cierra una accion de actividad.
-const ACTION_END: &[char] = &[';', '|', '<', '>', '/', ']', '}'];
-
 /// Lo que escribe PlantUML donde empieza o acaba una maquina de estados.
 const TERMINAL: &str = "[*]";
 
@@ -200,10 +197,13 @@ pub fn flavor_of(source: &str) -> Flavor {
 ///
 /// Son dos formas: una palabra de control, pegada o no a su parentesis
 /// (`if (hay stock?)` y `if(hay stock?)` valen igual), y una accion
-/// `:texto;`. La accion se reconoce por el punto y coma del final, que es lo
-/// que la separa del `:Actor:` de un diagrama de casos de uso.
+/// `:texto;`. Lo que separa la accion del `:Actor:` de un diagrama de casos
+/// de uso es con que cierra, no con que abre.
 fn is_activity(line: &str, first: &str) -> bool {
-    if line.starts_with(':') && line.ends_with(ACTION_END) {
+    // Una accion puede ocupar varias lineas, asi que no se le puede exigir
+    // que cierre en la suya: basta con que empiece por dos puntos y no sea
+    // la forma corta del actor.
+    if line.starts_with(':') && !is_actor(line) {
         return true;
     }
 

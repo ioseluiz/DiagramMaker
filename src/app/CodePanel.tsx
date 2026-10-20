@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 
+import type { DiagramKind } from "@/model/generated/DiagramKind";
 import type { SourceLanguage } from "@/model/generated/SourceLanguage";
 import * as api from "@/model/api";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
@@ -19,15 +20,20 @@ import "./CodePanel.css";
 /**
  * Lenguajes en los que se puede escribir cada tipo de diagrama. El primero
  * de la lista es el que se muestra al abrir el panel.
+ *
+ * El registro es completo a proposito y no parcial: ahora que los seis tipos
+ * tienen generador, que falte uno nuevo tiene que ser un error de compilacion
+ * y no un panel vacio.
  */
-const LANGUAGES_BY_KIND: Partial<Record<string, SourceLanguage[]>> = {
+const LANGUAGES_BY_KIND: Record<DiagramKind, SourceLanguage[]> = {
   er: ["dbml"],
   architecture: ["mermaid", "plantUml"],
   sequence: ["mermaid", "plantUml"],
   class: ["mermaid", "plantUml"],
   state: ["mermaid", "plantUml"],
-  // Mermaid no tiene dialecto de casos de uso.
+  // Mermaid no tiene dialecto ni de casos de uso ni de actividad.
   useCase: ["plantUml"],
+  activity: ["plantUml"],
 };
 
 const EXTENSION: Record<SourceLanguage, string> = {
@@ -57,7 +63,7 @@ export function CodePanel() {
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<SourceLanguage | null>(null);
 
-  const available = (doc && LANGUAGES_BY_KIND[doc.kind]) ?? [];
+  const available = doc ? LANGUAGES_BY_KIND[doc.kind] : [];
   // Lo elegido solo vale mientras el tipo de diagrama lo ofrezca: al cambiar
   // de diagrama se vuelve al primero de la lista.
   const language = chosen && available.includes(chosen) ? chosen : available[0];
@@ -65,8 +71,6 @@ export function CodePanel() {
   const lastLanguage = useRef(language);
 
   useEffect(() => {
-    // Sin generador para este tipo de diagrama no hay nada que regenerar; el
-    // panel muestra su aviso y `code` no llega a pintarse.
     if (!doc || !language) return;
 
     // La espera es para los cambios del diagrama, que llegan a decenas por
@@ -121,6 +125,10 @@ export function CodePanel() {
     }
   }
 
+  // Sin documento no hay panel. Con documento siempre hay lenguaje, porque el
+  // registro de arriba los cubre todos.
+  if (!doc || !language) return null;
+
   return (
     <aside className="code-panel">
       <header className="code-panel__head">
@@ -138,9 +146,7 @@ export function CodePanel() {
             ))}
           </select>
         ) : (
-          <span className="code-panel__title">
-            {language ? LANGUAGE_NAME[language] : "Código"}
-          </span>
+          <span className="code-panel__title">{LANGUAGE_NAME[language]}</span>
         )}
         <button
           type="button"
@@ -153,27 +159,18 @@ export function CodePanel() {
         </button>
       </header>
 
-      {language ? (
-        <>
-          <Code text={code} />
+      <Code text={code} />
 
-          {error && <p className="code-panel__error">{error}</p>}
+      {error && <p className="code-panel__error">{error}</p>}
 
-          <div className="code-panel__actions">
-            <button type="button" onClick={() => void copy()} disabled={!code}>
-              {copied ? "Copiado" : "Copiar"}
-            </button>
-            <button type="button" onClick={() => void saveToFile()} disabled={!code}>
-              Guardar como…
-            </button>
-          </div>
-        </>
-      ) : (
-        <p className="code-panel__empty">
-          Todavía no hay generador de código para este tipo de diagrama. Los de
-          entidad-relación y arquitectura producen DBML, Mermaid y PlantUML.
-        </p>
-      )}
+      <div className="code-panel__actions">
+        <button type="button" onClick={() => void copy()} disabled={!code}>
+          {copied ? "Copiado" : "Copiar"}
+        </button>
+        <button type="button" onClick={() => void saveToFile()} disabled={!code}>
+          Guardar como…
+        </button>
+      </div>
     </aside>
   );
 }
