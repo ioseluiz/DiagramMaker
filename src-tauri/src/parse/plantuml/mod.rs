@@ -10,12 +10,14 @@
 //!    `activate`, un `alt`— es una secuencia.
 //! 2. Si aparece algo que solo existe en un diagrama de clases —`class`,
 //!    `abstract`, `enum`— es de clases.
-//! 3. Si aparece algo que solo existe en un diagrama de componentes —un
+//! 3. Si aparece `state` o un `[*]`, es una maquina de estados: ese corchete
+//!    no existe en ningun otro dialecto.
+//! 4. Si aparece algo que solo existe en un diagrama de componentes —un
 //!    `[Nombre]`, un bloque `package { }`— es de componentes.
-//! 4. Si hay mensajes con etiqueta entre nombres sin declarar
+//! 5. Si hay mensajes con etiqueta entre nombres sin declarar
 //!    (`Alice -> Bob : hola`), es una secuencia: ese es el primer ejemplo de
 //!    la documentacion de PlantUML y seria el peor sitio donde equivocarse.
-//! 5. En cualquier otro caso, componentes.
+//! 6. En cualquier otro caso, componentes.
 //!
 //! Quedan dos casos ambiguos, y en los dos se elige la lectura de
 //! componentes, que es la que ya habia: `A --> B` a secas, sin etiqueta ni
@@ -27,6 +29,7 @@ pub(crate) mod class_diagram;
 pub(crate) mod component;
 pub(crate) mod elements;
 pub(crate) mod sequence;
+pub(crate) mod state_diagram;
 
 use super::ImportResult;
 
@@ -36,6 +39,7 @@ pub enum Flavor {
     Component,
     Sequence,
     Class,
+    State,
 }
 
 /// Palabras que en PlantUML solo tienen sentido dentro de una secuencia.
@@ -69,6 +73,12 @@ const CLASS_ONLY: &[&str] = &[
     "exception",
     "metaclass",
 ];
+
+/// Lo que escribe PlantUML donde empieza o acaba una maquina de estados.
+const TERMINAL: &str = "[*]";
+
+/// Palabras que en PlantUML solo tienen sentido en una maquina de estados.
+const STATE_ONLY: &[&str] = &["state"];
 
 /// Palabras que solo declaran elementos de un diagrama de componentes.
 ///
@@ -109,11 +119,17 @@ pub fn flavor_of(source: &str) -> Flavor {
         if CLASS_ONLY.contains(&first) {
             return Flavor::Class;
         }
+        // `[*]` es el arranque o la salida de una maquina de estados, y no
+        // existe en ningun otro dialecto.
+        if STATE_ONLY.contains(&first) || line.contains(TERMINAL) {
+            return Flavor::State;
+        }
 
         // Un `[Nombre]` o una declaracion con palabra propia solo salen en
         // componentes. El corchete tiene que abrir la linea: `-[#red]->` es
         // una flecha.
-        if line.starts_with('[') || COMPONENT_ONLY.contains(&first) {
+        if (line.starts_with('[') && !line.starts_with(TERMINAL)) || COMPONENT_ONLY.contains(&first)
+        {
             looks_like_component = true;
         }
 
@@ -157,6 +173,7 @@ pub fn import(source: &str, now_ms: i64) -> ImportResult {
         Flavor::Component => component::import(source, now_ms),
         Flavor::Sequence => sequence::import(source, now_ms),
         Flavor::Class => class_diagram::import(source, now_ms),
+        Flavor::State => state_diagram::import(source, now_ms),
     }
 }
 
@@ -189,6 +206,27 @@ mod tests {
         ] {
             assert_eq!(flavor_of(source), Flavor::Class, "{source}");
         }
+    }
+
+    #[test]
+    fn una_palabra_de_estados_o_un_corchete_asterisco_deciden_solos() {
+        for source in [
+            "@startuml\nstate Nuevo\n@enduml",
+            "@startuml\n[*] --> Nuevo\n@enduml",
+            "@startuml\nNuevo --> [*]\n@enduml",
+        ] {
+            assert_eq!(flavor_of(source), Flavor::State, "{source}");
+        }
+    }
+
+    #[test]
+    fn un_corchete_de_componente_sigue_siendo_de_componentes() {
+        // `[Portal]` y `[*]` empiezan los dos por corchete; solo el segundo
+        // es una maquina de estados.
+        assert_eq!(
+            flavor_of("@startuml\n[Portal] --> [API]\n@enduml"),
+            Flavor::Component
+        );
     }
 
     #[test]

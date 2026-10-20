@@ -1876,3 +1876,85 @@ fn una_maquina_de_estados_de_mermaid_llega_hasta_el_png() {
 
     check_png(&out, "estados-mermaid");
 }
+
+/// La misma maquina que `ESTADOS_MERMAID`, escrita en PlantUML.
+const ESTADOS_PLANTUML: &str = r#"
+@startuml
+[*] --> Nuevo
+Nuevo --> Pagado : confirmar
+
+state reparto <<fork>>
+Pagado --> reparto
+reparto --> Enviado
+reparto --> Facturado
+
+state cierre <<join>>
+Enviado --> cierre
+Facturado --> cierre
+cierre --> [*]
+@enduml
+"#;
+
+/// Resumen de una maquina de estados, sin ids.
+fn resumen_estados(doc: &diagrammaker_lib::model::Document) -> Vec<String> {
+    let name = |id: &str| -> String {
+        match doc.node(id) {
+            Some(n) if n.label.is_empty() => format!("{:?}", n.shape),
+            Some(n) => n.label.replace('\n', " | "),
+            None => "?".into(),
+        }
+    };
+
+    let mut out: Vec<String> = doc
+        .nodes
+        .iter()
+        .map(|n| {
+            format!(
+                "{} {:?} en {}",
+                if n.label.is_empty() {
+                    format!("{:?}", n.shape)
+                } else {
+                    n.label.replace('\n', " | ")
+                },
+                n.shape,
+                n.parent.as_deref().map(name).unwrap_or("raiz".into())
+            )
+        })
+        .collect();
+    out.sort();
+
+    let mut edges: Vec<String> = doc
+        .edges
+        .iter()
+        .map(|e| {
+            format!(
+                "{} -> {} : {}",
+                name(&e.source.node),
+                name(&e.target.node),
+                e.label.clone().unwrap_or_default()
+            )
+        })
+        .collect();
+    edges.sort();
+    out.extend(edges);
+
+    out
+}
+
+#[test]
+fn la_misma_maquina_en_mermaid_y_en_plantuml_da_lo_mismo() {
+    let de_mermaid = diagrammaker_lib::parse::mermaid::import(ESTADOS_MERMAID, 0);
+    let de_plantuml = diagrammaker_lib::parse::plantuml::import(ESTADOS_PLANTUML, 0);
+
+    assert!(de_mermaid.ok(), "{:#?}", de_mermaid.diagnostics);
+    assert!(de_plantuml.ok(), "{:#?}", de_plantuml.diagnostics);
+
+    let (a, b) = (de_mermaid.document, de_plantuml.document);
+
+    assert_eq!(a.kind, b.kind);
+    assert_eq!(
+        resumen_estados(&a),
+        resumen_estados(&b),
+        "distinto contenido"
+    );
+}

@@ -86,6 +86,7 @@ mod tests {
         );
         assert!(!body(DiagramKind::Sequence).contains("direction"));
         assert!(!body(DiagramKind::Class).contains("direction"));
+        assert!(!body(DiagramKind::State).contains("direction"));
     }
 
     #[test]

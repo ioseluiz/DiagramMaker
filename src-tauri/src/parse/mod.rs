@@ -53,7 +53,7 @@ pub enum SourceLanguage {
     /// `flowchart`, `sequenceDiagram`, `classDiagram` y `stateDiagram` de
     /// Mermaid.
     Mermaid,
-    /// Diagramas de componentes, secuencia y clases de PlantUML.
+    /// Diagramas de componentes, secuencia, clases y estados de PlantUML.
     PlantUml,
 }
 
@@ -62,7 +62,7 @@ impl SourceLanguage {
         match self {
             SourceLanguage::Dbml => "DBML (dbdiagram.io)",
             SourceLanguage::Mermaid => "Mermaid (flowchart, secuencia, clases y estados)",
-            SourceLanguage::PlantUml => "PlantUML (componentes, secuencia y clases)",
+            SourceLanguage::PlantUml => "PlantUML (componentes, secuencia, clases y estados)",
         }
     }
 }
