@@ -35,6 +35,14 @@ pub enum Primitive {
     /// los miembros del actor.
     #[serde(rename_all = "camelCase")]
     Line { d: String },
+    /// Trazo cerrado y relleno **con el color de la linea**, no con el de la
+    /// superficie: el disco de un nodo inicial, la barra de una bifurcacion.
+    ///
+    /// Es su propia variante y no una bandera porque, si no, cada
+    /// renderizador tendria que saber por su cuenta que formas son macizas, y
+    /// eso es justo lo que la lista de primitivas existe para evitar.
+    #[serde(rename_all = "camelCase")]
+    Solid { d: String },
 }
 
 impl Primitive {
@@ -42,9 +50,20 @@ impl Primitive {
     pub fn is_filled(&self) -> bool {
         !matches!(self, Primitive::Line { .. })
     }
+
+    /// `true` si se rellena con el color de la linea en vez del de la
+    /// superficie.
+    pub fn is_solid(&self) -> bool {
+        matches!(self, Primitive::Solid { .. })
+    }
 }
 
 const CORNER_RADIUS: f64 = 10.0;
+/// Hueco entre el anillo de un nodo final y el disco de dentro. Es lo que lo
+/// distingue del inicial de un vistazo.
+const FINAL_NODE_GAP: f64 = 4.0;
+/// Grosor de la barra de bifurcacion.
+const BAR_THICKNESS: f64 = 6.0;
 /// Alto de la solapa del paquete.
 const TAB_HEIGHT: f64 = 22.0;
 /// Alto maximo de la tapa eliptica del cilindro.
@@ -78,6 +97,21 @@ pub fn table_row_rect(index: usize, w: f64) -> super::geometry::Rect {
         TABLE_HEADER_HEIGHT + index as f64 * TABLE_ROW_HEIGHT,
         w,
         TABLE_ROW_HEIGHT,
+    )
+}
+
+/// Un circulo escrito como trazo cerrado, para poder rellenarlo con el color
+/// de la linea.
+fn circle_path(cx: f64, cy: f64, radius: f64) -> String {
+    format!(
+        "M {} {} A {r} {r} 0 1 0 {} {} A {r} {r} 0 1 0 {} {} Z",
+        r(cx - radius),
+        r(cy),
+        r(cx + radius),
+        r(cy),
+        r(cx - radius),
+        r(cy),
+        r = r(radius)
     )
 }
 
@@ -144,6 +178,51 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
         // Sin saber cuantos miembros tiene, lo unico seguro es la caja
         // vacia; quien la dibuje de verdad llama a `class_primitives`.
         NodeShape::Class => class_primitives(false, 0, w, h),
+
+        NodeShape::InitialNode => {
+            let radius = (w.min(h) / 2.0 - i).max(1.0);
+            vec![Primitive::Solid {
+                d: circle_path(w / 2.0, h / 2.0, radius),
+            }]
+        }
+
+        NodeShape::FinalNode => {
+            let outer = (w.min(h) / 2.0 - i).max(1.0);
+            let inner = (outer - FINAL_NODE_GAP).max(1.0);
+            vec![
+                Primitive::Circle {
+                    cx: r(w / 2.0),
+                    cy: r(h / 2.0),
+                    r: r(outer),
+                },
+                Primitive::Solid {
+                    d: circle_path(w / 2.0, h / 2.0, inner),
+                },
+            ]
+        }
+
+        NodeShape::Bar => {
+            // Tumbada si la caja es mas ancha que alta, de pie si no.
+            let (x, y, width, height) = if w >= h {
+                (i, (h - BAR_THICKNESS) / 2.0, w - i * 2.0, BAR_THICKNESS)
+            } else {
+                ((w - BAR_THICKNESS) / 2.0, i, BAR_THICKNESS, h - i * 2.0)
+            };
+
+            vec![Primitive::Solid {
+                d: format!(
+                    "M {} {} L {} {} L {} {} L {} {} Z",
+                    r(x),
+                    r(y),
+                    r(x + width.max(1.0)),
+                    r(y),
+                    r(x + width.max(1.0)),
+                    r(y + height.max(1.0)),
+                    r(x),
+                    r(y + height.max(1.0))
+                ),
+            }]
+        }
 
         // El texto suelto no tiene contorno: es solo su etiqueta.
         NodeShape::Text => Vec::new(),
@@ -455,7 +534,7 @@ pub fn class_primitives(stereotype: bool, attributes: usize, w: f64, h: f64) -> 
 
 /// Formas de contorno fijo, las que dibuja `primitives`. Quedan fuera la
 /// tabla, cuyo contorno depende de los datos, y el texto, que no tiene.
-pub const ALL_SHAPES: [NodeShape; 10] = [
+pub const ALL_SHAPES: [NodeShape; 13] = [
     NodeShape::Rectangle,
     NodeShape::RoundedRect,
     NodeShape::Ellipse,
@@ -466,6 +545,9 @@ pub const ALL_SHAPES: [NodeShape; 10] = [
     NodeShape::Actor,
     NodeShape::Hexagon,
     NodeShape::Parallelogram,
+    NodeShape::InitialNode,
+    NodeShape::FinalNode,
+    NodeShape::Bar,
 ];
 
 #[cfg(test)]

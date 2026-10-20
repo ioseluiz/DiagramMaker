@@ -24,6 +24,11 @@ const DEFAULT_SIZE: Record<NodeShape, readonly [number, number]> = {
   // Igual que la tabla: lo real sale de sus miembros (`@/model/classBox`), y
   // esto es la caja vacia con sus tres compartimentos.
   class: [180, 50],
+  // Los extremos de una maquina de estados son discos: cuadrados y
+  // pequenos. La barra nace tumbada, que es como mas se usa.
+  initialNode: [24, 24],
+  finalNode: [28, 28],
+  bar: [140, 12],
   // El texto crece con su contenido; esto es el hueco inicial.
   text: [160, 32],
 };
@@ -47,6 +52,9 @@ export const SHAPE_LABEL: Record<NodeShape, string> = {
   hexagon: "Hexagono",
   parallelogram: "Paralelogramo",
   class: "Clase",
+  initialNode: "Inicio",
+  finalNode: "Fin",
+  bar: "Barra",
   table: "Tabla",
   text: "Texto",
 };

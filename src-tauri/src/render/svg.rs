@@ -441,7 +441,11 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
     };
 
     for primitive in outline {
-        let (body_fill, body_stroke) = if primitive.is_filled() {
+        // Tres categorias: lo macizo se rellena con el color de la linea, lo
+        // relleno con el de la superficie, y una linea no se rellena.
+        let (body_fill, body_stroke) = if primitive.is_solid() {
+            (stroke, stroke)
+        } else if primitive.is_filled() {
             (fill, stroke)
         } else {
             ("none", stroke)
@@ -497,7 +501,7 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
                     n(r)
                 );
             }
-            Primitive::Path { d } | Primitive::Line { d } => {
+            Primitive::Path { d } | Primitive::Line { d } | Primitive::Solid { d } => {
                 let _ = write!(
                     out,
                     r#"<path d="{}"{attrs} stroke-linecap="round"/>"#,

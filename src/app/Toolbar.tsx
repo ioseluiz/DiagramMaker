@@ -44,6 +44,31 @@ const THEME_LABEL: Record<ThemePreference, string> = {
 const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
   er: ["table", "package", "note", "text"],
   class: ["class", "package", "note", "text"],
+  // En una maquina de estados lo que se dibuja son estados redondeados, sus
+  // extremos y las bifurcaciones; un cilindro o un actor ahi serian ruido.
+  state: [
+    "roundedRect",
+    "initialNode",
+    "finalNode",
+    "diamond",
+    "bar",
+    "package",
+    "note",
+    "text",
+  ],
+  activity: [
+    "roundedRect",
+    "initialNode",
+    "finalNode",
+    "diamond",
+    "bar",
+    "package",
+    "note",
+    "text",
+  ],
+  // Un caso de uso es una elipse dentro de la frontera del sistema, y quien
+  // lo usa, un actor.
+  useCase: ["ellipse", "actor", "package", "rectangle", "note", "text"],
   // Una secuencia no se dibuja colocando formas: sus participantes y sus
   // pasos se anaden desde el panel del guion, que es donde esta el orden.
   sequence: [],

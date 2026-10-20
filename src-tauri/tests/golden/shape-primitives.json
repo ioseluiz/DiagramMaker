@@ -68,6 +68,50 @@
     ]
   },
   {
+    "shape": "bar",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 0.75 27 L 159.25 27 L 159.25 33 L 0.75 33 Z"
+      }
+    ]
+  },
+  {
+    "shape": "bar",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 0.75 42 L 119.25 42 L 119.25 48 L 0.75 48 Z"
+      }
+    ]
+  },
+  {
+    "shape": "bar",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 17 0.75 L 23 0.75 L 23 79.25 L 17 79.25 Z"
+      }
+    ]
+  },
+  {
+    "shape": "bar",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 0.75 7 L 23.25 7 L 23.25 13 L 0.75 13 Z"
+      }
+    ]
+  },
+  {
     "shape": "cylinder",
     "width": 160.0,
     "height": 60.0,
@@ -228,6 +272,74 @@
     ]
   },
   {
+    "shape": "finalNode",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 80.0,
+        "cy": 30.0,
+        "r": 29.25
+      },
+      {
+        "kind": "solid",
+        "d": "M 54.75 30 A 25.25 25.25 0 1 0 105.25 30 A 25.25 25.25 0 1 0 54.75 30 Z"
+      }
+    ]
+  },
+  {
+    "shape": "finalNode",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 60.0,
+        "cy": 45.0,
+        "r": 44.25
+      },
+      {
+        "kind": "solid",
+        "d": "M 19.75 45 A 40.25 40.25 0 1 0 100.25 45 A 40.25 40.25 0 1 0 19.75 45 Z"
+      }
+    ]
+  },
+  {
+    "shape": "finalNode",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 20.0,
+        "cy": 40.0,
+        "r": 19.25
+      },
+      {
+        "kind": "solid",
+        "d": "M 4.75 40 A 15.25 15.25 0 1 0 35.25 40 A 15.25 15.25 0 1 0 4.75 40 Z"
+      }
+    ]
+  },
+  {
+    "shape": "finalNode",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "circle",
+        "cx": 12.0,
+        "cy": 10.0,
+        "r": 9.25
+      },
+      {
+        "kind": "solid",
+        "d": "M 6.75 10 A 5.25 5.25 0 1 0 17.25 10 A 5.25 5.25 0 1 0 6.75 10 Z"
+      }
+    ]
+  },
+  {
     "shape": "hexagon",
     "width": 160.0,
     "height": 60.0,
@@ -268,6 +380,50 @@
       {
         "kind": "path",
         "d": "M 6.75 0.75 L 17.25 0.75 L 23.25 10 L 17.25 19.25 L 6.75 19.25 L 0.75 10 Z"
+      }
+    ]
+  },
+  {
+    "shape": "initialNode",
+    "width": 160.0,
+    "height": 60.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 50.75 30 A 29.25 29.25 0 1 0 109.25 30 A 29.25 29.25 0 1 0 50.75 30 Z"
+      }
+    ]
+  },
+  {
+    "shape": "initialNode",
+    "width": 120.0,
+    "height": 90.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 15.75 45 A 44.25 44.25 0 1 0 104.25 45 A 44.25 44.25 0 1 0 15.75 45 Z"
+      }
+    ]
+  },
+  {
+    "shape": "initialNode",
+    "width": 40.0,
+    "height": 80.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 0.75 40 A 19.25 19.25 0 1 0 39.25 40 A 19.25 19.25 0 1 0 0.75 40 Z"
+      }
+    ]
+  },
+  {
+    "shape": "initialNode",
+    "width": 24.0,
+    "height": 20.0,
+    "primitives": [
+      {
+        "kind": "solid",
+        "d": "M 2.75 10 A 9.25 9.25 0 1 0 21.25 10 A 9.25 9.25 0 1 0 2.75 10 Z"
       }
     ]
   },

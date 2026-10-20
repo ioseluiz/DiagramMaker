@@ -1,5 +1,10 @@
 import type { NodeShape } from "@/model/generated/NodeShape";
-import { isFilled, primitivesFor, type Primitive } from "@/model/shapeGeometry";
+import {
+  isFilled,
+  isSolid,
+  primitivesFor,
+  type Primitive,
+} from "@/model/shapeGeometry";
 
 /**
  * Cuerpo de una forma.
@@ -26,7 +31,13 @@ export function ShapeBody({ shape, width, height }: ShapeBodyProps) {
 }
 
 function PrimitiveShape({ primitive }: { primitive: Primitive }) {
-  const className = isFilled(primitive) ? "shape-body__fill" : "shape-body__line";
+  // Tres categorias: lo macizo se rellena con el color de la linea, lo
+  // relleno con el de la superficie, y una linea no se rellena.
+  const className = isSolid(primitive)
+    ? "shape-body__solid"
+    : isFilled(primitive)
+      ? "shape-body__fill"
+      : "shape-body__line";
 
   switch (primitive.kind) {
     case "rect":
@@ -65,6 +76,7 @@ function PrimitiveShape({ primitive }: { primitive: Primitive }) {
 
     case "path":
     case "line":
+    case "solid":
       return <path d={primitive.d} className={className} />;
   }
 }

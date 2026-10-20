@@ -9,4 +9,4 @@
  * no pueden divergir por accidente. `tests/golden/shape-primitives.json`
  * vigila que la copia de TypeScript siga coincidiendo.
  */
-export type Primitive = { "kind": "rect", x: number, y: number, width: number, height: number, radius?: number, } | { "kind": "ellipse", cx: number, cy: number, rx: number, ry: number, } | { "kind": "circle", cx: number, cy: number, r: number, } | { "kind": "path", d: string, } | { "kind": "line", d: string, };
+export type Primitive = { "kind": "rect", x: number, y: number, width: number, height: number, radius?: number, } | { "kind": "ellipse", cx: number, cy: number, rx: number, ry: number, } | { "kind": "circle", cx: number, cy: number, r: number, } | { "kind": "path", d: string, } | { "kind": "line", d: string, } | { "kind": "solid", d: string, };

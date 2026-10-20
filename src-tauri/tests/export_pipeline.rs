@@ -1612,3 +1612,167 @@ fn el_mismo_diagrama_de_clases_en_mermaid_y_en_plantuml_da_lo_mismo() {
     assert_eq!(parametros(&a), ["int id", "Pedido p"]);
     assert_eq!(parametros(&b), ["id : int", "p : Pedido"]);
 }
+
+/* --- Formas de estado y actividad ---------------------------------------- */
+
+/// Una maquina de estados con sus extremos y una bifurcacion: las tres formas
+/// que la fase F6 anade al juego.
+fn state_sample() -> RenderInput {
+    use diagrammaker_lib::model::Rect;
+
+    let mut doc = Document::new("estados", DiagramKind::State, 0);
+    let mut labels = HashMap::new();
+
+    let piezas: [(&str, &str, NodeShape, f64, f64, f64, f64); 7] = [
+        (
+            "inicio",
+            "",
+            NodeShape::InitialNode,
+            40.0,
+            100.0,
+            24.0,
+            24.0,
+        ),
+        (
+            "nuevo",
+            "Nuevo",
+            NodeShape::RoundedRect,
+            110.0,
+            80.0,
+            130.0,
+            60.0,
+        ),
+        ("fork", "", NodeShape::Bar, 290.0, 70.0, 10.0, 90.0),
+        (
+            "pagado",
+            "Pagado",
+            NodeShape::RoundedRect,
+            350.0,
+            40.0,
+            130.0,
+            60.0,
+        ),
+        (
+            "enviado",
+            "Enviado",
+            NodeShape::RoundedRect,
+            350.0,
+            130.0,
+            130.0,
+            60.0,
+        ),
+        ("join", "", NodeShape::Bar, 530.0, 70.0, 10.0, 90.0),
+        ("fin", "", NodeShape::FinalNode, 580.0, 98.0, 28.0, 28.0),
+    ];
+
+    for (id, label_text, shape, x, y, w, h) in piezas {
+        let mut node = Node::new(id, label_text, shape);
+        node.geometry = Some(Rect::new(x, y, w, h));
+        doc.nodes.push(node);
+
+        if !label_text.is_empty() {
+            labels.insert(
+                id.to_string(),
+                label(label_text, 13.0, LabelPlacement::Center),
+            );
+        }
+    }
+
+    let saltos: [(&str, &str, &str, &str); 6] = [
+        ("t1", "inicio", "nuevo", ""),
+        ("t2", "nuevo", "fork", "confirmar"),
+        ("t3", "fork", "pagado", ""),
+        ("t4", "fork", "enviado", ""),
+        ("t5", "pagado", "join", ""),
+        ("t6", "join", "fin", "cerrar"),
+    ];
+
+    let mut edges = HashMap::new();
+    for (id, from, to, text) in saltos {
+        doc.edges
+            .push(Edge::new(id, from, to, EdgeKind::Directed).with_label(text));
+
+        let a = doc.node(from).and_then(|n| n.geometry).unwrap();
+        let b = doc.node(to).and_then(|n| n.geometry).unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            id.to_string(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        if !text.is_empty() {
+            labels.insert(id.to_string(), label(text, 11.0, LabelPlacement::Center));
+        }
+    }
+
+    RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    }
+}
+
+#[test]
+fn una_maquina_de_estados_llega_hasta_el_png() {
+    let input = state_sample();
+    let out = svg::render(&input);
+
+    for text in ["Nuevo", "Pagado", "Enviado", "confirmar", "cerrar"] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "estados");
+}
+
+#[test]
+fn lo_macizo_se_rellena_con_el_color_de_la_linea() {
+    // Es lo que distingue un disco de arranque de un circulo vacio. Si se
+    // rellenara con el de la superficie, el nodo inicial saldria en blanco.
+    use diagrammaker_lib::model::Primitive;
+
+    let solidos: Vec<_> = diagrammaker_lib::model::primitives(NodeShape::InitialNode, 24.0, 24.0);
+
+    assert_eq!(solidos.len(), 1);
+    assert!(matches!(solidos[0], Primitive::Solid { .. }));
+    assert!(solidos[0].is_solid());
+    assert!(
+        solidos[0].is_filled(),
+        "tambien es relleno, solo que de otro color"
+    );
+}
+
+#[test]
+fn un_nodo_final_es_un_anillo_con_un_disco_dentro() {
+    use diagrammaker_lib::model::Primitive;
+
+    let piezas = diagrammaker_lib::model::primitives(NodeShape::FinalNode, 28.0, 28.0);
+
+    assert_eq!(piezas.len(), 2);
+    assert!(
+        matches!(piezas[0], Primitive::Circle { .. }),
+        "falta el anillo"
+    );
+    assert!(piezas[1].is_solid(), "falta el disco");
+}
+
+#[test]
+fn una_barra_se_tumba_o_se_pone_de_pie_segun_la_caja() {
+    let tumbada = diagrammaker_lib::model::primitives(NodeShape::Bar, 140.0, 12.0);
+    let de_pie = diagrammaker_lib::model::primitives(NodeShape::Bar, 12.0, 140.0);
+
+    let ancho = |p: &diagrammaker_lib::model::Primitive| match p {
+        diagrammaker_lib::model::Primitive::Solid { d } => d.clone(),
+        _ => String::new(),
+    };
+
+    assert_ne!(ancho(&tumbada[0]), ancho(&de_pie[0]));
+    assert!(tumbada[0].is_solid() && de_pie[0].is_solid());
+}

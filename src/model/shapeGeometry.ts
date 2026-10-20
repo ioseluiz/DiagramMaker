@@ -25,6 +25,10 @@ const TABLE_CORNER_RADIUS = 6;
 const TAB_HEIGHT = 22;
 /** Alto maximo de la tapa eliptica del cilindro. */
 const CYLINDER_LIP = 12;
+/** Hueco entre el anillo de un nodo final y el disco de dentro. */
+const FINAL_NODE_GAP = 4;
+/** Grosor de la barra de bifurcacion. */
+const BAR_THICKNESS = 6;
 
 /**
  * El trazo se dibuja centrado en el borde, asi que medio grosor se sale de la
@@ -51,11 +55,34 @@ export const ALL_SHAPES: readonly NodeShape[] = [
   "actor",
   "hexagon",
   "parallelogram",
+  "initialNode",
+  "finalNode",
+  "bar",
 ];
 
 /** `true` si la primitiva se rellena. Las lineas interiores no. */
 export function isFilled(primitive: Primitive): boolean {
   return primitive.kind !== "line";
+}
+
+/**
+ * `true` si se rellena con el color de la linea en vez del de la superficie:
+ * el disco de un nodo inicial, la barra de una bifurcacion.
+ */
+export function isSolid(primitive: Primitive): boolean {
+  return primitive.kind === "solid";
+}
+
+/**
+ * Un circulo escrito como trazo cerrado, para poder rellenarlo con el color
+ * de la linea. Espejo de `circle_path` en `shape_geometry.rs`.
+ */
+function circlePath(cx: number, cy: number, radius: number): string {
+  const rad = r(radius);
+  return (
+    `M ${r(cx - radius)} ${r(cy)} A ${rad} ${rad} 0 1 0 ${r(cx + radius)} ${r(cy)} ` +
+    `A ${rad} ${rad} 0 1 0 ${r(cx - radius)} ${r(cy)} Z`
+  );
 }
 
 /**
@@ -195,6 +222,37 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
     // Lo mismo con la clase: su contorno depende de cuantos miembros tiene.
     case "class":
       return classPrimitivesFor(false, 0, w, h);
+
+    case "initialNode": {
+      const radius = Math.max(Math.min(w, h) / 2 - i, 1);
+      return [{ kind: "solid", d: circlePath(w / 2, h / 2, radius) }];
+    }
+
+    case "finalNode": {
+      const outer = Math.max(Math.min(w, h) / 2 - i, 1);
+      const inner = Math.max(outer - FINAL_NODE_GAP, 1);
+      return [
+        { kind: "circle", cx: r(w / 2), cy: r(h / 2), r: r(outer) },
+        { kind: "solid", d: circlePath(w / 2, h / 2, inner) },
+      ];
+    }
+
+    case "bar": {
+      // Tumbada si la caja es mas ancha que alta, de pie si no.
+      const [x, y, width, height] =
+        w >= h
+          ? [i, (h - BAR_THICKNESS) / 2, w - i * 2, BAR_THICKNESS]
+          : [(w - BAR_THICKNESS) / 2, i, BAR_THICKNESS, h - i * 2];
+
+      const right = r(x + Math.max(width, 1));
+      const bottom = r(y + Math.max(height, 1));
+      return [
+        {
+          kind: "solid",
+          d: `M ${r(x)} ${r(y)} L ${right} ${r(y)} L ${right} ${bottom} L ${r(x)} ${bottom} Z`,
+        },
+      ];
+    }
 
     // El texto suelto no tiene contorno: es solo su etiqueta.
     case "text":

@@ -33,6 +33,13 @@ pub enum NodeShape {
     /// Caja de un diagrama de clases: nombre, atributos y operaciones en tres
     /// compartimentos. Como la tabla, su contorno depende de su contenido.
     Class,
+    /// Donde arranca una maquina de estados o una actividad: un disco macizo.
+    InitialNode,
+    /// Donde acaba: un anillo con un disco dentro.
+    FinalNode,
+    /// Barra de bifurcacion o de union. Se tumba o se pone de pie segun la
+    /// caja, que es como se usa en la practica.
+    Bar,
 }
 
 impl NodeShape {

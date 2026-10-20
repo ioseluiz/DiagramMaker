@@ -18,6 +18,11 @@
   stroke-dasharray: var(--node-dash, none);
 }
 
+.shape-body__solid {
+  fill: var(--node-stroke, var(--border-strong));
+  stroke: none;
+}
+
 .shape-body__line {
   fill: none;
   stroke: var(--node-stroke, var(--border-strong));
