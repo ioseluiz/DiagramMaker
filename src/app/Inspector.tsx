@@ -5,7 +5,9 @@ import type { NodeShape } from "@/model/generated/NodeShape";
 import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
 import { SHAPE_LABEL } from "@/model/shapes";
 import { nodeStyle } from "@/model/style";
+import { classBoxOf } from "@/model/classBox";
 import { erTableOf } from "@/model/table";
+import { ClassInspector } from "./ClassInspector";
 import { ColorPicker } from "./ColorPicker";
 import { SequenceInspector } from "./SequenceInspector";
 import { selectDocument, useDocumentStore } from "@/store/documentStore";
@@ -60,6 +62,7 @@ export function Inspector() {
   const edge = only ? doc.edges.find((e) => e.id === only) : undefined;
 
   const table = node ? erTableOf(node) : null;
+  const classBox = node ? classBoxOf(node) : null;
 
   // Una secuencia se edita por su guion, no por propiedades de nodos y
   // aristas: el panel entero es otro.
@@ -75,7 +78,9 @@ export function Inspector() {
     <aside className="inspector">
       {node && table && <TableInspector node={node} table={table} />}
 
-      {node && !table && (
+      {node && classBox && <ClassInspector node={node} box={classBox} />}
+
+      {node && !table && !classBox && (
         <>
           <h2 className="inspector__title">Nodo</h2>
           <Field label="Etiqueta">

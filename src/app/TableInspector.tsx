@@ -68,11 +68,11 @@ export function TableInspector({ node, table }: TableInspectorProps) {
         />
       </div>
 
-      <div className="columns__head">
+      <div className="members__head">
         <span className="inspector__label">Columnas ({table.columns.length})</span>
         <button
           type="button"
-          className="columns__add"
+          className="members__add"
           onClick={() => edit("anadir columna", (d) => void addColumn(d, node.id))}
         >
           + Añadir
@@ -134,16 +134,16 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
     );
 
   return (
-    <li className="columns__row">
-      <div className="columns__line">
+    <li className="members__row">
+      <div className="members__line">
         <input
-          className="columns__name"
+          className="members__name"
           value={column.name}
           aria-label="Nombre de la columna"
           onChange={(e) => change({ name: e.target.value }, true)}
         />
         <input
-          className="columns__type"
+          className="members__type"
           value={column.dataType}
           placeholder="tipo"
           aria-label="Tipo de la columna"
@@ -151,7 +151,7 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
         />
       </div>
 
-      <div className="columns__line">
+      <div className="members__line">
         <Flag
           label="PK"
           title="Clave primaria"
@@ -178,7 +178,7 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
           onToggle={() => change({ increment: !column.increment })}
         />
         {column.foreignKey && (
-          <span className="columns__derived" title="Deducido de las relaciones">
+          <span className="members__derived" title="Deducido de las relaciones">
             FK
           </span>
         )}
@@ -187,7 +187,7 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
 
         <button
           type="button"
-          className="columns__move"
+          className="members__move"
           title="Subir"
           aria-label={`Subir ${column.name}`}
           disabled={first}
@@ -199,7 +199,7 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
         </button>
         <button
           type="button"
-          className="columns__move"
+          className="members__move"
           title="Bajar"
           aria-label={`Bajar ${column.name}`}
           disabled={last}
@@ -211,7 +211,7 @@ function ColumnRow({ nodeId, column, first, last }: ColumnRowProps) {
         </button>
         <button
           type="button"
-          className="columns__delete"
+          className="members__delete"
           title="Borrar columna"
           aria-label={`Borrar ${column.name}`}
           onClick={() =>
@@ -237,7 +237,7 @@ function Flag({ label, title, active, disabled, onToggle }: FlagProps) {
   return (
     <button
       type="button"
-      className="columns__flag"
+      className="members__flag"
       title={disabled ? `${title} (implicito en una clave primaria)` : title}
       aria-pressed={active}
       disabled={disabled}

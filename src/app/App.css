@@ -644,20 +644,26 @@
   opacity: 0.75;
 }
 
-/* --- Editor de columnas de una tabla ------------------------------------ */
+/*
+ * --- Lista editable de miembros -----------------------------------------
+ *
+ * La comparten el editor de columnas de una tabla y el de atributos y
+ * operaciones de una clase: las dos son una lista de filas con su nombre, su
+ * tipo, sus marcas y los mandos para ordenarlas.
+ */
 
 .inspector__spacer {
   flex: 1;
 }
 
-.columns__head {
+.members__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin: 16px 0 6px;
 }
 
-.columns__add {
+.members__add {
   height: 22px;
   padding: 0 8px;
   background: var(--surface-1);
@@ -669,7 +675,7 @@
   cursor: pointer;
 }
 
-.columns__add:hover {
+.members__add:hover {
   background: var(--surface-2);
   border-color: var(--border-strong);
 }
@@ -682,7 +688,7 @@
   list-style: none;
 }
 
-.columns__row {
+.members__row {
   display: grid;
   gap: 3px;
   padding: 6px;
@@ -691,14 +697,35 @@
   border-radius: var(--radius);
 }
 
-.columns__line {
+.members__line {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.columns__name,
-.columns__type {
+.members__sigil {
+  width: 34px;
+  flex: none;
+  padding: 2px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.members__params {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.members__name,
+.members__type {
   min-width: 0;
   padding: 3px 5px;
   background: var(--surface-0);
@@ -714,19 +741,19 @@
  * bajo a la segunda linea para dejarles el ancho completo: con el aqui, un
  * `timestamp with time zone` no cabia ni de lejos.
  */
-.columns__name,
-.columns__type {
+.members__name,
+.members__type {
   flex: 1;
   width: 0;
 }
 
-.columns__type {
+.members__type {
   font-family: var(--font-mono);
   font-size: 11px;
 }
 
-.columns__delete,
-.columns__move {
+.members__delete,
+.members__move {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
@@ -740,21 +767,21 @@
   cursor: pointer;
 }
 
-.columns__delete {
+.members__delete {
   font-size: 15px;
 }
 
-.columns__delete:hover {
+.members__delete:hover {
   background: var(--surface-2);
   color: var(--danger);
 }
 
-.columns__move:hover:not(:disabled) {
+.members__move:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--text);
 }
 
-.columns__move:disabled {
+.members__move:disabled {
   opacity: 0.3;
   cursor: default;
 }
@@ -763,7 +790,7 @@
  * Las marcas son interruptores y no casillas: ocupan la mitad y se leen igual
  * que en el nodo, donde aparecen como `PK`, `U` o `NN`.
  */
-.columns__flag {
+.members__flag {
   height: 19px;
   min-width: 26px;
   padding: 0 5px;
@@ -778,24 +805,24 @@
   cursor: pointer;
 }
 
-.columns__flag:hover:not(:disabled) {
+.members__flag:hover:not(:disabled) {
   border-color: var(--border-strong);
   color: var(--text);
 }
 
-.columns__flag[aria-pressed="true"] {
+.members__flag[aria-pressed="true"] {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.columns__flag:disabled {
+.members__flag:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
 /* `FK` se deduce de las relaciones, no se pulsa. */
-.columns__derived {
+.members__derived {
   height: 19px;
   padding: 0 5px;
   display: inline-flex;
