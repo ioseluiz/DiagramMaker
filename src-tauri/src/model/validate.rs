@@ -3,11 +3,15 @@ use std::collections::{HashMap, HashSet};
 use super::diagnostic::{Diagnostic, Report};
 use super::document::Document;
 
-/// Comprueba las invariantes estructurales del documento.
+mod semantic;
+
+/// Comprueba el documento, de dos maneras.
 ///
-/// No opina sobre si el diagrama tiene sentido para su dominio (eso llega con
-/// cada tipo en F3-F6); solo sobre si el grafo es coherente: identificadores
-/// unicos, referencias que existen y anidamiento sin ciclos.
+/// Primero lo estructural, que vale para cualquier diagrama: identificadores
+/// unicos, referencias que existen y anidamiento sin ciclos. Despues lo que
+/// solo tiene sentido sabiendo que se esta dibujando —una maquina de estados
+/// con dos arranques, una herencia circular—, que vive en `semantic` y
+/// cambia con cada tipo.
 pub fn validate(doc: &Document) -> Report {
     let mut out = Vec::new();
 
@@ -20,6 +24,8 @@ pub fn validate(doc: &Document) -> Report {
     check_parents(doc, &node_ids, &mut out);
     check_parent_cycles(doc, &mut out);
     check_er_columns(doc, &mut out);
+
+    semantic::check(doc, &mut out);
 
     Report::new(out)
 }
