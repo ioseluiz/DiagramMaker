@@ -7,7 +7,7 @@ import {
   selectDocument,
   useDocumentStore,
 } from "@/store/documentStore";
-import { addNode, addTable, setDiagramKind } from "@/store/operations";
+import { addClass, addNode, addTable, setDiagramKind } from "@/store/operations";
 import { useTheme, type ThemePreference } from "@/theme/useTheme";
 import { useCanvasTool, type CanvasTool } from "./useCanvasTool";
 import { useCodePanel } from "./useCodePanel";
@@ -43,6 +43,7 @@ const THEME_LABEL: Record<ThemePreference, string> = {
  */
 const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
   er: ["table", "package", "note", "text"],
+  class: ["class", "package", "note", "text"],
   // Una secuencia no se dibuja colocando formas: sus participantes y sus
   // pasos se anaden desde el panel del guion, que es donde esta el orden.
   sequence: [],
@@ -98,6 +99,10 @@ export function Toolbar() {
     edit("anadir", (draft) => {
       if (shape === "table") {
         addTable(draft, position);
+        return;
+      }
+      if (shape === "class") {
+        addClass(draft, position);
         return;
       }
       addNode(draft, { shape, label: SHAPE_LABEL[shape], ...position });

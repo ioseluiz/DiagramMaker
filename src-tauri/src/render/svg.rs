@@ -8,10 +8,12 @@ use std::fmt::Write as _;
 
 use crate::model::edge::EdgeKind;
 use crate::model::shape_geometry::{
-    Primitive, TABLE_HEADER_FONT_SIZE, TABLE_HEADER_HEIGHT, TABLE_PADDING, TABLE_ROW_FONT_SIZE,
-    primitives, table_primitives, table_row_rect,
+    CLASS_MEMBER_FONT_SIZE, CLASS_NAME_FONT_SIZE, CLASS_PADDING, CLASS_STEREOTYPE_FONT_SIZE,
+    CLASS_STEREOTYPE_HEIGHT, Primitive, TABLE_HEADER_FONT_SIZE, TABLE_HEADER_HEIGHT, TABLE_PADDING,
+    TABLE_ROW_FONT_SIZE, class_attributes_top, class_header_height, class_operations_top,
+    class_primitives, class_row_rect, primitives, table_primitives, table_row_rect,
 };
-use crate::model::{Document, Edge, ErTable, Node, Rect};
+use crate::model::{ClassBox, Document, Edge, ErTable, Node, Rect};
 
 use super::{EdgePath, HOP_RADIUS, Hop, LabelLayout, LabelPlacement, RenderInput, RenderTheme};
 
@@ -427,9 +429,15 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
 
     // El contorno de una tabla depende de cuantas columnas tenga, no solo de
     // su caja, asi que sale de `table_primitives`.
-    let outline = match node.er() {
-        Some(table) => table_primitives(table.columns.len(), g.width, g.height),
-        None => primitives(node.shape, g.width, g.height),
+    let outline = match (node.er(), node.class()) {
+        (Some(table), _) => table_primitives(table.columns.len(), g.width, g.height),
+        (_, Some(box_)) => class_primitives(
+            box_.has_stereotype(),
+            box_.attributes.len(),
+            g.width,
+            g.height,
+        ),
+        _ => primitives(node.shape, g.width, g.height),
     };
 
     for primitive in outline {
@@ -501,8 +509,15 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
 
     out.push_str("</g>");
 
-    // Las tablas rotulan sus propias filas: el texto va alineado a los bordes
-    // y no centrado, asi que no hace falta medirlo en el navegador.
+    // Las tablas y las clases rotulan su propio contenido: el texto se
+    // coloca por compartimentos y no por la caja entera, asi que no pasa por
+    // la etiqueta medida del navegador. Y por eso salen aqui: dejarlas
+    // seguir dibujaria el nombre dos veces, una centrado en la caja.
+    if let Some(box_) = node.class() {
+        out.push_str(&render_class_text(node, box_, g, input));
+        return out;
+    }
+
     if let Some(table) = node.er() {
         out.push_str(&render_table_text(node, table, g, input));
         return out;
@@ -525,6 +540,101 @@ fn render_node(node: &Node, input: &RenderInput) -> String {
         };
 
         out.push_str(&text_block(label, x, top, color, theme));
+    }
+
+    out
+}
+
+/// Nombre de la clase, su estereotipo y el texto de cada miembro.
+///
+/// Como la tabla, se rotula sola: el nombre va centrado y los miembros
+/// alineados a la izquierda con el margen fijo, asi que no hace falta medir
+/// nada en el navegador.
+fn render_class_text(node: &Node, box_: &ClassBox, g: Rect, input: &RenderInput) -> String {
+    let theme = &input.theme;
+    let color = node.style.text_color.as_deref().unwrap_or(&theme.node_text);
+    let stereotype = box_.has_stereotype();
+
+    let mut out = String::new();
+
+    // Estereotipo encima del nombre, entre dobles angulos.
+    if let Some(text) = box_.stereotype.as_deref().filter(|s| !s.trim().is_empty()) {
+        let _ = write!(
+            out,
+            r#"<text x="{}" y="{}" font-family="{}" font-size="{}" text-anchor="middle" fill="{}">&#171;{}&#187;</text>"#,
+            n(g.center().x),
+            n(g.y + CLASS_STEREOTYPE_HEIGHT * 0.75),
+            escape(&theme.font_family),
+            n(CLASS_STEREOTYPE_FONT_SIZE),
+            escape(&theme.edge_text),
+            escape(text.trim()),
+        );
+    }
+
+    // Nombre, centrado en lo que quede de cabecera.
+    let header_top = if stereotype {
+        g.y + CLASS_STEREOTYPE_HEIGHT
+    } else {
+        g.y
+    };
+    let header = class_header_height(stereotype)
+        - if stereotype {
+            CLASS_STEREOTYPE_HEIGHT
+        } else {
+            0.0
+        };
+
+    let italic = if node.style.italic.unwrap_or(false) {
+        r#" font-style="italic""#
+    } else {
+        ""
+    };
+    let _ = write!(
+        out,
+        r#"<text x="{}" y="{}" font-family="{}" font-size="{}" font-weight="600" text-anchor="middle" fill="{}"{italic}>{}</text>"#,
+        n(g.center().x),
+        n(header_top + header / 2.0 + CLASS_NAME_FONT_SIZE * 0.35),
+        escape(&theme.font_family),
+        n(CLASS_NAME_FONT_SIZE),
+        escape(color),
+        escape(&node.label),
+    );
+
+    // Los dos compartimentos. Un miembro estatico va subrayado y uno
+    // abstracto en cursiva, que es como lo escribe UML.
+    let compartments = [
+        (class_attributes_top(stereotype), &box_.attributes, false),
+        (
+            class_operations_top(stereotype, box_.attributes.len()),
+            &box_.operations,
+            true,
+        ),
+    ];
+
+    for (top, members, is_operation) in compartments {
+        for (index, member) in members.iter().enumerate() {
+            let row = class_row_rect(g.y + top, index, g.width);
+            let baseline = row.center().y + CLASS_MEMBER_FONT_SIZE * 0.35;
+
+            let mut attrs = String::new();
+            if member.is_abstract {
+                attrs.push_str(r#" font-style="italic""#);
+            }
+            if member.is_static {
+                attrs.push_str(r#" text-decoration="underline""#);
+            }
+
+            let _ = write!(
+                out,
+                r#"<text x="{}" y="{}" font-family="{}" font-size="{}" fill="{}"{attrs}>{}</text>"#,
+                n(g.x + CLASS_PADDING),
+                n(baseline),
+                escape(&theme.font_family),
+                n(CLASS_MEMBER_FONT_SIZE),
+                escape(color),
+                escape(&member.text(is_operation)),
+            );
+        }
     }
 
     out

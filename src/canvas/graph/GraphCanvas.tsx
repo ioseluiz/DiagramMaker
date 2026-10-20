@@ -42,12 +42,13 @@ import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { EdgeMarkers } from "./EdgeMarkers";
 import { decodeHandle } from "./handles";
 import { RelationEdge } from "./RelationEdge";
+import { ClassNode } from "./ClassNode";
 import { ShapeNode } from "./ShapeNode";
 import { TableNode } from "./TableNode";
 import { toAbsolute, toFlowEdges, toFlowNodes, type DiagramFlowNode } from "./adapter";
 import "./GraphCanvas.css";
 
-const NODE_TYPES = { shape: ShapeNode, table: TableNode };
+const NODE_TYPES = { shape: ShapeNode, table: TableNode, class: ClassNode };
 const EDGE_TYPES = { relation: RelationEdge };
 
 const SNAP: [number, number] = [8, 8];

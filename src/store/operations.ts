@@ -8,6 +8,8 @@ import type { Node } from "@/model/generated/Node";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import type { ErColumn } from "@/model/generated/ErColumn";
 import type { ErTable } from "@/model/generated/ErTable";
+import type { ClassBox } from "@/model/generated/ClassBox";
+import type { ClassMember } from "@/model/generated/ClassMember";
 import type { Side } from "@/model/generated/Side";
 import type { BlockKind } from "@/model/generated/BlockKind";
 import type { MessageKind } from "@/model/generated/MessageKind";
@@ -15,6 +17,7 @@ import type { NotePlacement } from "@/model/generated/NotePlacement";
 import type { SequenceScript } from "@/model/generated/SequenceScript";
 import type { Step } from "@/model/generated/Step";
 import type { C4Level } from "@/model/c4";
+import { classSize } from "@/model/classBox";
 import { defaultSizeFor, labelPlacement } from "@/model/shapes";
 import { tableSize } from "@/model/table";
 
@@ -316,6 +319,170 @@ export function setDiagramKind(draft: Document, kind: DiagramKind): void {
 function tableOf(draft: Document, nodeId: string): ErTable | null {
   const node = draft.nodes.find((n) => n.id === nodeId);
   return node?.data.type === "er" ? node.data : null;
+}
+
+/* --- Cajas de clase ------------------------------------------------------ */
+
+export interface AddClassOptions {
+  label?: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * Anade una clase con un atributo y una operacion dentro.
+ *
+ * Nace con algo igual que una tabla nace con su `id`: una caja con los tres
+ * compartimentos vacios no deja ver que es una clase, y lo primero que hace
+ * cualquiera es anadir un miembro.
+ */
+export function addClass(draft: Document, options: AddClassOptions): string {
+  const id = newId("k");
+
+  const node: Node = {
+    id,
+    label: options.label ?? "Clase",
+    shape: "class",
+    pinned: true,
+    style: {},
+    data: {
+      type: "class",
+      attributes: [
+        {
+          id: newId("a"),
+          name: "atributo",
+          visibility: "private",
+          typeName: "String",
+          parameters: "",
+        },
+      ],
+      operations: [
+        {
+          id: newId("o"),
+          name: "operacion",
+          visibility: "public",
+          typeName: "",
+          parameters: "",
+        },
+      ],
+    },
+  };
+
+  draft.nodes.push(node);
+  node.geometry = { x: options.x, y: options.y, ...classSize(node) };
+
+  return id;
+}
+
+/** Caja de clase de un nodo del borrador, si lo es. */
+function classOf(draft: Document, nodeId: string): ClassBox | null {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  return node?.data.type === "class" ? node.data : null;
+}
+
+/**
+ * Reajusta la caja tras cambiar los miembros.
+ *
+ * El alto es derivado —tres compartimentos y una fila por miembro— y el
+ * ancho solo crece: encogerla porque se borro el miembro mas largo seria
+ * pelearse con quien la habia ensanchado a mano.
+ */
+function resyncClassGeometry(draft: Document, nodeId: string): void {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  if (!node || node.data.type !== "class" || !node.geometry) return;
+
+  const measured = classSize(node);
+  node.geometry.height = measured.height;
+  node.geometry.width = Math.max(node.geometry.width, measured.width);
+}
+
+export function addClassMember(
+  draft: Document,
+  nodeId: string,
+  compartment: "attributes" | "operations",
+): string | undefined {
+  const box = classOf(draft, nodeId);
+  if (!box) return undefined;
+
+  const id = newId(compartment === "attributes" ? "a" : "o");
+  box[compartment].push({
+    id,
+    name: compartment === "attributes" ? "atributo" : "operacion",
+    visibility: compartment === "attributes" ? "private" : "public",
+    typeName: "",
+    parameters: "",
+  });
+
+  resyncClassGeometry(draft, nodeId);
+  return id;
+}
+
+export function removeClassMember(
+  draft: Document,
+  nodeId: string,
+  memberId: string,
+): void {
+  const box = classOf(draft, nodeId);
+  if (!box) return;
+
+  box.attributes = box.attributes.filter((m) => m.id !== memberId);
+  box.operations = box.operations.filter((m) => m.id !== memberId);
+
+  resyncClassGeometry(draft, nodeId);
+}
+
+export function updateClassMember(
+  draft: Document,
+  nodeId: string,
+  memberId: string,
+  patch: Partial<ClassMember>,
+): void {
+  const box = classOf(draft, nodeId);
+  if (!box) return;
+
+  for (const list of [box.attributes, box.operations]) {
+    const member = list.find((m) => m.id === memberId);
+    if (member) {
+      Object.assign(member, patch);
+      resyncClassGeometry(draft, nodeId);
+      return;
+    }
+  }
+}
+
+/** Sube o baja un miembro dentro de su compartimento. */
+export function moveClassMember(
+  draft: Document,
+  nodeId: string,
+  memberId: string,
+  delta: number,
+): void {
+  const box = classOf(draft, nodeId);
+  if (!box) return;
+
+  for (const list of [box.attributes, box.operations]) {
+    const from = list.findIndex((m) => m.id === memberId);
+    if (from < 0) continue;
+
+    const to = from + delta;
+    if (to < 0 || to >= list.length) return;
+
+    const [member] = list.splice(from, 1);
+    list.splice(to, 0, member!);
+    return;
+  }
+}
+
+export function setClassStereotype(
+  draft: Document,
+  nodeId: string,
+  stereotype: string,
+): void {
+  const box = classOf(draft, nodeId);
+  if (!box) return;
+
+  box.stereotype = stereotype.trim() ? stereotype : undefined;
+  resyncClassGeometry(draft, nodeId);
 }
 
 /**

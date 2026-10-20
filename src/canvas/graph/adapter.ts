@@ -8,6 +8,7 @@ import type { Point } from "@/model/generated/Point";
 import type { Routing } from "@/model/generated/Routing";
 import type { Side } from "@/model/generated/Side";
 import { defaultSizeFor, isContainer } from "@/model/shapes";
+import { classSize } from "@/model/classBox";
 import { tableSize } from "@/model/table";
 import { edgeStyle } from "@/model/style";
 import { TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT, erTableOf } from "@/model/table";
@@ -29,8 +30,13 @@ export interface ShapeNodeData extends Record<string, unknown> {
   node: Node;
 }
 
-/** Las tablas usan su propio componente; el resto comparte `ShapeNode`. */
-export type DiagramFlowNode = FlowNode<ShapeNodeData, "shape" | "table">;
+/**
+ * Las formas con contenido propio —tabla, clase— usan su componente; el
+ * resto comparte `ShapeNode`.
+ */
+export type FlowNodeType = "shape" | "table" | "class";
+
+export type DiagramFlowNode = FlowNode<ShapeNodeData, FlowNodeType>;
 
 /** Marcadores SVG definidos en `EdgeMarkers.tsx`. */
 const MARKERS: Record<EdgeKind, { start?: string; end?: string }> = {
@@ -56,9 +62,20 @@ export function isDashed(edge: Edge): boolean {
   return edgeStyle(edge).dashed ?? DASHED_KINDS.has(edge.kind);
 }
 
+/**
+ * Que componente dibuja cada forma. Las que no estan aqui las dibuja
+ * `ShapeNode`, que es la mayoria: solo las que llevan contenido propio
+ * —columnas, miembros— necesitan el suyo.
+ */
+const FLOW_TYPE: Partial<Record<Node["shape"], FlowNodeType>> = {
+  table: "table",
+  class: "class",
+};
+
 /** Tamano de un nodo que todavia no tiene geometria. */
 function fallbackSize(node: Node): { width: number; height: number } {
   if (node.shape === "table") return tableSize(node);
+  if (node.shape === "class") return classSize(node);
 
   const [width, height] = defaultSizeFor(node.shape);
   return { width, height };
@@ -86,16 +103,15 @@ export function toFlowNodes(
   );
 
   return ordered.map((node) => {
-    const isTable = node.shape === "table";
-
-    // El tamano de una tabla sale de medir su texto, que no es gratis. Solo
-    // se calcula cuando hace falta: un nodo ya colocado trae el suyo.
+    // El tamano de una tabla o una clase sale de medir su texto, que no es
+    // gratis. Solo se calcula cuando hace falta: un nodo ya colocado trae el
+    // suyo.
     const geometry = node.geometry ?? { x: 0, y: 0, ...fallbackSize(node) };
     const origin = parentOrigin(doc, node);
 
     const flow: DiagramFlowNode = {
       id: node.id,
-      type: isTable ? "table" : "shape",
+      type: FLOW_TYPE[node.shape] ?? "shape",
       position: { x: geometry.x - origin.x, y: geometry.y - origin.y },
       width: geometry.width,
       height: geometry.height,

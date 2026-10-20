@@ -1227,3 +1227,149 @@ fn el_mismo_diagrama_en_mermaid_y_en_plantuml_da_el_mismo_documento() {
         "distinto guion"
     );
 }
+
+/* --- Clases -------------------------------------------------------------- */
+
+/// Un diagrama de clases con todo lo que la caja sabe dibujar: estereotipo,
+/// las cuatro visibilidades, miembros estaticos y abstractos, y
+/// compartimentos vacios.
+fn class_sample() -> RenderInput {
+    use diagrammaker_lib::model::shape_geometry::class_height;
+    use diagrammaker_lib::model::{ClassBox, ClassMember, NodeData, Rect, Visibility};
+
+    let mut doc = Document::new("clases", DiagramKind::Class, 0);
+    let mut labels = HashMap::new();
+
+    let pedido = ClassBox::new()
+        .with_attributes(vec![
+            ClassMember::new("a1", "id")
+                .with_visibility(Visibility::Private)
+                .with_type("int"),
+            ClassMember::new("a2", "total")
+                .with_visibility(Visibility::Private)
+                .with_type("Decimal"),
+            ClassMember::new("a3", "creados")
+                .with_visibility(Visibility::Protected)
+                .with_type("int"),
+        ])
+        .with_operations(vec![
+            ClassMember::new("o1", "confirmar"),
+            ClassMember::new("o2", "buscar")
+                .with_parameters("id: int")
+                .with_type("Pedido"),
+            ClassMember::new("o3", "borrar")
+                .with_visibility(Visibility::Package)
+                .with_parameters("id: int"),
+        ]);
+
+    let repositorio = ClassBox::new()
+        .with_stereotype("interface")
+        .with_operations(vec![
+            ClassMember::new("o4", "guardar").with_parameters("p: Pedido"),
+            ClassMember::new("o5", "todos").with_type("List<Pedido>"),
+        ]);
+
+    let vacia = ClassBox::new();
+
+    let cajas = [
+        ("pedido", "Pedido", pedido, 40.0),
+        ("repo", "RepositorioPedidos", repositorio, 300.0),
+        ("vacia", "Marcador", vacia, 560.0),
+    ];
+
+    for (id, nombre, box_, x) in cajas {
+        let stereotype = box_.has_stereotype();
+        let height = class_height(stereotype, box_.attributes.len(), box_.operations.len());
+
+        let mut node = Node::new(id, nombre, NodeShape::Class);
+        node.geometry = Some(Rect::new(x, 40.0, 230.0, height));
+        node.data = NodeData::Class(box_);
+        doc.nodes.push(node);
+
+        labels.insert(id.to_string(), label(nombre, 13.0, LabelPlacement::Center));
+    }
+
+    // El tercer miembro de `Pedido` es estatico y la primera operacion de la
+    // interfaz, abstracta: son los dos adornos que el dibujo tiene que
+    // distinguir.
+    if let Some(data) = doc.nodes[0].data.as_class_mut() {
+        data.attributes[2].is_static = true;
+    }
+    if let Some(data) = doc.nodes[1].data.as_class_mut() {
+        data.operations[0].is_abstract = true;
+    }
+
+    doc.edges
+        .push(Edge::new("e1", "pedido", "repo", EdgeKind::Dependency).with_label("usa"));
+
+    let mut edges = HashMap::new();
+    edges.insert(
+        "e1".to_string(),
+        EdgePath {
+            d: "M 270 120 L 300 120".into(),
+            label_at: Some(Point::new(285.0, 120.0)),
+            hops: Vec::new(),
+        },
+    );
+    labels.insert("e1".to_string(), label("usa", 11.0, LabelPlacement::Center));
+
+    RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    }
+}
+
+#[test]
+fn un_diagrama_de_clases_llega_hasta_el_png() {
+    let input = class_sample();
+    let out = svg::render(&input);
+
+    for text in [
+        "Pedido",
+        "RepositorioPedidos",
+        "- id: int",
+        "# creados: int",
+        "+ confirmar()",
+        "+ buscar(id: int): Pedido",
+        "~ borrar(id: int)",
+        "+ todos(): List&lt;Pedido&gt;",
+        "interface",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    // Lo estatico va subrayado y lo abstracto en cursiva.
+    assert!(
+        out.contains(r#"text-decoration="underline""#),
+        "falta el subrayado"
+    );
+    assert!(out.contains(r#"font-style="italic""#), "falta la cursiva");
+
+    // El nombre una sola vez: la caja lo rotula ella, y si ademas pasara por
+    // la etiqueta medida saldria otra vez centrado en el medio.
+    assert_eq!(
+        out.matches(">Pedido<").count(),
+        1,
+        "el nombre sale repetido"
+    );
+
+    check_png(&out, "clases");
+}
+
+#[test]
+fn una_clase_sin_miembros_sigue_teniendo_sus_tres_compartimentos() {
+    use diagrammaker_lib::model::shape_geometry::class_primitives;
+
+    // Dos separadores: lo que distingue una clase de un rectangulo con
+    // texto dentro.
+    let lineas = class_primitives(false, 0, 200.0, 50.0)
+        .iter()
+        .filter(|p| matches!(p, diagrammaker_lib::model::Primitive::Line { .. }))
+        .count();
+
+    assert_eq!(lineas, 2);
+}

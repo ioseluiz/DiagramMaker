@@ -1,0 +1,37 @@
+[
+  {
+    "description": "atributo con tipo",
+    "isOperation": false,
+    "text": "- nombre: String"
+  },
+  {
+    "description": "atributo sin tipo",
+    "isOperation": false,
+    "text": "+ activo"
+  },
+  {
+    "description": "atributo protegido",
+    "isOperation": false,
+    "text": "# saldo: Decimal"
+  },
+  {
+    "description": "atributo de paquete",
+    "isOperation": false,
+    "text": "~ interno"
+  },
+  {
+    "description": "operacion sin nada",
+    "isOperation": true,
+    "text": "+ guardar()"
+  },
+  {
+    "description": "operacion con parametros y retorno",
+    "isOperation": true,
+    "text": "+ buscar(id: int, activo: bool): Pedido"
+  },
+  {
+    "description": "operacion que no devuelve nada",
+    "isOperation": true,
+    "text": "- borrar(id: int)"
+  }
+]

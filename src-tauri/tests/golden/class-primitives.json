@@ -1,0 +1,230 @@
+[
+  {
+    "stereotype": false,
+    "attributes": 0,
+    "operations": 0,
+    "width": 200.0,
+    "height": 50.0,
+    "attributesTop": 30.0,
+    "operationsTop": 40.0,
+    "firstAttribute": {
+      "x": 10.0,
+      "y": 30.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "firstOperation": {
+      "x": 10.0,
+      "y": 40.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 198.5,
+        "height": 48.5
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 30 L 199.25 30"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 40 L 199.25 40"
+      }
+    ]
+  },
+  {
+    "stereotype": false,
+    "attributes": 1,
+    "operations": 0,
+    "width": 200.0,
+    "height": 60.0,
+    "attributesTop": 30.0,
+    "operationsTop": 50.0,
+    "firstAttribute": {
+      "x": 10.0,
+      "y": 30.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "firstOperation": {
+      "x": 10.0,
+      "y": 50.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 198.5,
+        "height": 58.5
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 30 L 199.25 30"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 50 L 199.25 50"
+      }
+    ]
+  },
+  {
+    "stereotype": false,
+    "attributes": 0,
+    "operations": 1,
+    "width": 200.0,
+    "height": 60.0,
+    "attributesTop": 30.0,
+    "operationsTop": 40.0,
+    "firstAttribute": {
+      "x": 10.0,
+      "y": 30.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "firstOperation": {
+      "x": 10.0,
+      "y": 40.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 198.5,
+        "height": 58.5
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 30 L 199.25 30"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 40 L 199.25 40"
+      }
+    ]
+  },
+  {
+    "stereotype": false,
+    "attributes": 3,
+    "operations": 2,
+    "width": 200.0,
+    "height": 130.0,
+    "attributesTop": 30.0,
+    "operationsTop": 90.0,
+    "firstAttribute": {
+      "x": 10.0,
+      "y": 30.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "firstOperation": {
+      "x": 10.0,
+      "y": 90.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 198.5,
+        "height": 128.5
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 30 L 199.25 30"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 90 L 199.25 90"
+      }
+    ]
+  },
+  {
+    "stereotype": true,
+    "attributes": 2,
+    "operations": 2,
+    "width": 200.0,
+    "height": 125.0,
+    "attributesTop": 45.0,
+    "operationsTop": 85.0,
+    "firstAttribute": {
+      "x": 10.0,
+      "y": 45.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "firstOperation": {
+      "x": 10.0,
+      "y": 85.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 198.5,
+        "height": 123.5
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 45 L 199.25 45"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 85 L 199.25 85"
+      }
+    ]
+  },
+  {
+    "stereotype": true,
+    "attributes": 0,
+    "operations": 0,
+    "width": 200.0,
+    "height": 65.0,
+    "attributesTop": 45.0,
+    "operationsTop": 55.0,
+    "firstAttribute": {
+      "x": 10.0,
+      "y": 45.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "firstOperation": {
+      "x": 10.0,
+      "y": 55.0,
+      "width": 180.0,
+      "height": 20.0
+    },
+    "primitives": [
+      {
+        "kind": "rect",
+        "x": 0.75,
+        "y": 0.75,
+        "width": 198.5,
+        "height": 63.5
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 45 L 199.25 45"
+      },
+      {
+        "kind": "line",
+        "d": "M 0.75 55 L 199.25 55"
+      }
+    ]
+  }
+]

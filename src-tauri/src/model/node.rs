@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::class_box::ClassBox;
 use super::er::ErTable;
 use super::geometry::Rect;
 use super::style::NodeStyle;
@@ -29,21 +30,24 @@ pub enum NodeShape {
     /// columna. Su contorno depende de cuantas columnas tenga, no solo de la
     /// caja, asi que se dibuja aparte del resto de formas.
     Table,
+    /// Caja de un diagrama de clases: nombre, atributos y operaciones en tres
+    /// compartimentos. Como la tabla, su contorno depende de su contenido.
+    Class,
 }
 
 impl NodeShape {
     /// `true` si el contorno depende de los datos del nodo y no solo de su
     /// tamano.
     pub fn is_data_driven(self) -> bool {
-        matches!(self, NodeShape::Table)
+        matches!(self, NodeShape::Table | NodeShape::Class)
     }
 }
 
 /// Datos propios del tipo de diagrama.
 ///
-/// Punto de extension del IR: F3 anade `Er { columns }`, F6 anade
-/// `Class { attributes, operations }`, etc. `Plain` cubre los nodos que solo
-/// tienen etiqueta.
+/// Punto de extension del IR: F3 anadio la tabla entidad-relacion y F6 la
+/// caja de clase. `Plain` cubre los nodos que solo tienen etiqueta, que son
+/// la mayoria.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[ts(export, export_to = "../../src/model/generated/")]
@@ -52,20 +56,36 @@ pub enum NodeData {
     Plain,
     /// Tabla de un diagrama entidad-relacion.
     Er(ErTable),
+    /// Caja de un diagrama de clases.
+    Class(ClassBox),
 }
 
 impl NodeData {
     pub fn as_er(&self) -> Option<&ErTable> {
         match self {
             NodeData::Er(table) => Some(table),
-            NodeData::Plain => None,
+            _ => None,
         }
     }
 
     pub fn as_er_mut(&mut self) -> Option<&mut ErTable> {
         match self {
             NodeData::Er(table) => Some(table),
-            NodeData::Plain => None,
+            _ => None,
+        }
+    }
+
+    pub fn as_class(&self) -> Option<&ClassBox> {
+        match self {
+            NodeData::Class(box_) => Some(box_),
+            _ => None,
+        }
+    }
+
+    pub fn as_class_mut(&mut self) -> Option<&mut ClassBox> {
+        match self {
+            NodeData::Class(box_) => Some(box_),
+            _ => None,
         }
     }
 }
@@ -136,6 +156,10 @@ impl Node {
 
     pub fn er(&self) -> Option<&ErTable> {
         self.data.as_er()
+    }
+
+    pub fn class(&self) -> Option<&ClassBox> {
+        self.data.as_class()
     }
 }
 

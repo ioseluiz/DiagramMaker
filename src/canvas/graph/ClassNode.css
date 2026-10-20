@@ -1,0 +1,89 @@
+.class-node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.class-node__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.class-node__body {
+  fill: var(--node-fill, var(--surface-0));
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.class-node__rule {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+/*
+ * El texto va encima del marco SVG, con el mismo reparto que hace el
+ * exportador de Rust: nombre centrado en la cabecera y miembros alineados a
+ * la izquierda con el margen fijo.
+ */
+.class-node__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-diagram);
+  color: var(--text);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.class-node__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.class-node__stereotype {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.class-node__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.class-node__compartment {
+  display: flex;
+  flex-direction: column;
+}
+
+.class-node__member {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Los dos adornos de UML, los mismos que pone el exportador. */
+.class-node__member[data-static] {
+  text-decoration: underline;
+}
+
+.class-node__member[data-abstract] {
+  font-style: italic;
+}

@@ -21,6 +21,9 @@ const DEFAULT_SIZE: Record<NodeShape, readonly [number, number]> = {
   hexagon: [170, 70],
   parallelogram: [170, 60],
   table: [220, 28],
+  // Igual que la tabla: lo real sale de sus miembros (`@/model/classBox`), y
+  // esto es la caja vacia con sus tres compartimentos.
+  class: [180, 50],
   // El texto crece con su contenido; esto es el hueco inicial.
   text: [160, 32],
 };
@@ -43,6 +46,7 @@ export const SHAPE_LABEL: Record<NodeShape, string> = {
   actor: "Actor",
   hexagon: "Hexagono",
   parallelogram: "Paralelogramo",
+  class: "Clase",
   table: "Tabla",
   text: "Texto",
 };

@@ -1,6 +1,7 @@
 import type { NodeShape } from "./generated/NodeShape";
 import type { Primitive } from "./generated/Primitive";
 import { TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT } from "./tableMetrics";
+import { classAttributesTop, classOperationsTop } from "./classMetrics";
 
 /**
  * Contorno de cada forma, en primitivas SVG.
@@ -191,6 +192,10 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
     case "table":
       return tablePrimitivesFor(0, w, h);
 
+    // Lo mismo con la clase: su contorno depende de cuantos miembros tiene.
+    case "class":
+      return classPrimitivesFor(false, 0, w, h);
+
     // El texto suelto no tiene contorno: es solo su etiqueta.
     case "text":
       return [];
@@ -216,6 +221,37 @@ export function primitivesFor(shape: NodeShape, w: number, h: number): Primitive
       ];
     }
   }
+}
+
+/**
+ * Contorno de una caja de clase: el marco y los dos separadores. Espejo de
+ * `class_primitives` en `shape_geometry.rs`.
+ *
+ * No hace falta saber cuantas operaciones hay: el marco cierra el ultimo
+ * compartimento.
+ */
+export function classPrimitivesFor(
+  stereotype: boolean,
+  attributes: number,
+  w: number,
+  h: number,
+): Primitive[] {
+  const i = INSET;
+  const out: Primitive[] = [
+    { kind: "rect", x: r(i), y: r(i), width: r(w - i * 2), height: r(h - i * 2) },
+  ];
+
+  // Los dos separadores son lo que distingue una clase de un rectangulo con
+  // texto dentro, asi que se dibujan siempre que quepan.
+  for (const y of [
+    classAttributesTop(stereotype),
+    classOperationsTop(stereotype, attributes),
+  ]) {
+    if (y >= h - i) continue;
+    out.push({ kind: "line", d: `M ${r(i)} ${r(y)} L ${r(w - i)} ${r(y)}` });
+  }
+
+  return out;
 }
 
 /**

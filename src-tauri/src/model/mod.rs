@@ -6,6 +6,7 @@
 //! este mismo `Document`, y tanto la exportacion a SVG como los generadores de
 //! codigo lo consumen.
 
+pub mod class_box;
 pub mod diagnostic;
 pub mod document;
 pub mod edge;
@@ -18,6 +19,7 @@ pub mod shape_geometry;
 pub mod style;
 pub mod validate;
 
+pub use class_box::{ClassBox, ClassMember, Visibility};
 pub use diagnostic::{Diagnostic, Report, Severity, Span};
 pub use document::{DiagramKind, Document, LayoutDirection, LayoutMode, Meta, SCHEMA_VERSION};
 pub use edge::{Edge, EdgeKind, Endpoint, Routing, Side};

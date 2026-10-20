@@ -141,6 +141,9 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
         // se devuelve el marco para que un nodo mal formado siga siendo
         // visible en vez de desaparecer.
         NodeShape::Table => table_primitives(0, w, h),
+        // Sin saber cuantos miembros tiene, lo unico seguro es la caja
+        // vacia; quien la dibuje de verdad llama a `class_primitives`.
+        NodeShape::Class => class_primitives(false, 0, w, h),
 
         // El texto suelto no tiene contorno: es solo su etiqueta.
         NodeShape::Text => Vec::new(),
@@ -354,6 +357,100 @@ pub fn primitives(shape: NodeShape, w: f64, h: f64) -> Vec<Primitive> {
             ]
         }
     }
+}
+
+/* --- Caja de clase ------------------------------------------------------- */
+
+/// Alto del compartimento del nombre.
+pub const CLASS_HEADER_HEIGHT: f64 = 30.0;
+/// Lo que crece la cabecera cuando hay estereotipo encima del nombre.
+pub const CLASS_STEREOTYPE_HEIGHT: f64 = 15.0;
+/// Alto de la fila de un atributo o una operacion.
+pub const CLASS_ROW_HEIGHT: f64 = 20.0;
+/// Alto de un compartimento sin nada dentro.
+///
+/// No es cero: UML dibuja los tres compartimentos siempre, y una clase sin
+/// operaciones tiene que seguir viendose como una clase y no como una caja.
+pub const CLASS_EMPTY_HEIGHT: f64 = 10.0;
+/// Margen a los lados del texto de un miembro.
+pub const CLASS_PADDING: f64 = 10.0;
+pub const CLASS_NAME_FONT_SIZE: f64 = 13.0;
+pub const CLASS_STEREOTYPE_FONT_SIZE: f64 = 11.0;
+pub const CLASS_MEMBER_FONT_SIZE: f64 = 12.0;
+
+/// Alto de la cabecera, con sitio para el estereotipo si lo hay.
+pub fn class_header_height(stereotype: bool) -> f64 {
+    if stereotype {
+        CLASS_HEADER_HEIGHT + CLASS_STEREOTYPE_HEIGHT
+    } else {
+        CLASS_HEADER_HEIGHT
+    }
+}
+
+/// Alto de un compartimento con `rows` filas.
+pub fn class_compartment_height(rows: usize) -> f64 {
+    if rows == 0 {
+        CLASS_EMPTY_HEIGHT
+    } else {
+        rows as f64 * CLASS_ROW_HEIGHT
+    }
+}
+
+/// Donde empieza el compartimento de atributos.
+pub fn class_attributes_top(stereotype: bool) -> f64 {
+    class_header_height(stereotype)
+}
+
+/// Donde empieza el de operaciones.
+pub fn class_operations_top(stereotype: bool, attributes: usize) -> f64 {
+    class_attributes_top(stereotype) + class_compartment_height(attributes)
+}
+
+/// Alto que necesita una caja con esos contenidos.
+pub fn class_height(stereotype: bool, attributes: usize, operations: usize) -> f64 {
+    class_operations_top(stereotype, attributes) + class_compartment_height(operations)
+}
+
+/// Caja de la fila `index` de un compartimento que empieza en `top`.
+pub fn class_row_rect(top: f64, index: usize, w: f64) -> super::geometry::Rect {
+    super::geometry::Rect::new(
+        CLASS_PADDING,
+        top + index as f64 * CLASS_ROW_HEIGHT,
+        (w - CLASS_PADDING * 2.0).max(0.0),
+        CLASS_ROW_HEIGHT,
+    )
+}
+
+/// Contorno de una caja de clase: el marco y los dos separadores.
+///
+/// Va aparte de `primitives` por lo mismo que la tabla: depende de cuantos
+/// miembros tiene, que no se deduce del tamano de la caja. No hace falta
+/// saber cuantas operaciones hay: el marco cierra el ultimo compartimento.
+pub fn class_primitives(stereotype: bool, attributes: usize, w: f64, h: f64) -> Vec<Primitive> {
+    let i = INSET;
+    let mut out = vec![Primitive::Rect {
+        x: r(i),
+        y: r(i),
+        width: r(w - i * 2.0),
+        height: r(h - i * 2.0),
+        radius: None,
+    }];
+
+    // Los dos separadores. Se dibujan siempre que quepan: son lo que
+    // distingue una clase de un rectangulo con texto.
+    for y in [
+        class_attributes_top(stereotype),
+        class_operations_top(stereotype, attributes),
+    ] {
+        if y >= h - i {
+            continue;
+        }
+        out.push(Primitive::Line {
+            d: format!("M {} {} L {} {}", r(i), r(y), r(w - i), r(y)),
+        });
+    }
+
+    out
 }
 
 /// Formas de contorno fijo, las que dibuja `primitives`. Quedan fuera la
