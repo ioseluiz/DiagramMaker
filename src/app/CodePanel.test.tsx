@@ -103,9 +103,24 @@ describe("CodePanel", () => {
   });
 
   it("un diagrama con un solo generador no ofrece donde elegir", async () => {
-    await mount("er");
+    // Casos de uso y actividad solo salen en PlantUML: Mermaid no tiene
+    // dialecto para ninguno de los dos.
+    await mount("useCase");
 
     expect(screen.queryByLabelText("Lenguaje del código")).not.toBeInTheDocument();
+  });
+
+  it("entidad-relacion deja elegir entre DBML y Mermaid", async () => {
+    await mount("er");
+    expect(emitCode).toHaveBeenCalledWith("dbml", expect.anything());
+
+    await userEvent.selectOptions(
+      screen.getByLabelText("Lenguaje del código"),
+      "mermaid",
+    );
+    await tick(300);
+
+    expect(emitCode).toHaveBeenLastCalledWith("mermaid", expect.anything());
   });
 
   it("arquitectura deja elegir entre Mermaid y PlantUML", async () => {

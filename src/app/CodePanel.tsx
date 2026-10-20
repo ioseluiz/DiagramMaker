@@ -26,7 +26,7 @@ import "./CodePanel.css";
  * y no un panel vacio.
  */
 const LANGUAGES_BY_KIND: Record<DiagramKind, SourceLanguage[]> = {
-  er: ["dbml"],
+  er: ["dbml", "mermaid"],
   architecture: ["mermaid", "plantUml"],
   sequence: ["mermaid", "plantUml"],
   class: ["mermaid", "plantUml"],

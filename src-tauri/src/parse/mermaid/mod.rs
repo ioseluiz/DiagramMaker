@@ -8,6 +8,7 @@
 //! Lo que no se reconoce no se adivina: se reporta con linea y columna.
 
 pub(crate) mod class_diagram;
+pub(crate) mod er_diagram;
 pub(crate) mod flowchart;
 pub(crate) mod sequence;
 pub(crate) mod shapes;
@@ -19,6 +20,7 @@ use super::ImportResult;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Flavor {
     Flowchart,
+    Er,
     Sequence,
     Class,
     State,
@@ -42,6 +44,7 @@ pub fn flavor_of(source: &str) -> Flavor {
             // `classDiagram-v2` es el mismo dialecto con otro nombre.
             "classdiagram" | "classdiagram-v2" => Flavor::Class,
             "statediagram" | "statediagram-v2" => Flavor::State,
+            "erdiagram" => Flavor::Er,
             _ => Flavor::Flowchart,
         };
     }
@@ -52,6 +55,7 @@ pub fn flavor_of(source: &str) -> Flavor {
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
     match flavor_of(source) {
         Flavor::Flowchart => flowchart::import(source, now_ms),
+        Flavor::Er => er_diagram::import(source, now_ms),
         Flavor::Sequence => sequence::import(source, now_ms),
         Flavor::Class => class_diagram::import(source, now_ms),
         Flavor::State => state_diagram::import(source, now_ms),

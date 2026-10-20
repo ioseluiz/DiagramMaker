@@ -10,6 +10,7 @@ use crate::model::{DiagramKind, Document, LayoutDirection, NodeShape};
 use crate::parse::mermaid::{arrow_for, delimiters_for};
 
 pub mod class_diagram;
+pub mod er_diagram;
 pub mod sequence;
 pub mod state_diagram;
 
@@ -28,6 +29,9 @@ pub fn emit(doc: &Document) -> String {
     }
     if doc.kind == DiagramKind::State {
         return state_diagram::emit(doc);
+    }
+    if doc.kind == DiagramKind::Er {
+        return er_diagram::emit(doc);
     }
 
     let mut out = String::new();

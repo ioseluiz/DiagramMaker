@@ -2349,3 +2349,102 @@ fn un_diagrama_de_actividad_de_plantuml_llega_hasta_el_png() {
 
     check_png(&out, "actividad-plantuml");
 }
+
+/* --- Entidad-relacion de Mermaid -------------------------------------------- */
+
+/// El mismo diagrama que DBML sabe escribir, en el otro idioma.
+const ESQUEMA_MERMAID: &str = r#"
+erDiagram
+    CLIENTE ||--o{ PEDIDO : coloca
+    PEDIDO ||--|{ LINEA : contiene
+    CLIENTE }|..|{ DIRECCION : usa
+
+    CLIENTE {
+        int id PK
+        string nombre
+        string correo
+    }
+    PEDIDO {
+        int numero PK
+        int cliente_id FK "a quien pertenece"
+        date fecha
+    }
+    LINEA {
+        int id PK
+        int cantidad
+    }
+"#;
+
+#[test]
+fn un_er_de_mermaid_llega_hasta_el_png() {
+    let imported = diagrammaker_lib::parse::mermaid::import(ESQUEMA_MERMAID, 0);
+    assert!(
+        imported.ok(),
+        "el Mermaid de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    assert_eq!(doc.kind, DiagramKind::Er);
+
+    place_tables(&mut doc);
+
+    // Las tablas rotulan sus filas desde el propio documento; aqui solo hacen
+    // falta las etiquetas de las aristas, que es justo lo que se quiere mirar:
+    // las cardinalidades pegadas a cada extremo.
+    let mut labels = HashMap::new();
+    let mut edges = HashMap::new();
+
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        labels.insert(
+            edge.id.clone(),
+            label(
+                edge.label.as_deref().unwrap_or(""),
+                11.0,
+                LabelPlacement::Center,
+            ),
+        );
+    }
+
+    let out = svg::render(&RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    });
+
+    for text in [
+        "CLIENTE",
+        "PEDIDO",
+        "LINEA",
+        "DIRECCION",
+        "cliente_id",
+        "coloca",
+        "FK",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "er-mermaid");
+}
