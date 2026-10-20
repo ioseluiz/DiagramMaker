@@ -15,6 +15,32 @@ diagrama. Funciona sin conexión a red.
 
 Construido con Rust + Tauri 2 y React.
 
+## Descargas
+
+Los paquetes de cada versión están en
+[Releases](https://github.com/ioseluiz/DiagramMaker/releases):
+
+| Archivo | Para |
+| --- | --- |
+| `*_x64_en-US.msi` | Windows, instalación normal |
+| `*_x64-setup.exe` | Windows, instalador NSIS |
+| `*_aarch64.dmg` | Mac con Apple Silicon |
+| `*_x64.dmg` | Mac con Intel |
+
+**No van firmados**: no hay certificado de firma de código detrás de este
+proyecto. Windows mostrará el aviso de SmartScreen —«Más información» y
+«Ejecutar de todas formas»— y macOS dirá que la aplicación está dañada o que
+no puede comprobar al desarrollador. No lo está; se abre pulsando con el botón
+derecho y eligiendo **Abrir**, o quitando la marca de cuarentena:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/DiagramMaker.app
+```
+
+Se publica empujando un tag `vX.Y.Z`: el flujo
+[`release.yml`](.github/workflows/release.yml) construye las tres
+plataformas y solo crea la release si salen las tres.
+
 ## Estado
 
 **F7 — pulido.** Los seis tipos de diagrama entran y salen ya en todos los

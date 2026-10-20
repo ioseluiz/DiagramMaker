@@ -1,0 +1,119 @@
+name: Release
+
+# Se dispara al empujar un tag `vX.Y.Z`. El tag manda: la version que se
+# publica es la que lleve `tauri.conf.json` en ese commit.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.nombre }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Sin `fail-fast`: si una plataforma falla interesa ver si las otras
+      # tambien, no quedarse sin informacion.
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: Windows
+            os: windows-latest
+            target: ""
+            args: ""
+          # Los runners de macOS son Apple Silicon, asi que el binario Intel
+          # se compila cruzado desde el mismo. Son dos paquetes y no uno
+          # universal porque un universal pesa el doble para todo el mundo.
+          - nombre: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
+          - nombre: macOS (Intel)
+            os: macos-latest
+            target: x86_64-apple-darwin
+            args: "--target x86_64-apple-darwin"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.nombre }}
+
+      - run: npm ci
+
+      - name: Construir
+        run: npm run tauri build -- ${{ matrix.args }}
+
+      # La carpeta cambia segun se compile para el propio equipo o cruzado.
+      - name: Donde quedo el paquete
+        id: bundle
+        shell: bash
+        run: |
+          if [ -n "${{ matrix.target }}" ]; then
+            echo "dir=src-tauri/target/${{ matrix.target }}/release/bundle" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=src-tauri/target/release/bundle" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Recoger lo que haya que publicar
+        shell: bash
+        run: |
+          mkdir -p paquetes
+          find "${{ steps.bundle.outputs.dir }}" \
+            \( -name '*.msi' -o -name '*-setup.exe' -o -name '*.dmg' \) \
+            -exec cp {} paquetes/ \;
+          ls -lh paquetes
+          # Sin paquete no hay nada que publicar, y eso es un fallo: mejor
+          # enterarse aqui que con una release a medias.
+          test -n "$(ls -A paquetes)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquetes-${{ matrix.target || 'windows' }}
+          path: paquetes/*
+          if-no-files-found: error
+
+  release:
+    name: Publicar
+    runs-on: ubuntu-latest
+    # Solo se publica si salieron las tres. Una release con la mitad de las
+    # plataformas es peor que ninguna.
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: descargas
+
+      - name: Juntar los paquetes
+        run: |
+          mkdir -p paquetes
+          find descargas -type f -exec cp {} paquetes/ \;
+          ls -lh paquetes
+
+      - name: Crear la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" paquetes/* \
+            --title "DiagramMaker ${{ github.ref_name }}" \
+            --notes-file .github/notas-de-release.md
