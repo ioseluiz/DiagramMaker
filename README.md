@@ -18,8 +18,9 @@ Construido con Rust + Tauri 2 y React.
 ## Estado
 
 **F7 — pulido.** Los seis tipos de diagrama entran y salen ya en todos los
-idiomas del plan. Queda documentación acabada, pruebas de extremo a extremo y
-firmar el instalador.
+idiomas del plan, con paleta de comandos, ejemplos de arranque, validación por
+tipo y documentación. El instalador **no se firma**: sin certificado, Windows
+mostrará el aviso de SmartScreen la primera vez.
 
 | Fase | Alcance                                              |
 | ---- | ---------------------------------------------------- |
@@ -30,7 +31,7 @@ firmar el instalador.
 | F4   | Arquitectura / C4 + Mermaid y PlantUML ✅            |
 | F5   | Secuencia (renderizador de carriles propio) ✅       |
 | F6   | Clases, casos de uso, actividad, estado ✅           |
-| F7   | Pulido, plantillas, instalador firmado — en curso    |
+| F7   | Pulido, plantillas, documentación, pruebas — en curso |
 
 ### Documentación
 
@@ -38,6 +39,8 @@ firmar el instalador.
   panel y qué no hace.
 - **[Qué entiende cada idioma](docs/dialectos.md)** — la frontera exacta de
   cada importador y generador, y qué se pierde por el camino.
+- **[Pruebas de extremo a extremo](docs/pruebas-e2e.md)** — qué cubre cada
+  una, qué queda fuera y cómo montar las que faltan.
 
 ### Lo que ya funciona
 
