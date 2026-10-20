@@ -1,8 +1,14 @@
 /* Mas ancha que un dialogo corriente: cada fila lleva tres renglones y a 400
    pixeles la explicacion se parte. Va con las dos clases para no depender del
-   orden en que Vite junte las hojas. */
+   orden en que Vite junte las hojas.
+   En columna, y con el desbordamiento en la lista y no en el dialogo: asi el
+   titulo y el boton de cancelar se quedan quietos en una ventana baja, en
+   lugar de irse con el resto. */
 .modal.template-dialog {
+  display: flex;
+  flex-direction: column;
   width: 460px;
+  overflow: hidden;
 }
 
 .template-dialog__intro {
@@ -12,14 +18,24 @@
 }
 
 .template-dialog__list {
-  /* Los siete caben en una ventana normal; en una baja se desplaza. */
-  max-height: 60vh;
+  /* Se queda con lo que sobre: los siete caben en una ventana normal y en una
+     baja se desplaza, sin empujar al boton de cancelar fuera de la vista.
+     El `min-height` es lo que permite a un hijo de flex encoger por debajo de
+     su contenido; sin el, la lista no cede y volvemos al corte. */
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0 0 12px;
   padding: 0;
   overflow-y: auto;
   list-style: none;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+.template-dialog__intro,
+.template-dialog .modal__title,
+.template-dialog .modal__actions {
+  flex: 0 0 auto;
 }
 
 .template-dialog__list li + li {
