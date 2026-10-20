@@ -2136,3 +2136,216 @@ fn un_diagrama_de_casos_de_uso_de_plantuml_llega_hasta_el_png() {
 
     check_png(&out, "casos-de-uso-plantuml");
 }
+
+/* --- Actividad -------------------------------------------------------------- */
+
+/// Un diagrama de actividad de PlantUML con las cuatro estructuras que el
+/// importador sabe deducir: condicion, bucle, ramas paralelas y particion.
+const ACTIVIDAD_PLANTUML: &str = r#"
+@startuml
+title Flujo del pedido
+
+start
+:Recibir pedido;
+
+if (hay stock?) then (si)
+  :Reservar articulos;
+else (no)
+  :Avisar al cliente;
+  stop
+endif
+
+partition "Centro de reparto" {
+  repeat
+    :Preparar linea;
+  repeat while (faltan lineas?) is (si)
+}
+
+fork
+  :Enviar correo;
+fork again
+  :Actualizar inventario;
+end fork
+
+:Cerrar pedido;
+stop
+@enduml
+"#;
+
+/// Reparte un diagrama de actividad en filas segun lo lejos que quede cada
+/// nodo del arranque.
+///
+/// Es lo que haria ELK, a lo bruto. Las vueltas atras de los bucles no cuentan
+/// para la distancia —si contaran no habria distancia que valiera—, y se
+/// reconocen por apuntar a un nodo que se creo antes.
+fn place_actividad(doc: &mut diagrammaker_lib::model::Document) {
+    use diagrammaker_lib::model::{NodeShape, Rect};
+
+    let size = |shape: NodeShape| -> (f64, f64) {
+        match shape {
+            NodeShape::InitialNode => (26.0, 26.0),
+            NodeShape::FinalNode => (30.0, 30.0),
+            NodeShape::Bar => (240.0, 10.0),
+            NodeShape::Diamond => (200.0, 80.0),
+            _ => (190.0, 50.0),
+        }
+    };
+
+    let sueltos: Vec<String> = doc
+        .nodes
+        .iter()
+        .filter(|n| n.shape != NodeShape::Package)
+        .map(|n| n.id.clone())
+        .collect();
+
+    let orden: HashMap<&str, usize> = sueltos
+        .iter()
+        .enumerate()
+        .map(|(index, id)| (id.as_str(), index))
+        .collect();
+
+    let mut fila = vec![0usize; sueltos.len()];
+    for _ in 0..sueltos.len() {
+        for edge in &doc.edges {
+            let (Some(&de), Some(&a)) = (
+                orden.get(edge.source.node.as_str()),
+                orden.get(edge.target.node.as_str()),
+            ) else {
+                continue;
+            };
+            if a > de {
+                fila[a] = fila[a].max(fila[de] + 1);
+            }
+        }
+    }
+
+    let mut ocupadas: HashMap<usize, usize> = HashMap::new();
+    for (index, id) in sueltos.iter().enumerate() {
+        let columna = *ocupadas.entry(fila[index]).or_insert(0);
+        ocupadas.insert(fila[index], columna + 1);
+
+        let node = doc.nodes.iter_mut().find(|n| &n.id == id).unwrap();
+        let (w, h) = size(node.shape);
+
+        // Lo que vive dentro de una particion se va a su propia banda. Sin
+        // esto un nodo de fuera puede caer donde luego se estira la caja, y
+        // la muestra pareceria decir que esta dentro cuando no lo esta.
+        let banda = if node.parent.is_some() { 700.0 } else { 0.0 };
+
+        node.geometry = Some(Rect::new(
+            80.0 + banda + columna as f64 * 300.0,
+            60.0 + fila[index] as f64 * 120.0,
+            w,
+            h,
+        ));
+    }
+
+    // Las particiones se estiran alrededor de lo que contienen.
+    let cajas: Vec<String> = doc
+        .nodes
+        .iter()
+        .filter(|n| n.shape == NodeShape::Package)
+        .map(|n| n.id.clone())
+        .collect();
+
+    for id in cajas {
+        let hijos: Vec<Rect> = doc
+            .children_of(Some(&id))
+            .filter_map(|n| n.geometry)
+            .collect();
+        let Some(first) = hijos.first().copied() else {
+            continue;
+        };
+
+        let left = hijos.iter().fold(first.x, |a, r| a.min(r.x));
+        let right = hijos
+            .iter()
+            .fold(first.x + first.width, |a, r| a.max(r.x + r.width));
+        let top = hijos.iter().fold(first.y, |a, r| a.min(r.y));
+        let bottom = hijos
+            .iter()
+            .fold(first.y + first.height, |a, r| a.max(r.y + r.height));
+
+        let node = doc.nodes.iter_mut().find(|n| n.id == id).unwrap();
+        node.geometry = Some(Rect::new(
+            left - 30.0,
+            top - 55.0,
+            right - left + 60.0,
+            bottom - top + 85.0,
+        ));
+    }
+}
+
+#[test]
+fn un_diagrama_de_actividad_de_plantuml_llega_hasta_el_png() {
+    let imported = diagrammaker_lib::parse::plantuml::import(ACTIVIDAD_PLANTUML, 0);
+    assert!(
+        imported.ok(),
+        "el PlantUML de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    assert_eq!(doc.kind, DiagramKind::Activity);
+
+    place_actividad(&mut doc);
+
+    let mut labels = HashMap::new();
+    for node in &doc.nodes {
+        labels.insert(
+            node.id.clone(),
+            label(&node.label, 13.0, placement_for(node.shape)),
+        );
+    }
+
+    let mut edges = HashMap::new();
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        if let Some(text) = &edge.label {
+            labels.insert(edge.id.clone(), label(text, 11.0, LabelPlacement::Center));
+        }
+    }
+
+    let out = svg::render(&RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    });
+
+    for text in [
+        "Recibir pedido",
+        "hay stock?",
+        "Reservar articulos",
+        "Avisar al cliente",
+        "Preparar linea",
+        "faltan lineas?",
+        "Centro de reparto",
+        "Enviar correo",
+        "Cerrar pedido",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "actividad-plantuml");
+}

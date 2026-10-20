@@ -12,20 +12,24 @@
 //!    `abstract`, `enum`— es de clases.
 //! 3. Si aparece `state` o un `[*]`, es una maquina de estados: ese corchete
 //!    no existe en ningun otro dialecto.
-//! 4. Si aparece un `usecase` o una elipse `(Caso de uso)`, es de casos de
+//! 4. Si aparece una sentencia de actividad —`start`, `fork`, un `if (...)`
+//!    o una accion `:texto;`— es de actividad. Son las unicas lineas que no
+//!    declaran ni relacionan nada: mandan.
+//! 5. Si aparece un `usecase` o una elipse `(Caso de uso)`, es de casos de
 //!    uso: ese parentesis no abre ninguna linea de los demas dialectos.
-//! 5. Si aparece algo que solo existe en un diagrama de componentes —un
+//! 6. Si aparece algo que solo existe en un diagrama de componentes —un
 //!    `[Nombre]`, un bloque `package { }`— es de componentes.
-//! 6. Si hay mensajes con etiqueta entre nombres sin declarar
+//! 7. Si hay mensajes con etiqueta entre nombres sin declarar
 //!    (`Alice -> Bob : hola`), es una secuencia: ese es el primer ejemplo de
 //!    la documentacion de PlantUML y seria el peor sitio donde equivocarse.
-//! 7. En cualquier otro caso, componentes.
+//! 8. En cualquier otro caso, componentes.
 //!
 //! Quedan dos casos ambiguos, y en los dos se elige la lectura de
 //! componentes, que es la que ya habia: `A --> B` a secas, sin etiqueta ni
 //! declaraciones, y un `@startuml` que solo declare `interface`, palabra que
 //! los dos dialectos usan.
 
+pub(crate) mod activity;
 pub(crate) mod arrows;
 pub(crate) mod class_diagram;
 pub(crate) mod component;
@@ -40,6 +44,7 @@ use super::ImportResult;
 pub enum Flavor {
     Component,
     UseCase,
+    Activity,
     Sequence,
     Class,
     State,
@@ -77,11 +82,34 @@ const CLASS_ONLY: &[&str] = &[
     "metaclass",
 ];
 
+/// Signos con los que PlantUML cierra una accion de actividad.
+const ACTION_END: &[char] = &[';', '|', '<', '>', '/', ']', '}'];
+
 /// Lo que escribe PlantUML donde empieza o acaba una maquina de estados.
 const TERMINAL: &str = "[*]";
 
 /// Palabras que en PlantUML solo tienen sentido en una maquina de estados.
 const STATE_ONLY: &[&str] = &["state"];
+
+/// Palabras que en PlantUML solo tienen sentido en un diagrama de actividad.
+///
+/// `end` queda fuera a proposito: `end note` y `end box` salen en otros
+/// dialectos y no distinguiria nada.
+const ACTIVITY_ONLY: &[&str] = &[
+    "start",
+    "stop",
+    "if",
+    "while",
+    "repeat",
+    "fork",
+    "split",
+    "partition",
+    "endif",
+    "endwhile",
+    "detach",
+    "kill",
+    "backward",
+];
 
 /// Palabras que en PlantUML solo tienen sentido en un diagrama de casos de uso.
 ///
@@ -132,10 +160,14 @@ pub fn flavor_of(source: &str) -> Flavor {
         if STATE_ONLY.contains(&first) || line.contains(TERMINAL) {
             return Flavor::State;
         }
+        if is_activity(line, first) {
+            return Flavor::Activity;
+        }
+
         // Una elipse tiene que abrir la linea para contar: en `A --> (B)` el
         // parentesis tambien dice que `B` es un caso de uso, pero ahi hay un
         // nombre suelto delante que podria ser cualquier cosa.
-        if USECASE_ONLY.contains(&first) || line.starts_with('(') {
+        if USECASE_ONLY.contains(&first) || line.starts_with('(') || is_actor(line) {
             return Flavor::UseCase;
         }
 
@@ -164,6 +196,42 @@ pub fn flavor_of(source: &str) -> Flavor {
     }
 }
 
+/// `true` si la linea solo puede ser de un diagrama de actividad.
+///
+/// Son dos formas: una palabra de control, pegada o no a su parentesis
+/// (`if (hay stock?)` y `if(hay stock?)` valen igual), y una accion
+/// `:texto;`. La accion se reconoce por el punto y coma del final, que es lo
+/// que la separa del `:Actor:` de un diagrama de casos de uso.
+fn is_activity(line: &str, first: &str) -> bool {
+    if line.starts_with(':') && line.ends_with(ACTION_END) {
+        return true;
+    }
+
+    // La sintaxis antigua tampoco es de ningun otro dialecto, y empieza por
+    // parentesis como una elipse.
+    if line.starts_with("(*)") {
+        return true;
+    }
+
+    ACTIVITY_ONLY
+        .iter()
+        .any(|word| first == *word || first.starts_with(&format!("{word}(")))
+}
+
+/// `true` si la linea empieza por la forma corta del actor, `:Nombre:`.
+///
+/// Se mira solo el primer token, porque una accion de actividad empieza
+/// tambien por dos puntos: lo que las separa es que la del actor cierra con
+/// otros dos puntos antes del primer espacio.
+fn is_actor(line: &str) -> bool {
+    let Some(rest) = line.strip_prefix(':') else {
+        return false;
+    };
+
+    let token = rest.split_whitespace().next().unwrap_or("");
+    matches!(token.strip_suffix(':'), Some(name) if !name.is_empty())
+}
+
 /// Lo que va delante de la etiqueta, si la linea lleva una.
 fn head_of(line: &str) -> Option<&str> {
     line.contains(" : ")
@@ -186,6 +254,7 @@ pub fn import(source: &str, now_ms: i64) -> ImportResult {
     match flavor_of(source) {
         Flavor::Component => component::import(source, now_ms),
         Flavor::UseCase => component::import_as(source, now_ms, crate::model::DiagramKind::UseCase),
+        Flavor::Activity => activity::import(source, now_ms),
         Flavor::Sequence => sequence::import(source, now_ms),
         Flavor::Class => class_diagram::import(source, now_ms),
         Flavor::State => state_diagram::import(source, now_ms),
@@ -232,6 +301,59 @@ mod tests {
         ] {
             assert_eq!(flavor_of(source), Flavor::State, "{source}");
         }
+    }
+
+    #[test]
+    fn una_sentencia_de_actividad_decide_sola() {
+        for source in [
+            "@startuml
+start
+:Hacer algo;
+stop
+@enduml",
+            "@startuml
+:Hacer algo;
+@enduml",
+            "@startuml
+if (hay stock?) then (si)
+:A;
+endif
+@enduml",
+            "@startuml
+if(c)
+:A;
+endif
+@enduml",
+            "@startuml
+fork
+:A;
+end fork
+@enduml",
+            "@startuml
+partition Almacen {
+:A;
+}
+@enduml",
+            "@startuml
+(*) --> \"Primera\"
+@enduml",
+        ] {
+            assert_eq!(flavor_of(source), Flavor::Activity, "{source}");
+        }
+    }
+
+    #[test]
+    fn un_actor_de_casos_de_uso_no_se_confunde_con_una_accion() {
+        // `:Cliente:` y `:Hacer algo;` empiezan igual; lo que los separa es
+        // con que cierran.
+        assert_eq!(
+            flavor_of(
+                "@startuml
+:Cliente: --> (Comprar)
+@enduml"
+            ),
+            Flavor::UseCase
+        );
     }
 
     #[test]
@@ -330,6 +452,19 @@ actor Cliente
         assert_eq!(
             import("@startuml\n(Comprar)\n@enduml", 0).document.kind,
             DiagramKind::UseCase
+        );
+        assert_eq!(
+            import(
+                "@startuml
+start
+:A;
+stop
+@enduml",
+                0
+            )
+            .document
+            .kind,
+            DiagramKind::Activity
         );
     }
 }

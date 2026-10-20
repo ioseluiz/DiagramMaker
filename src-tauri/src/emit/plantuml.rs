@@ -426,6 +426,7 @@ almacen --> enviar
         .document;
         let code = crate::emit::emit(crate::emit::SourceLanguage::PlantUml, &doc);
 
+        assert_eq!(doc.kind, DiagramKind::UseCase);
         assert!(code.contains("usecase"), "{code}");
         assert!(code.contains("actor"), "{code}");
     }
