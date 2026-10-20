@@ -7,6 +7,7 @@
 //!
 //! Lo que no se reconoce no se adivina: se reporta con linea y columna.
 
+pub(crate) mod class_diagram;
 pub(crate) mod flowchart;
 pub(crate) mod sequence;
 pub(crate) mod shapes;
@@ -18,6 +19,7 @@ use super::ImportResult;
 pub enum Flavor {
     Flowchart,
     Sequence,
+    Class,
 }
 
 /// Que clase de diagrama declara el codigo.
@@ -35,6 +37,8 @@ pub fn flavor_of(source: &str) -> Flavor {
         let first = line.split_whitespace().next().unwrap_or("").to_lowercase();
         return match first.as_str() {
             "sequencediagram" => Flavor::Sequence,
+            // `classDiagram-v2` es el mismo dialecto con otro nombre.
+            "classdiagram" | "classdiagram-v2" => Flavor::Class,
             _ => Flavor::Flowchart,
         };
     }
@@ -46,6 +50,7 @@ pub fn import(source: &str, now_ms: i64) -> ImportResult {
     match flavor_of(source) {
         Flavor::Flowchart => flowchart::import(source, now_ms),
         Flavor::Sequence => sequence::import(source, now_ms),
+        Flavor::Class => class_diagram::import(source, now_ms),
     }
 }
 
@@ -80,6 +85,18 @@ mod tests {
             Flavor::Sequence
         );
         assert_eq!(flavor_of("  SEQUENCEDIAGRAM  "), Flavor::Sequence);
+    }
+
+    #[test]
+    fn reconoce_un_diagrama_de_clases_por_su_cabecera() {
+        assert_eq!(
+            flavor_of(
+                "classDiagram
+  class A"
+            ),
+            Flavor::Class
+        );
+        assert_eq!(flavor_of("classDiagram-v2"), Flavor::Class);
     }
 
     #[test]

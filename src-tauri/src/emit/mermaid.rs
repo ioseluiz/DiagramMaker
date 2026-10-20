@@ -6,19 +6,24 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::model::{Document, LayoutDirection, NodeShape};
+use crate::model::{DiagramKind, Document, LayoutDirection, NodeShape};
 use crate::parse::mermaid::{arrow_for, delimiters_for};
 
+pub mod class_diagram;
 pub mod sequence;
 
 /// Sangria de cada nivel de `subgraph`.
 const INDENT: &str = "  ";
 
 pub fn emit(doc: &Document) -> String {
-    // Una secuencia es otro dialecto entero: otra cabecera, otras flechas y
-    // un arbol en vez de una lista de aristas.
+    // Cada tipo de diagrama es otro dialecto entero: otra cabecera, otras
+    // flechas y, en el caso de la secuencia, un arbol en vez de una lista de
+    // aristas.
     if doc.kind.is_lane_based() {
         return sequence::emit(doc);
+    }
+    if doc.kind == DiagramKind::Class {
+        return class_diagram::emit(doc);
     }
 
     let mut out = String::new();

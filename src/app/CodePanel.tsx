@@ -24,6 +24,7 @@ const LANGUAGES_BY_KIND: Partial<Record<string, SourceLanguage[]>> = {
   er: ["dbml"],
   architecture: ["mermaid", "plantUml"],
   sequence: ["mermaid", "plantUml"],
+  class: ["mermaid"],
 };
 
 const EXTENSION: Record<SourceLanguage, string> = {

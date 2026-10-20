@@ -122,9 +122,10 @@ describe("CodePanel", () => {
   });
 
   it("un tipo de diagrama sin generador lo dice en vez de quedarse vacio", async () => {
-    // El caso de prueba va cambiando segun llegan los generadores: hoy
-    // quedan sin cubrir los tipos de la fase F6.
-    await mount("class");
+    // El caso va cambiando segun llegan los generadores. Cuando los tengan
+    // todos, esta prueba no se mueve otra vez: se borra, porque el aviso
+    // dejara de poder aparecer.
+    await mount("activity");
 
     expect(screen.getByText(/no hay generador de código/i)).toBeInTheDocument();
     expect(emitCode).not.toHaveBeenCalled();

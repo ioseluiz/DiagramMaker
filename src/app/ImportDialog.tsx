@@ -20,7 +20,7 @@ Table posts {
 
 const LANGUAGES: { value: SourceLanguage; label: string }[] = [
   { value: "dbml", label: "DBML (dbdiagram.io)" },
-  { value: "mermaid", label: "Mermaid (flowchart y secuencia)" },
+  { value: "mermaid", label: "Mermaid (flowchart, secuencia y clases)" },
   { value: "plantUml", label: "PlantUML (componentes y secuencia)" },
 ];
 

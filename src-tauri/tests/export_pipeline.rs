@@ -1373,3 +1373,132 @@ fn una_clase_sin_miembros_sigue_teniendo_sus_tres_compartimentos() {
 
     assert_eq!(lineas, 2);
 }
+
+/// Diagrama de clases escrito en Mermaid.
+const CLASES_MERMAID: &str = r#"
+classDiagram
+  direction LR
+
+  class Pedido {
+    -int id
+    -Decimal total
+    +int creados$
+    +confirmar()
+    +buscar(int id) Pedido
+  }
+
+  class Repositorio {
+    <<interface>>
+    +guardar(Pedido p)*
+    +todos() List
+  }
+
+  class PedidoEspecial
+
+  Pedido <|-- PedidoEspecial
+  Pedido "1" *-- "0..*" Linea : contiene
+  Pedido ..> Repositorio : usa
+"#;
+
+#[test]
+fn un_diagrama_de_clases_de_mermaid_llega_hasta_el_png() {
+    use diagrammaker_lib::model::Rect;
+    use diagrammaker_lib::model::shape_geometry::class_height;
+
+    let imported = diagrammaker_lib::parse::mermaid::import(CLASES_MERMAID, 0);
+    assert!(
+        imported.ok(),
+        "el Mermaid de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    assert_eq!(doc.kind, DiagramKind::Class);
+
+    // Colocar y medir es cosa de ELK y del navegador; aqui se hace a mano lo
+    // justo para que llegue al pixel.
+    let mut labels = HashMap::new();
+    let mut x = 40.0;
+    for index in 0..doc.nodes.len() {
+        let (stereotype, attributes, operations) = match doc.nodes[index].class() {
+            Some(box_) => (
+                box_.has_stereotype(),
+                box_.attributes.len(),
+                box_.operations.len(),
+            ),
+            None => (false, 0, 0),
+        };
+
+        doc.nodes[index].geometry = Some(Rect::new(
+            x,
+            40.0,
+            240.0,
+            class_height(stereotype, attributes, operations),
+        ));
+        x += 280.0;
+
+        labels.insert(
+            doc.nodes[index].id.clone(),
+            label(&doc.nodes[index].label, 13.0, LabelPlacement::Center),
+        );
+    }
+
+    let mut edges = HashMap::new();
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        if let Some(text) = &edge.label {
+            labels.insert(edge.id.clone(), label(text, 11.0, LabelPlacement::Center));
+        }
+    }
+
+    let out = svg::render(&RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    });
+
+    for text in [
+        "Pedido",
+        "Repositorio",
+        "PedidoEspecial",
+        "- id: int",
+        "+ creados: int",
+        "+ confirmar()",
+        "+ buscar(int id): Pedido",
+        "+ guardar(Pedido p)",
+        "interface",
+        "contiene",
+        "0..*",
+    ] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    // Lo estatico subrayado, lo abstracto en cursiva y el triangulo de la
+    // herencia: los tres adornos que el dibujo tiene que distinguir.
+    assert!(out.contains(r#"text-decoration="underline""#));
+    assert!(out.contains(r#"font-style="italic""#));
+    assert!(out.contains("dm-triangle-hollow"));
+
+    check_png(&out, "clases-mermaid");
+}
