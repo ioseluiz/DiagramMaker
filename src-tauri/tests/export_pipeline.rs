@@ -1502,3 +1502,113 @@ fn un_diagrama_de_clases_de_mermaid_llega_hasta_el_png() {
 
     check_png(&out, "clases-mermaid");
 }
+
+/// El mismo diagrama que `CLASES_MERMAID`, escrito en PlantUML.
+const CLASES_PLANTUML: &str = r#"
+@startuml
+class Pedido {
+  - id : int
+  - total : Decimal
+  + {static} creados : int
+  --
+  + confirmar()
+  + buscar(id : int) : Pedido
+}
+
+interface Repositorio {
+  + {abstract} guardar(p : Pedido)
+  + todos() : List
+}
+
+class PedidoEspecial
+
+Pedido <|-- PedidoEspecial
+Pedido "1" *-- "0..*" Linea : contiene
+Pedido ..> Repositorio : usa
+@enduml
+"#;
+
+/// Resumen de un diagrama de clases, sin ids: lo que tiene que coincidir
+/// entre idiomas.
+///
+/// Los parametros quedan fuera a proposito. El modelo los guarda **tal como
+/// se escribieron**, y los dos idiomas los escriben distinto —`buscar(int
+/// id)` en Mermaid, `buscar(id : int)` en PlantUML—, asi que no pueden
+/// coincidir sin traducirlos, que es justo lo que se decidio no hacer.
+fn resumen_clases(doc: &diagrammaker_lib::model::Document) -> Vec<String> {
+    use diagrammaker_lib::model::ClassBox;
+
+    let mut out: Vec<String> = doc
+        .nodes
+        .iter()
+        .map(|node| {
+            let empty = ClassBox::new();
+            let box_ = node.class().unwrap_or(&empty);
+            let sin_parametros = |m: &diagrammaker_lib::model::ClassMember, operation: bool| {
+                let mut copia = m.clone();
+                copia.parameters = String::new();
+                copia.text(operation)
+            };
+
+            format!(
+                "{} <<{}>> [{}] [{}]",
+                node.label,
+                box_.stereotype.clone().unwrap_or_default(),
+                box_.attributes
+                    .iter()
+                    .map(|m| sin_parametros(m, false))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                box_.operations
+                    .iter()
+                    .map(|m| sin_parametros(m, true))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            )
+        })
+        .collect();
+
+    for edge in &doc.edges {
+        out.push(format!(
+            "{}{} {:?} {}{}",
+            doc.node(&edge.source.node).map_or("?", |n| &n.label),
+            edge.source.label.clone().unwrap_or_default(),
+            edge.kind,
+            doc.node(&edge.target.node).map_or("?", |n| &n.label),
+            edge.target.label.clone().unwrap_or_default(),
+        ));
+    }
+
+    out
+}
+
+#[test]
+fn el_mismo_diagrama_de_clases_en_mermaid_y_en_plantuml_da_lo_mismo() {
+    // No que cada importador lea algo, sino que los dos lean lo mismo: es lo
+    // unico que de verdad valida los dos a la vez.
+    let de_mermaid = diagrammaker_lib::parse::mermaid::import(CLASES_MERMAID, 0);
+    let de_plantuml = diagrammaker_lib::parse::plantuml::import(CLASES_PLANTUML, 0);
+
+    assert!(de_mermaid.ok(), "{:#?}", de_mermaid.diagnostics);
+    assert!(de_plantuml.ok(), "{:#?}", de_plantuml.diagnostics);
+
+    let (a, b) = (de_mermaid.document, de_plantuml.document);
+
+    assert_eq!(a.kind, b.kind);
+    assert_eq!(resumen_clases(&a), resumen_clases(&b), "distinto contenido");
+
+    // Y la parte que a proposito no coincide: cada uno guarda sus parametros
+    // tal como venian escritos, sin traducirlos al otro idioma.
+    let parametros = |doc: &diagrammaker_lib::model::Document| {
+        doc.nodes
+            .iter()
+            .filter_map(|n| n.class())
+            .flat_map(|box_| box_.operations.iter())
+            .map(|m| m.parameters.clone())
+            .filter(|p| !p.is_empty())
+            .collect::<Vec<_>>()
+    };
+
+    assert_eq!(parametros(&a), ["int id", "Pedido p"]);
+    assert_eq!(parametros(&b), ["id : int", "p : Pedido"]);
+}

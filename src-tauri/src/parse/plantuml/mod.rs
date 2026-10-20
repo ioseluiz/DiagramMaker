@@ -8,18 +8,22 @@
 //!
 //! 1. Si aparece algo que **solo** existe en una secuencia —`participant`,
 //!    `activate`, un `alt`— es una secuencia.
-//! 2. Si aparece algo que solo existe en un diagrama de componentes —un
+//! 2. Si aparece algo que solo existe en un diagrama de clases —`class`,
+//!    `abstract`, `enum`— es de clases.
+//! 3. Si aparece algo que solo existe en un diagrama de componentes —un
 //!    `[Nombre]`, un bloque `package { }`— es de componentes.
-//! 3. Si hay mensajes con etiqueta entre nombres sin declarar
+//! 4. Si hay mensajes con etiqueta entre nombres sin declarar
 //!    (`Alice -> Bob : hola`), es una secuencia: ese es el primer ejemplo de
 //!    la documentacion de PlantUML y seria el peor sitio donde equivocarse.
-//! 4. En cualquier otro caso, componentes.
+//! 5. En cualquier otro caso, componentes.
 //!
-//! El unico caso que queda ambiguo es `A --> B` a secas, sin etiqueta ni
-//! declaraciones: ahi las dos lecturas son defendibles y se elige la de
-//! componentes, que es la que ya habia.
+//! Quedan dos casos ambiguos, y en los dos se elige la lectura de
+//! componentes, que es la que ya habia: `A --> B` a secas, sin etiqueta ni
+//! declaraciones, y un `@startuml` que solo declare `interface`, palabra que
+//! los dos dialectos usan.
 
 pub(crate) mod arrows;
+pub(crate) mod class_diagram;
 pub(crate) mod component;
 pub(crate) mod elements;
 pub(crate) mod sequence;
@@ -31,6 +35,7 @@ use super::ImportResult;
 pub enum Flavor {
     Component,
     Sequence,
+    Class,
 }
 
 /// Palabras que en PlantUML solo tienen sentido dentro de una secuencia.
@@ -47,6 +52,22 @@ const SEQUENCE_ONLY: &[&str] = &[
     "break",
     "ref",
     "return",
+];
+
+/// Palabras que en PlantUML solo tienen sentido en un diagrama de clases.
+///
+/// `interface` queda fuera a proposito: un diagrama de componentes tambien la
+/// usa, y ahi dibuja un puerto. Un `@startuml` que solo declare interfaces se
+/// sigue leyendo como de componentes, que es lo que ya habia.
+const CLASS_ONLY: &[&str] = &[
+    "class",
+    "abstract",
+    "enum",
+    "annotation",
+    "struct",
+    "protocol",
+    "exception",
+    "metaclass",
 ];
 
 /// Palabras que solo declaran elementos de un diagrama de componentes.
@@ -84,6 +105,9 @@ pub fn flavor_of(source: &str) -> Flavor {
 
         if SEQUENCE_ONLY.contains(&first) {
             return Flavor::Sequence;
+        }
+        if CLASS_ONLY.contains(&first) {
+            return Flavor::Class;
         }
 
         // Un `[Nombre]` o una declaracion con palabra propia solo salen en
@@ -132,6 +156,7 @@ pub fn import(source: &str, now_ms: i64) -> ImportResult {
     match flavor_of(source) {
         Flavor::Component => component::import(source, now_ms),
         Flavor::Sequence => sequence::import(source, now_ms),
+        Flavor::Class => class_diagram::import(source, now_ms),
     }
 }
 
@@ -153,6 +178,27 @@ mod tests {
         ] {
             assert_eq!(flavor_of(source), Flavor::Sequence, "{source}");
         }
+    }
+
+    #[test]
+    fn una_palabra_de_clases_decide_sola() {
+        for source in [
+            "@startuml\nclass Pedido\n@enduml",
+            "@startuml\nabstract class Base\n@enduml",
+            "@startuml\nenum Estado {\n  NUEVO\n}\n@enduml",
+        ] {
+            assert_eq!(flavor_of(source), Flavor::Class, "{source}");
+        }
+    }
+
+    #[test]
+    fn una_interfaz_sola_sigue_siendo_de_componentes() {
+        // `interface` existe en los dos dialectos; sin mas pistas se queda
+        // con la lectura que ya habia.
+        assert_eq!(
+            flavor_of("@startuml\ninterface HTTP\n@enduml"),
+            Flavor::Component
+        );
     }
 
     #[test]

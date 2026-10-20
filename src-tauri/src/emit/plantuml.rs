@@ -14,15 +14,26 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::model::{Document, LayoutDirection, NodeShape};
+use crate::model::{DiagramKind, Document, LayoutDirection, NodeShape};
 use crate::parse::plantuml::{arrow_for, keyword_for};
 
+pub mod class_diagram;
 pub mod sequence;
 
 /// Sangria de cada nivel de bloque.
 const INDENT: &str = "  ";
 
 pub fn emit(doc: &Document) -> String {
+    // Cada tipo de diagrama es otro dialecto: otros elementos, otras palabras
+    // y, en el caso de la secuencia, un arbol en vez de una lista de
+    // relaciones.
+    if doc.kind.is_lane_based() {
+        return sequence::emit(doc);
+    }
+    if doc.kind == DiagramKind::Class {
+        return class_diagram::emit(doc);
+    }
+
     let mut out = String::from("@startuml\n");
 
     if doc.meta.title != doc.kind.title() {
@@ -139,7 +150,7 @@ fn escape(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{DiagramKind, EdgeKind};
+    use crate::model::EdgeKind;
     use crate::parse::plantuml as parser;
 
     /// Importa, genera y vuelve a importar.
