@@ -11,6 +11,7 @@ pub(crate) mod class_diagram;
 pub(crate) mod flowchart;
 pub(crate) mod sequence;
 pub(crate) mod shapes;
+pub(crate) mod state_diagram;
 
 use super::ImportResult;
 
@@ -20,6 +21,7 @@ pub enum Flavor {
     Flowchart,
     Sequence,
     Class,
+    State,
 }
 
 /// Que clase de diagrama declara el codigo.
@@ -39,6 +41,7 @@ pub fn flavor_of(source: &str) -> Flavor {
             "sequencediagram" => Flavor::Sequence,
             // `classDiagram-v2` es el mismo dialecto con otro nombre.
             "classdiagram" | "classdiagram-v2" => Flavor::Class,
+            "statediagram" | "statediagram-v2" => Flavor::State,
             _ => Flavor::Flowchart,
         };
     }
@@ -51,6 +54,7 @@ pub fn import(source: &str, now_ms: i64) -> ImportResult {
         Flavor::Flowchart => flowchart::import(source, now_ms),
         Flavor::Sequence => sequence::import(source, now_ms),
         Flavor::Class => class_diagram::import(source, now_ms),
+        Flavor::State => state_diagram::import(source, now_ms),
     }
 }
 
@@ -97,6 +101,12 @@ mod tests {
             Flavor::Class
         );
         assert_eq!(flavor_of("classDiagram-v2"), Flavor::Class);
+    }
+
+    #[test]
+    fn reconoce_una_maquina_de_estados_por_su_cabecera() {
+        assert_eq!(flavor_of("stateDiagram-v2"), Flavor::State);
+        assert_eq!(flavor_of("stateDiagram"), Flavor::State);
     }
 
     #[test]

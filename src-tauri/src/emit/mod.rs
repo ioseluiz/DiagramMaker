@@ -59,6 +59,10 @@ mod tests {
             header_of(SourceLanguage::Mermaid, DiagramKind::Class),
             "classDiagram"
         );
+        assert_eq!(
+            header_of(SourceLanguage::Mermaid, DiagramKind::State),
+            "stateDiagram-v2"
+        );
     }
 
     #[test]

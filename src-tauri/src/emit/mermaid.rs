@@ -11,6 +11,7 @@ use crate::parse::mermaid::{arrow_for, delimiters_for};
 
 pub mod class_diagram;
 pub mod sequence;
+pub mod state_diagram;
 
 /// Sangria de cada nivel de `subgraph`.
 const INDENT: &str = "  ";
@@ -24,6 +25,9 @@ pub fn emit(doc: &Document) -> String {
     }
     if doc.kind == DiagramKind::Class {
         return class_diagram::emit(doc);
+    }
+    if doc.kind == DiagramKind::State {
+        return state_diagram::emit(doc);
     }
 
     let mut out = String::new();

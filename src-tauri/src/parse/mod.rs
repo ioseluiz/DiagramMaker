@@ -50,7 +50,8 @@ impl ImportResult {
 pub enum SourceLanguage {
     /// Sintaxis de dbdiagram.io.
     Dbml,
-    /// `flowchart`, `sequenceDiagram` y `classDiagram` de Mermaid.
+    /// `flowchart`, `sequenceDiagram`, `classDiagram` y `stateDiagram` de
+    /// Mermaid.
     Mermaid,
     /// Diagramas de componentes, secuencia y clases de PlantUML.
     PlantUml,
@@ -60,7 +61,7 @@ impl SourceLanguage {
     pub fn label(self) -> &'static str {
         match self {
             SourceLanguage::Dbml => "DBML (dbdiagram.io)",
-            SourceLanguage::Mermaid => "Mermaid (flowchart, secuencia y clases)",
+            SourceLanguage::Mermaid => "Mermaid (flowchart, secuencia, clases y estados)",
             SourceLanguage::PlantUml => "PlantUML (componentes, secuencia y clases)",
         }
     }

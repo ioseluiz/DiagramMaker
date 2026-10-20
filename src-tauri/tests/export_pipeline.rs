@@ -701,7 +701,7 @@ fn placement_for(shape: diagrammaker_lib::model::NodeShape) -> LabelPlacement {
 
     match shape {
         NodeShape::Package => LabelPlacement::Tab,
-        NodeShape::Actor => LabelPlacement::Below,
+        NodeShape::Actor | NodeShape::Bar => LabelPlacement::Below,
         _ => LabelPlacement::Center,
     }
 }
@@ -1775,4 +1775,104 @@ fn una_barra_se_tumba_o_se_pone_de_pie_segun_la_caja() {
 
     assert_ne!(ancho(&tumbada[0]), ancho(&de_pie[0]));
     assert!(tumbada[0].is_solid() && de_pie[0].is_solid());
+}
+
+/// Maquina de estados escrita en Mermaid.
+const ESTADOS_MERMAID: &str = r#"
+stateDiagram-v2
+  direction LR
+
+  [*] --> Nuevo
+  Nuevo --> Pagado : confirmar
+
+  state reparto <<fork>>
+  Pagado --> reparto
+  reparto --> Enviado
+  reparto --> Facturado
+
+  state cierre <<join>>
+  Enviado --> cierre
+  Facturado --> cierre
+  cierre --> [*]
+"#;
+
+#[test]
+fn una_maquina_de_estados_de_mermaid_llega_hasta_el_png() {
+    use diagrammaker_lib::model::Rect;
+
+    let imported = diagrammaker_lib::parse::mermaid::import(ESTADOS_MERMAID, 0);
+    assert!(
+        imported.ok(),
+        "el Mermaid de ejemplo no deberia fallar: {:#?}",
+        imported.diagnostics
+    );
+
+    let mut doc = imported.document;
+    assert_eq!(doc.kind, DiagramKind::State);
+
+    // Colocar es cosa de ELK; aqui se reparte en una fila para que llegue al
+    // pixel. El tamano si sale de la forma, que es lo que se quiere mirar.
+    let mut labels = HashMap::new();
+    let mut x = 40.0;
+    for index in 0..doc.nodes.len() {
+        let shape = doc.nodes[index].shape;
+        let (w, h) = match shape {
+            NodeShape::InitialNode => (24.0, 24.0),
+            NodeShape::FinalNode => (28.0, 28.0),
+            NodeShape::Bar => (10.0, 90.0),
+            _ => (130.0, 56.0),
+        };
+
+        doc.nodes[index].geometry = Some(Rect::new(x, 110.0 - h / 2.0, w, h));
+        x += w + 60.0;
+
+        let text = doc.nodes[index].label.clone();
+        if !text.is_empty() {
+            labels.insert(
+                doc.nodes[index].id.clone(),
+                label(&text, 13.0, placement_for(shape)),
+            );
+        }
+    }
+
+    let mut edges = HashMap::new();
+    for edge in &doc.edges {
+        let a = doc
+            .node(&edge.source.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let b = doc
+            .node(&edge.target.node)
+            .and_then(|n| n.geometry)
+            .unwrap();
+        let start = border_point(&a, b.center());
+        let end = border_point(&b, a.center());
+
+        edges.insert(
+            edge.id.clone(),
+            EdgePath {
+                d: format!("M {} {} L {} {}", start.x, start.y, end.x, end.y),
+                label_at: Some(Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)),
+                hops: Vec::new(),
+            },
+        );
+        if let Some(text) = &edge.label {
+            labels.insert(edge.id.clone(), label(text, 11.0, LabelPlacement::Center));
+        }
+    }
+
+    let out = svg::render(&RenderInput {
+        document: doc,
+        labels,
+        edges,
+        theme: theme(),
+        options: ExportOptions::default(),
+        measures: Default::default(),
+    });
+
+    for text in ["Nuevo", "Pagado", "Enviado", "Facturado", "confirmar"] {
+        assert!(out.contains(text), "falta `{text}` en el SVG");
+    }
+
+    check_png(&out, "estados-mermaid");
 }

@@ -69,7 +69,10 @@ export function isContainer(shape: NodeShape): boolean {
  * su nombre cuelga debajo; el paquete rotula su solapa.
  */
 export function labelPlacement(shape: NodeShape): "center" | "below" | "tab" {
-  if (shape === "actor") return "below";
+  // Una figura de lineas o una barra de seis pixeles no tienen dentro donde
+  // poner su nombre. Esconderlo seria peor: en una maquina de estados el
+  // nombre de la barra es con el que las transiciones la referencian.
+  if (shape === "actor" || shape === "bar") return "below";
   if (shape === "package") return "tab";
   return "center";
 }
