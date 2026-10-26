@@ -19,6 +19,7 @@ import type { Step } from "@/model/generated/Step";
 import type { C4Level } from "@/model/c4";
 import { classSize } from "@/model/classBox";
 import { MIN_NODE_SIZE, defaultSizeFor, labelPlacement } from "@/model/shapes";
+import { parseFill, textColorOn } from "@/model/palette";
 import { tableSize } from "@/model/table";
 
 /**
@@ -761,14 +762,20 @@ export function setNodeFill(
   const node = draft.nodes.find((n) => n.id === nodeId);
   if (!node) return;
 
-  // Borde y texto vuelven a los del tema. Los tintes de la paleta estan
-  // pensados para leerse asi; si el nodo venia de un nivel C4, conservar su
-  // texto blanco sobre un tinte palido lo dejaria invisible.
+  // El borde vuelve al del tema: si el nodo venia de un nivel C4, conservar
+  // su borde saturado sobre otro relleno quedaria fuera de sitio.
+  //
+  // El texto solo se fija cuando el relleno es lo bastante opaco como para
+  // que el del tema no se lea — y solo si el color elegido sirve con los dos
+  // temas. Con un tinte palido sale `null` y manda el del tema, que es lo
+  // que hacia esto antes de que se pudiera elegir un color cualquiera.
+  const parsed = parseFill(fill);
+
   node.style = {
     ...node.style,
     fill: fill ?? undefined,
     stroke: undefined,
-    textColor: undefined,
+    textColor: parsed ? (textColorOn(parsed) ?? undefined) : undefined,
   };
 }
 

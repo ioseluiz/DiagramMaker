@@ -895,6 +895,67 @@
 
 /* --- Selector de color -------------------------------------------------- */
 
+.picker {
+  display: grid;
+  gap: 5px;
+}
+
+.picker__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.picker__name {
+  width: 42px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.picker__hex {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: lowercase;
+}
+
+/* El cuadro del selector nativo: sin el relleno que le pone el navegador,
+   para que se vea el color y no un boton con un color dentro. */
+.picker__well {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+}
+
+.picker__well::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.picker__well::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.picker__range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.picker__value {
+  width: 34px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: right;
+  color: var(--text-muted);
+}
+
 .swatches {
   display: flex;
   flex-wrap: wrap;

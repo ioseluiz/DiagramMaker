@@ -1330,3 +1330,50 @@ describe("nextFontSize", () => {
     expect(nextFontSize(15, -1)).toBe(14);
   });
 });
+
+describe("setNodeFill", () => {
+  function unNodo(): Document {
+    return run(emptyDoc(), (d) => {
+      addNode(d, { shape: "rectangle", label: "API", x: 0, y: 0 });
+    });
+  }
+
+  it("un tinte palido deja el texto al tema", () => {
+    // Era asi antes de que se pudiera elegir un color cualquiera, y tiene
+    // que seguir siendolo: un tinte se compone con el fondo, que cambia.
+    const doc = run(unNodo(), (d) =>
+      setNodeFill(d, d.nodes[0]!.id, "rgba(37, 99, 235, 0.16)"),
+    );
+
+    expect(doc.nodes[0]!.style?.fill).toBe("rgba(37, 99, 235, 0.16)");
+    expect(doc.nodes[0]!.style?.textColor ?? null).toBeNull();
+  });
+
+  it("un relleno fuerte se lleva su color de texto", () => {
+    // Se guarda en el documento, no se recalcula al pintar: asi el lienzo y
+    // el exportador de Rust no pueden discrepar sobre el contraste.
+    const doc = run(unNodo(), (d) =>
+      setNodeFill(d, d.nodes[0]!.id, "rgba(30, 58, 138, 1)"),
+    );
+
+    expect(doc.nodes[0]!.style?.textColor).toBe("#ffffff");
+  });
+
+  it("quitar el color quita tambien el texto y el borde", () => {
+    const puesto = run(unNodo(), (d) =>
+      setNodeFill(d, d.nodes[0]!.id, "rgba(30, 58, 138, 1)"),
+    );
+    const quitado = run(puesto, (d) => setNodeFill(d, d.nodes[0]!.id, null));
+
+    expect(quitado.nodes[0]!.style?.fill ?? null).toBeNull();
+    expect(quitado.nodes[0]!.style?.textColor ?? null).toBeNull();
+    expect(quitado.nodes[0]!.style?.stroke ?? null).toBeNull();
+  });
+
+  it("un color que no se sabe leer no inventa un texto", () => {
+    const doc = run(unNodo(), (d) => setNodeFill(d, d.nodes[0]!.id, "url(#grad)"));
+
+    expect(doc.nodes[0]!.style?.fill).toBe("url(#grad)");
+    expect(doc.nodes[0]!.style?.textColor ?? null).toBeNull();
+  });
+});
