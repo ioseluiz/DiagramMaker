@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Document } from "@/model/generated/Document";
 import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
+import { MIN_NODE_SIZE } from "@/model/shapes";
 import { TABLE_ROW_HEIGHT } from "@/model/tableMetrics";
 import {
+  FONT_SIZES,
   addColumn,
   addNode,
   addTable,
@@ -26,7 +28,9 @@ import {
   setLabel,
   setNodeC4Level,
   setNodeFill,
+  setNodeFontSize,
   setNodeParent,
+  nextFontSize,
   setRelationKind,
   setTableAlias,
   setTableNote,
@@ -1198,5 +1202,131 @@ describe("resizeNode", () => {
       width: 240.5,
       height: 90.25,
     });
+  });
+});
+
+describe("setNodeFontSize", () => {
+  /** Un nodo de la forma pedida, con su geometria puesta. */
+  function con(shape: "text" | "rectangle", label = "Titulo"): Document {
+    return run(emptyDoc(), (d) => {
+      addNode(d, { shape, label, x: 0, y: 0 });
+    });
+  }
+
+  it("guarda el cuerpo pedido", () => {
+    const doc = con("text");
+    const despues = run(doc, (d) => setNodeFontSize(d, d.nodes[0]!.id, 24));
+
+    expect(despues.nodes[0]!.style?.fontSize).toBe(24);
+  });
+
+  it("`null` lo devuelve al de la forma", () => {
+    const doc = run(con("text"), (d) => setNodeFontSize(d, d.nodes[0]!.id, 24));
+    const despues = run(doc, (d) => setNodeFontSize(d, d.nodes[0]!.id, null));
+
+    expect(despues.nodes[0]!.style?.fontSize).toBeUndefined();
+  });
+
+  it("no acepta un cuerpo fuera de la escala", () => {
+    // Un 2 no se lee y un 400 se come el diagrama; los dos llegan de un
+    // `.dgm` escrito a mano o de un importador con un valor raro.
+    const doc = con("text");
+
+    expect(
+      run(doc, (d) => setNodeFontSize(d, d.nodes[0]!.id, 2)).nodes[0]!.style?.fontSize,
+    ).toBe(FONT_SIZES[0]);
+    expect(
+      run(doc, (d) => setNodeFontSize(d, d.nodes[0]!.id, 400)).nodes[0]!.style
+        ?.fontSize,
+    ).toBe(FONT_SIZES[FONT_SIZES.length - 1]);
+  });
+
+  it("el texto suelto se ajusta a su caja medida, en los dos sentidos", () => {
+    // Es solo su etiqueta: si la letra encoge, la caja tiene que encoger con
+    // ella o quedaria un hueco invisible ocupando sitio en la exportacion.
+    const doc = con("text");
+    const grande = run(doc, (d) =>
+      setNodeFontSize(d, d.nodes[0]!.id, 32, { width: 300, height: 52 }),
+    );
+    expect(grande.nodes[0]!.geometry).toMatchObject({ width: 300, height: 52 });
+
+    const pequeno = run(grande, (d) =>
+      setNodeFontSize(d, d.nodes[0]!.id, 10, { width: 90, height: 30 }),
+    );
+    expect(pequeno.nodes[0]!.geometry).toMatchObject({ width: 90, height: 30 });
+  });
+
+  it("una forma con contorno solo crece", () => {
+    // Encogerla moveria un dibujo que el autor ya habia compuesto a mano.
+    const doc = con("rectangle", "API");
+    const ancho = doc.nodes[0]!.geometry!.width;
+
+    const pequeno = run(doc, (d) =>
+      setNodeFontSize(d, d.nodes[0]!.id, 8, { width: 40, height: 20 }),
+    );
+    expect(pequeno.nodes[0]!.geometry!.width).toBe(ancho);
+
+    const grande = run(doc, (d) =>
+      setNodeFontSize(d, d.nodes[0]!.id, 48, { width: 400, height: 70 }),
+    );
+    expect(grande.nodes[0]!.geometry).toMatchObject({ width: 400, height: 70 });
+  });
+
+  it("nunca baja del minimo de un nodo", () => {
+    const doc = con("text", "a");
+    const despues = run(doc, (d) =>
+      setNodeFontSize(d, d.nodes[0]!.id, 8, { width: 5, height: 5 }),
+    );
+
+    expect(despues.nodes[0]!.geometry).toMatchObject(MIN_NODE_SIZE);
+  });
+
+  it("sin medida no toca la geometria", () => {
+    const doc = con("rectangle", "API");
+    const antes = doc.nodes[0]!.geometry;
+    const despues = run(doc, (d) => setNodeFontSize(d, d.nodes[0]!.id, 48));
+
+    expect(despues.nodes[0]!.geometry).toEqual(antes);
+  });
+
+  it("y con medida tampoco, si la etiqueta no vive dentro de la caja", () => {
+    // La de un actor cuelga por debajo de su figura y la de un paquete va en
+    // la solapa. Agrandar la caja porque crecio la letra deformaria el
+    // dibujo: un actor pasaria a ser un monigote gigante.
+    for (const shape of ["actor", "package"] as const) {
+      const doc = run(emptyDoc(), (d) => {
+        addNode(d, { shape, label: "Operador del sistema", x: 0, y: 0 });
+      });
+      const antes = doc.nodes[0]!.geometry;
+
+      const despues = run(doc, (d) =>
+        setNodeFontSize(d, d.nodes[0]!.id, 48, { width: 400, height: 70 }),
+      );
+
+      expect(despues.nodes[0]!.geometry).toEqual(antes);
+      expect(despues.nodes[0]!.style?.fontSize).toBe(48);
+    }
+  });
+});
+
+describe("nextFontSize", () => {
+  it("sube y baja por la escala", () => {
+    expect(nextFontSize(13, 1)).toBe(14);
+    expect(nextFontSize(13, -1)).toBe(12);
+    expect(nextFontSize(20, 1)).toBe(24);
+  });
+
+  it("se queda quieto en los extremos, para poder apagar el boton", () => {
+    const min = FONT_SIZES[0]!;
+    const max = FONT_SIZES[FONT_SIZES.length - 1]!;
+
+    expect(nextFontSize(min, -1)).toBe(min);
+    expect(nextFontSize(max, 1)).toBe(max);
+  });
+
+  it("desde un valor que no esta en la escala salta al de al lado", () => {
+    // Un `.dgm` puede traer un 15 que nadie puso con los botones.
+    expect(nextFontSize(15, 1)).toBe(16);
+    expect(nextFontSize(15, -1)).toBe(14);
   });
 });

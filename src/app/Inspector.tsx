@@ -1,9 +1,11 @@
 import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
+import type { Node } from "@/model/generated/Node";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
 import { SHAPE_LABEL } from "@/model/shapes";
+import { boxForLabel, fontSizeFor } from "@/canvas/text";
 import { nodeStyle } from "@/model/style";
 import { classBoxOf } from "@/model/classBox";
 import { erTableOf } from "@/model/table";
@@ -14,12 +16,14 @@ import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { TableInspector } from "./TableInspector";
 import {
   RELATION_LABELS,
+  nextFontSize,
   relationKindOf,
   setEdgeKind,
   setEndpointLabel,
   setLabel,
   setNodeC4Level,
   setNodeFill,
+  setNodeFontSize,
   setRelationKind,
   setTitle,
   type RelationKind,
@@ -130,6 +134,27 @@ export function Inspector() {
             <ColorPicker
               value={nodeStyle(node).fill ?? null}
               onChange={(fill) => edit("color", (d) => setNodeFill(d, node.id, fill))}
+            />
+          </div>
+          <div className="inspector__field">
+            <span className="inspector__label">Tamano del texto</span>
+            <FontSizeStepper
+              node={node}
+              onChange={(size) =>
+                edit("tamano del texto", (d) =>
+                  setNodeFontSize(
+                    d,
+                    node.id,
+                    size,
+                    // La caja se mide aqui, en el navegador, y se le pasa
+                    // hecha: el documento no sabe medir texto.
+                    boxForLabel(node.label, size ?? fontSizeFor(node.shape), {
+                      bold: nodeStyle(node).bold,
+                      italic: nodeStyle(node).italic,
+                    }),
+                  ),
+                )
+              }
             />
           </div>
           {node.geometry && (
@@ -276,6 +301,58 @@ function columnsOf(doc: Document, edge: Edge): string {
   };
 
   return `${side(edge.source)} → ${side(edge.target)}`;
+}
+
+/**
+ * Menos, el cuerpo actual, mas.
+ *
+ * Muestra siempre el tamano efectivo —el heredado de la forma cuando el nodo
+ * no tiene uno propio— para que el numero de la pantalla sea el de la letra
+ * que se ve, y no un hueco en blanco.
+ */
+function FontSizeStepper({
+  node,
+  onChange,
+}: {
+  node: Node;
+  onChange: (size: number | null) => void;
+}) {
+  const propio = nodeStyle(node).fontSize;
+  const actual = propio ?? fontSizeFor(node.shape);
+
+  const menor = nextFontSize(actual, -1);
+  const mayor = nextFontSize(actual, 1);
+
+  return (
+    <div className="inspector__stepper">
+      <button
+        type="button"
+        onClick={() => onChange(menor)}
+        disabled={menor === actual}
+        title="Reducir el texto"
+      >
+        −
+      </button>
+      <span className="inspector__stepper-value">{actual}</span>
+      <button
+        type="button"
+        onClick={() => onChange(mayor)}
+        disabled={mayor === actual}
+        title="Aumentar el texto"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        className="inspector__stepper-reset"
+        onClick={() => onChange(null)}
+        disabled={propio === undefined}
+        title="Volver al tamano de la forma"
+      >
+        Auto
+      </button>
+    </div>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

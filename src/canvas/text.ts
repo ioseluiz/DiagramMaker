@@ -190,6 +190,41 @@ export function labelMaxWidth(shape: NodeShape, width: number): number {
   }
 }
 
+/**
+ * Alto de linea para un cuerpo de letra dado.
+ *
+ * Proporcional, no fijo. Con un alto constante, subir el cuerpo del texto
+ * amontona unas lineas sobre otras y bajarlo las separa de mas; y como el
+ * lienzo y el exportador usan los dos esta funcion, rompen igual o bien los
+ * dos a la vez. La proporcion es la que ya habia entre los valores por
+ * defecto, asi que al tamano de siempre sale el alto de siempre.
+ */
+export function lineHeightFor(size: number): number {
+  return Math.round((size * LINE_HEIGHT) / FONT_SIZE);
+}
+
+/**
+ * Caja que pide una etiqueta escrita con un cuerpo de letra dado.
+ *
+ * Mide sin limite de ancho, respetando solo los saltos de linea que el autor
+ * escribio: sirve para que un nodo crezca con su texto cuando se le cambia
+ * el tamano de la letra, y para eso hay que saber cuanto ocuparia el texto
+ * **sin** que la caja actual lo obligue a partirse.
+ */
+export function boxForLabel(
+  label: string,
+  size: number,
+  options: { bold?: boolean; italic?: boolean } = {},
+): { width: number; height: number } {
+  const lines = wrapText(label, { maxWidth: Infinity, size, ...options });
+  const widest = lines.reduce((max, line) => Math.max(max, line.width), 0);
+
+  return {
+    width: Math.ceil(widest + TEXT_PADDING * 2),
+    height: Math.ceil(lines.length * lineHeightFor(size) + TEXT_PADDING),
+  };
+}
+
 export function placementOf(shape: NodeShape): LabelPlacement {
   const placement = labelPlacement(shape);
   return placement === "below" ? "below" : placement === "tab" ? "tab" : "center";

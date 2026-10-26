@@ -10,7 +10,7 @@ import { hopsFor } from "@/canvas/graph/adapter";
 import { laneLabels, laneMeasures } from "@/canvas/lane/measure";
 import type { Hop } from "@/canvas/graph/crossings";
 import {
-  LINE_HEIGHT,
+  lineHeightFor,
   diagramFontFamily,
   fontSizeFor,
   labelMaxWidth,
@@ -79,7 +79,7 @@ function nodeLabels(doc: Document): Record<string, LabelLayout> {
     labels[node.id] = {
       lines,
       fontSize,
-      lineHeight: LINE_HEIGHT,
+      lineHeight: lineHeightFor(fontSize),
       placement: placementOf(node.shape),
       color: style.textColor,
       bold: style.bold ?? false,
@@ -93,7 +93,6 @@ function nodeLabels(doc: Document): Record<string, LabelLayout> {
 /** Ancho maximo de la etiqueta de una arista antes de partirla. */
 const EDGE_LABEL_MAX_WIDTH = 180;
 const EDGE_FONT_SIZE = 11;
-const EDGE_LINE_HEIGHT = 14;
 
 function edgeLabels(doc: Document): Record<string, LabelLayout> {
   const labels: Record<string, LabelLayout> = {};
@@ -110,7 +109,7 @@ function edgeLabels(doc: Document): Record<string, LabelLayout> {
     labels[edge.id] = {
       lines,
       fontSize,
-      lineHeight: EDGE_LINE_HEIGHT,
+      lineHeight: lineHeightFor(fontSize),
       placement: "center",
       color: style.textColor,
       bold: false,

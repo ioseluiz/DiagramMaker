@@ -3,7 +3,7 @@ import { memo, useMemo } from "react";
 
 import { MIN_NODE_SIZE, defaultSizeFor, labelPlacement } from "@/model/shapes";
 import { nodeStyle } from "@/model/style";
-import { LINE_HEIGHT, fontSizeFor, labelMaxWidth, wrapText } from "@/canvas/text";
+import { fontSizeFor, labelMaxWidth, lineHeightFor, wrapText } from "@/canvas/text";
 import { ShapeBody } from "./ShapeBody";
 import type { DiagramFlowNode } from "./adapter";
 import "./ShapeNode.css";
@@ -81,7 +81,7 @@ function ShapeNodeImpl({ data, selected, width, height }: NodeProps<DiagramFlowN
           style={{
             color: style.textColor,
             fontSize,
-            lineHeight: `${LINE_HEIGHT}px`,
+            lineHeight: `${lineHeightFor(fontSize)}px`,
             fontWeight: style.bold ? 600 : undefined,
             fontStyle: style.italic ? "italic" : undefined,
           }}

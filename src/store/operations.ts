@@ -18,7 +18,7 @@ import type { SequenceScript } from "@/model/generated/SequenceScript";
 import type { Step } from "@/model/generated/Step";
 import type { C4Level } from "@/model/c4";
 import { classSize } from "@/model/classBox";
-import { defaultSizeFor, labelPlacement } from "@/model/shapes";
+import { MIN_NODE_SIZE, defaultSizeFor, labelPlacement } from "@/model/shapes";
 import { tableSize } from "@/model/table";
 
 /**
@@ -769,6 +769,90 @@ export function setNodeFill(
     fill: fill ?? undefined,
     stroke: undefined,
     textColor: undefined,
+  };
+}
+
+/* --- Tamano del texto ----------------------------------------------------- */
+
+/**
+ * Cuerpos de letra que ofrecen los botones, de menor a mayor.
+ *
+ * Una escala y no un paso fijo: cerca del tamano normal se quiere afinar de
+ * punto en punto, y para un titulo se quiere llegar al doble sin dar quince
+ * clics. Es la escala de siempre de los procesadores de texto.
+ */
+export const FONT_SIZES = [
+  8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64,
+] as const;
+
+/**
+ * El cuerpo siguiente de la escala en el sentido pedido.
+ *
+ * Devuelve el mismo si ya esta en un extremo, para que quien llame pueda
+ * comparar y apagar el boton.
+ */
+export function nextFontSize(size: number, direction: 1 | -1): number {
+  const sizes = FONT_SIZES;
+
+  if (direction === 1) {
+    return sizes.find((s) => s > size) ?? sizes[sizes.length - 1]!;
+  }
+  return [...sizes].reverse().find((s) => s < size) ?? sizes[0]!;
+}
+
+/**
+ * Cambia el cuerpo de letra de la etiqueta de un nodo.
+ *
+ * `null` lo devuelve al que corresponde a su forma.
+ *
+ * `measured` es la caja que pide el texto con ese cuerpo, y tiene que venir
+ * medida de fuera: medir texto es cosa del navegador y este modulo no lo
+ * toca (ver `canvas/text`).
+ *
+ * Solo se tiene en cuenta cuando la etiqueta vive **dentro** de la caja. La
+ * de un actor cuelga por debajo de su figura y la de un paquete va en la
+ * solapa: alli agrandar la caja porque crecio la letra deformaria el dibujo
+ * sin motivo.
+ */
+export function setNodeFontSize(
+  draft: Document,
+  nodeId: string,
+  size: number | null,
+  measured?: { width: number; height: number },
+): void {
+  const node = draft.nodes.find((n) => n.id === nodeId);
+  if (!node) return;
+
+  node.style = {
+    ...node.style,
+    fontSize:
+      size === null
+        ? undefined
+        : Math.min(
+            Math.max(Math.round(size), FONT_SIZES[0]),
+            FONT_SIZES[FONT_SIZES.length - 1]!,
+          ),
+  };
+
+  if (!measured || !node.geometry) return;
+  if (labelPlacement(node.shape) !== "center") return;
+
+  // El texto suelto no es mas que su etiqueta: su caja se ajusta en los dos
+  // sentidos, y al reducir la letra vuelve a encogerse. Una forma con
+  // contorno solo crece, porque encogerla moveria un dibujo que el autor ya
+  // habia compuesto a mano.
+  const exacto = node.shape === "text";
+
+  node.geometry = {
+    ...node.geometry,
+    width: Math.max(
+      exacto ? measured.width : Math.max(node.geometry.width, measured.width),
+      MIN_NODE_SIZE.width,
+    ),
+    height: Math.max(
+      exacto ? measured.height : Math.max(node.geometry.height, measured.height),
+      MIN_NODE_SIZE.height,
+    ),
   };
 }
 

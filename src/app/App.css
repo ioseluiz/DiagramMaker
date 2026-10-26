@@ -197,6 +197,36 @@
   color: var(--text-muted);
 }
 
+.inspector__stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inspector__stepper button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.inspector__stepper-value {
+  min-width: 30px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Separado de los dos signos: no es un paso mas de la escala. */
+.inspector__stepper-reset {
+  width: auto !important;
+  margin-left: auto;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+}
+
 .inspector__readonly {
   padding: 4px 0;
   font-family: var(--font-mono);

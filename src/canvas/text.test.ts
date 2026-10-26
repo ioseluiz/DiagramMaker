@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { labelMaxWidth, measureWidth, placementOf, wrapText } from "./text";
+import {
+  FONT_SIZE,
+  LINE_HEIGHT,
+  boxForLabel,
+  labelMaxWidth,
+  lineHeightFor,
+  measureWidth,
+  placementOf,
+  wrapText,
+} from "./text";
 
 /**
  * En jsdom no hay canvas, asi que `measureWidth` cae en su estimacion:
@@ -127,5 +136,54 @@ describe("cache de medidas", () => {
 
   it("un texto vacio no gasta entrada", () => {
     expect(measureWidth("")).toBe(0);
+  });
+});
+
+describe("lineHeightFor", () => {
+  it("al tamano por defecto da el alto de siempre", () => {
+    expect(lineHeightFor(FONT_SIZE)).toBe(LINE_HEIGHT);
+  });
+
+  it("crece y encoge con el cuerpo de la letra", () => {
+    // Si no lo hiciera, subir el texto amontonaria unas lineas sobre otras.
+    expect(lineHeightFor(32)).toBeGreaterThan(lineHeightFor(24));
+    expect(lineHeightFor(8)).toBeLessThan(lineHeightFor(FONT_SIZE));
+  });
+
+  it("deja siempre hueco entre el cuerpo y la linea siguiente", () => {
+    for (const size of [8, 10, 13, 20, 32, 64]) {
+      expect(lineHeightFor(size)).toBeGreaterThan(size);
+    }
+  });
+});
+
+describe("boxForLabel", () => {
+  it("crece con el cuerpo de la letra", () => {
+    const pequena = boxForLabel("Lago de datos", 13);
+    const grande = boxForLabel("Lago de datos", 32);
+
+    expect(grande.width).toBeGreaterThan(pequena.width);
+    expect(grande.height).toBeGreaterThan(pequena.height);
+  });
+
+  it("no parte el texto por su cuenta", () => {
+    // Mide lo que ocuparia sin caja que lo obligue a romper: por eso un
+    // titulo largo pide una caja ancha en vez de una alta.
+    const una = boxForLabel("Titulo", 16);
+    const larga = boxForLabel("Un titulo bastante mas largo que el otro", 16);
+
+    expect(larga.width).toBeGreaterThan(una.width);
+    expect(larga.height).toBe(una.height);
+  });
+
+  it("respeta los saltos de linea escritos a mano", () => {
+    const una = boxForLabel("Titulo", 16);
+    const dos = boxForLabel("Titulo\nsubtitulo", 16);
+
+    expect(dos.height).toBeGreaterThan(una.height);
+  });
+
+  it("una etiqueta vacia no pide alto de texto", () => {
+    expect(boxForLabel("", 16).height).toBeLessThan(boxForLabel("x", 16).height);
   });
 });
