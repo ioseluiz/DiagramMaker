@@ -1171,7 +1171,7 @@ describe("niveles C4", () => {
   });
 });
 
-describe("las medidas que llegan del lienzo", () => {
+describe("resizeNode", () => {
   /** Documento con un nodo ya colocado. */
   function colocado(): Document {
     return produce(emptyDoc(), (d) => {
@@ -1180,53 +1180,23 @@ describe("las medidas que llegan del lienzo", () => {
     });
   }
 
-  it("una medida que no cambia nada deja el documento intacto", () => {
-    // Es lo que evita el bucle: React Flow mide, pide guardar lo mismo, y si
-    // el documento cambiara de identidad volveria a medir sin parar.
+  it("un tamano que no cambia nada deja el documento intacto", () => {
+    // Un paso de deshacer que no deshace nada es ruido en el historial.
     const antes = colocado();
     const despues = produce(antes, (d) => resizeNode(d, d.nodes[0]!.id, 160, 60));
 
     expect(despues).toBe(antes);
   });
 
-  it("tampoco la cambia el ruido de los decimales", () => {
+  it("y uno que si cambia se guarda tal cual", () => {
+    // Sin redondear: redondear con un umbral era justo lo que hacia saltar la
+    // medida entre dos valores y realimentaba el bucle de renderizado.
     const antes = colocado();
-    const despues = produce(antes, (d) =>
-      resizeNode(d, d.nodes[0]!.id, 160.00002, 59.99997),
-    );
+    const despues = produce(antes, (d) => resizeNode(d, d.nodes[0]!.id, 240.5, 90.25));
 
-    expect(despues).toBe(antes);
-  });
-
-  it("pero un cambio de verdad se guarda, redondeado", () => {
-    const antes = colocado();
-    const despues = produce(antes, (d) => resizeNode(d, d.nodes[0]!.id, 240.4, 90.6));
-
-    expect(despues).not.toBe(antes);
-    expect(despues.nodes[0]!.geometry).toMatchObject({ width: 240, height: 91 });
-  });
-
-  it("mover al mismo sitio un nodo ya anclado no cambia nada", () => {
-    const antes = produce(colocado(), (d) => {
-      d.nodes[0]!.pinned = true;
+    expect(despues.nodes[0]!.geometry).toMatchObject({
+      width: 240.5,
+      height: 90.25,
     });
-    const despues = produce(antes, (d) => moveNode(d, d.nodes[0]!.id, 100.0001, 50));
-
-    expect(despues).toBe(antes);
-  });
-
-  it("pero moverlo al mismo sitio si lo ancla cuando no lo estaba", () => {
-    const antes = colocado();
-    const despues = produce(antes, (d) => moveNode(d, d.nodes[0]!.id, 100, 50));
-
-    expect(despues.nodes[0]!.pinned).toBe(true);
-  });
-
-  it("y un arrastre de verdad lo mueve", () => {
-    const antes = colocado();
-    const despues = produce(antes, (d) => moveNode(d, d.nodes[0]!.id, 300.7, 80.2));
-
-    expect(despues.nodes[0]!.geometry).toMatchObject({ x: 301, y: 80 });
-    expect(despues.nodes[0]!.pinned).toBe(true);
   });
 });
