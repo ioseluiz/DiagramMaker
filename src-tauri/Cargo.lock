@@ -785,7 +785,7 @@ dependencies = [
 
 [[package]]
 name = "diagrammaker"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "insta",
  "resvg 0.48.1",

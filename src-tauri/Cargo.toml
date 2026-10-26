@@ -1,6 +1,6 @@
 [package]
 name = "diagrammaker"
-version = "0.1.0"
+version = "0.1.1"
 description = "Editor de diagramas de ingenieria de software"
 authors = ["Jose Luis Munoz <joseluism1412@gmail.com>"]
 edition = "2024"
