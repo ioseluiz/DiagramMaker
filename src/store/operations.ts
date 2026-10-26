@@ -4,6 +4,7 @@ import type { DiagramKind } from "@/model/generated/DiagramKind";
 import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
+import type { Routing } from "@/model/generated/Routing";
 import type { Node } from "@/model/generated/Node";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import type { ErColumn } from "@/model/generated/ErColumn";
@@ -305,6 +306,61 @@ export function setEndpointLabel(
 export function setEdgeKind(draft: Document, edgeId: string, kind: EdgeKind): void {
   const edge = draft.edges.find((e) => e.id === edgeId);
   if (edge) edge.kind = kind;
+}
+
+/* --- Trazo de una relacion ------------------------------------------------ */
+
+/**
+ * Grosores que ofrecen los botones, de mas fino a mas grueso.
+ *
+ * 1,5 es el de por defecto y el que usa el generador de SVG cuando la arista
+ * no dice otra cosa; esta en la lista para que se pueda volver a el pasando
+ * por encima y no solo con «Auto».
+ */
+export const STROKE_WIDTHS = [0.5, 1, 1.5, 2, 3, 4, 6] as const;
+
+/** El grosor por defecto. Espejo de `render::svg`. */
+export const DEFAULT_STROKE_WIDTH = 1.5;
+
+/** El grosor siguiente en el sentido pedido, o el mismo si ya esta al final. */
+export function nextStrokeWidth(width: number, direction: 1 | -1): number {
+  const anchos = STROKE_WIDTHS;
+
+  if (direction === 1) {
+    return anchos.find((w) => w > width) ?? anchos[anchos.length - 1]!;
+  }
+  return [...anchos].reverse().find((w) => w < width) ?? anchos[0]!;
+}
+
+/** Cambia el grosor del trazo de una relacion. `null` vuelve al de por defecto. */
+export function setEdgeStrokeWidth(
+  draft: Document,
+  edgeId: string,
+  width: number | null,
+): void {
+  const edge = draft.edges.find((e) => e.id === edgeId);
+  if (!edge) return;
+
+  edge.style = {
+    ...edge.style,
+    strokeWidth:
+      width === null
+        ? undefined
+        : Math.min(
+            Math.max(width, STROKE_WIDTHS[0]),
+            STROKE_WIDTHS[STROKE_WIDTHS.length - 1]!,
+          ),
+  };
+}
+
+/** Cambia la forma del trazado de una relacion. */
+export function setEdgeRouting(
+  draft: Document,
+  edgeId: string,
+  routing: Routing,
+): void {
+  const edge = draft.edges.find((e) => e.id === edgeId);
+  if (edge) edge.routing = routing;
 }
 
 export function setTitle(draft: Document, title: string): void {

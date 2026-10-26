@@ -4,6 +4,7 @@ import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { Node } from "@/model/generated/Node";
 import type { NodeShape } from "@/model/generated/NodeShape";
+import { DEFAULT_STROKE_WIDTH } from "@/store/operations";
 import { isDashed, toAbsolute, toFlowEdges, toFlowNodes } from "./adapter";
 
 const NONE: ReadonlySet<string> = new Set();
@@ -126,6 +127,22 @@ describe("toFlowEdges", () => {
   }
 
   const two = [node("a", 0, 0), node("b", 300, 0)];
+
+  it("el grosor elegido llega al trazo", () => {
+    const d = doc(two, [edge({ style: { strokeWidth: 4 } })]);
+    const [flow] = toFlowEdges(d, NONE);
+
+    expect(flow!.style?.strokeWidth).toBe(4);
+  });
+
+  it("y sin elegir ninguno usa el mismo que Rust", () => {
+    // `render::svg` escribe `unwrap_or(1.5)`. Si los dos numeros se
+    // separaran, una relacion se veria de un grosor en pantalla y saldria de
+    // otro en el PNG, que es justo lo que este proyecto no quiere.
+    const [flow] = toFlowEdges(doc(two, [edge()]), NONE);
+
+    expect(flow!.style?.strokeWidth).toBe(DEFAULT_STROKE_WIDTH);
+  });
 
   it("todas las aristas usan el mismo componente y el ruteo viaja en los datos", () => {
     // `RelationEdge` elige el trazado y ademas dibuja las cardinalidades,

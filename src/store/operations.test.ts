@@ -6,7 +6,9 @@ import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
 import { MIN_NODE_SIZE } from "@/model/shapes";
 import { TABLE_ROW_HEIGHT } from "@/model/tableMetrics";
 import {
+  DEFAULT_STROKE_WIDTH,
   FONT_SIZES,
+  STROKE_WIDTHS,
   addColumn,
   addNode,
   addTable,
@@ -23,6 +25,8 @@ import {
   resizeNode,
   reverseEdge,
   setEdgeKind,
+  setEdgeRouting,
+  setEdgeStrokeWidth,
   setEndpointLabel,
   setEndpointSide,
   setLabel,
@@ -31,6 +35,7 @@ import {
   setNodeFontSize,
   setNodeParent,
   nextFontSize,
+  nextStrokeWidth,
   setRelationKind,
   setTableAlias,
   setTableNote,
@@ -1375,5 +1380,64 @@ describe("setNodeFill", () => {
 
     expect(doc.nodes[0]!.style?.fill).toBe("url(#grad)");
     expect(doc.nodes[0]!.style?.textColor ?? null).toBeNull();
+  });
+});
+
+describe("trazo de una relacion", () => {
+  function conRelacion(): Document {
+    return run(emptyDoc(), (d) => {
+      const a = addNode(d, { shape: "rectangle", label: "A", x: 0, y: 0 });
+      const b = addNode(d, { shape: "rectangle", label: "B", x: 300, y: 0 });
+      connect(d, a, b);
+    });
+  }
+
+  it("guarda el grosor pedido", () => {
+    const doc = run(conRelacion(), (d) => setEdgeStrokeWidth(d, d.edges[0]!.id, 3));
+
+    expect(doc.edges[0]!.style?.strokeWidth).toBe(3);
+  });
+
+  it("`null` lo devuelve al de por defecto", () => {
+    const puesto = run(conRelacion(), (d) => setEdgeStrokeWidth(d, d.edges[0]!.id, 4));
+    const quitado = run(puesto, (d) => setEdgeStrokeWidth(d, d.edges[0]!.id, null));
+
+    expect(quitado.edges[0]!.style?.strokeWidth).toBeUndefined();
+  });
+
+  it("no acepta un grosor fuera de la escala", () => {
+    // Un 0 no se ve y un 80 tapa el diagrama; los dos pueden llegar de un
+    // `.dgm` escrito a mano.
+    const doc = conRelacion();
+
+    expect(
+      run(doc, (d) => setEdgeStrokeWidth(d, d.edges[0]!.id, 0)).edges[0]!.style
+        ?.strokeWidth,
+    ).toBe(STROKE_WIDTHS[0]);
+    expect(
+      run(doc, (d) => setEdgeStrokeWidth(d, d.edges[0]!.id, 80)).edges[0]!.style
+        ?.strokeWidth,
+    ).toBe(STROKE_WIDTHS[STROKE_WIDTHS.length - 1]);
+  });
+
+  it("el grosor de por defecto esta en la escala", () => {
+    // Si no estuviera, subir y bajar desde el valor heredado no podria
+    // volver nunca a el salvo con «Auto».
+    expect(STROKE_WIDTHS).toContain(DEFAULT_STROKE_WIDTH);
+  });
+
+  it("nextStrokeWidth sube, baja y se queda quieto en los extremos", () => {
+    expect(nextStrokeWidth(1.5, 1)).toBe(2);
+    expect(nextStrokeWidth(1.5, -1)).toBe(1);
+    expect(nextStrokeWidth(STROKE_WIDTHS[0]!, -1)).toBe(STROKE_WIDTHS[0]);
+    expect(nextStrokeWidth(6, 1)).toBe(6);
+  });
+
+  it("cambia la forma del trazado", () => {
+    const doc = run(conRelacion(), (d) =>
+      setEdgeRouting(d, d.edges[0]!.id, "straight"),
+    );
+
+    expect(doc.edges[0]!.routing).toBe("straight");
   });
 });

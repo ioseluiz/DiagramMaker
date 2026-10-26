@@ -1,12 +1,12 @@
 import type { Document } from "@/model/generated/Document";
 import type { Edge } from "@/model/generated/Edge";
 import type { EdgeKind } from "@/model/generated/EdgeKind";
-import type { Node } from "@/model/generated/Node";
+import type { Routing } from "@/model/generated/Routing";
 import type { NodeShape } from "@/model/generated/NodeShape";
 import { C4_LEVELS, c4LevelById, c4LevelOf } from "@/model/c4";
 import { SHAPE_LABEL } from "@/model/shapes";
 import { boxForLabel, fontSizeFor } from "@/canvas/text";
-import { nodeStyle } from "@/model/style";
+import { edgeStyle, nodeStyle } from "@/model/style";
 import { classBoxOf } from "@/model/classBox";
 import { erTableOf } from "@/model/table";
 import { ClassInspector } from "./ClassInspector";
@@ -16,9 +16,13 @@ import { selectDocument, useDocumentStore } from "@/store/documentStore";
 import { TableInspector } from "./TableInspector";
 import {
   RELATION_LABELS,
+  DEFAULT_STROKE_WIDTH,
   nextFontSize,
+  nextStrokeWidth,
   relationKindOf,
   setEdgeKind,
+  setEdgeRouting,
+  setEdgeStrokeWidth,
   setEndpointLabel,
   setLabel,
   setNodeC4Level,
@@ -34,6 +38,12 @@ const RELATION_LABEL: Record<RelationKind, string> = {
   oneToMany: "Uno a muchos  (1 → *)",
   oneToOne: "Uno a uno  (1 → 1)",
   manyToMany: "Muchos a muchos  (* → *)",
+};
+
+const ROUTING_LABEL: Record<Routing, string> = {
+  orthogonal: "En angulo recto",
+  straight: "Recta",
+  bezier: "Curva",
 };
 
 const EDGE_KIND_LABEL: Record<EdgeKind, string> = {
@@ -138,8 +148,13 @@ export function Inspector() {
           </div>
           <div className="inspector__field">
             <span className="inspector__label">Tamano del texto</span>
-            <FontSizeStepper
-              node={node}
+            <Stepper
+              value={nodeStyle(node).fontSize ?? fontSizeFor(node.shape)}
+              custom={nodeStyle(node).fontSize !== undefined}
+              next={nextFontSize}
+              format={(size) => `${size}`}
+              less="Reducir el texto"
+              more="Aumentar el texto"
               onChange={(size) =>
                 edit("tamano del texto", (d) =>
                   setNodeFontSize(
@@ -257,6 +272,36 @@ export function Inspector() {
               </Field>
             </>
           )}
+          <Field label="Trazado">
+            <select
+              value={edge.routing}
+              onChange={(e) =>
+                edit("trazado", (d) =>
+                  setEdgeRouting(d, edge.id, e.target.value as Routing),
+                )
+              }
+            >
+              {Object.entries(ROUTING_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="inspector__field">
+            <span className="inspector__label">Grosor</span>
+            <Stepper
+              value={edgeStyle(edge).strokeWidth ?? DEFAULT_STROKE_WIDTH}
+              custom={edgeStyle(edge).strokeWidth !== undefined}
+              next={nextStrokeWidth}
+              format={(w) => `${w}`}
+              less="Afinar el trazo"
+              more="Engrosar el trazo"
+              onChange={(width) =>
+                edit("grosor", (d) => setEdgeStrokeWidth(d, edge.id, width))
+              }
+            />
+          </div>
         </>
       )}
 
@@ -304,41 +349,51 @@ function columnsOf(doc: Document, edge: Edge): string {
 }
 
 /**
- * Menos, el cuerpo actual, mas.
+ * Menos, el valor actual, mas, y vuelta a lo de por defecto.
  *
- * Muestra siempre el tamano efectivo —el heredado de la forma cuando el nodo
- * no tiene uno propio— para que el numero de la pantalla sea el de la letra
- * que se ve, y no un hueco en blanco.
+ * Lo comparten el cuerpo de letra de un nodo y el grosor de una relacion:
+ * los dos son un numero que se sube y se baja por una escala, con un valor
+ * heredado cuando nadie lo ha tocado. Muestra siempre el valor efectivo
+ * —tambien el heredado— para que lo que se lee sea lo que se ve, y no un
+ * hueco en blanco.
  */
-function FontSizeStepper({
-  node,
+function Stepper({
+  value,
+  custom,
+  next,
+  format,
+  less,
+  more,
   onChange,
 }: {
-  node: Node;
-  onChange: (size: number | null) => void;
+  value: number;
+  /** `true` si el valor lo puso el usuario y no viene heredado. */
+  custom: boolean;
+  next: (value: number, direction: 1 | -1) => number;
+  format: (value: number) => string;
+  less: string;
+  more: string;
+  onChange: (value: number | null) => void;
 }) {
-  const propio = nodeStyle(node).fontSize;
-  const actual = propio ?? fontSizeFor(node.shape);
-
-  const menor = nextFontSize(actual, -1);
-  const mayor = nextFontSize(actual, 1);
+  const menor = next(value, -1);
+  const mayor = next(value, 1);
 
   return (
     <div className="inspector__stepper">
       <button
         type="button"
         onClick={() => onChange(menor)}
-        disabled={menor === actual}
-        title="Reducir el texto"
+        disabled={menor === value}
+        title={less}
       >
         −
       </button>
-      <span className="inspector__stepper-value">{actual}</span>
+      <span className="inspector__stepper-value">{format(value)}</span>
       <button
         type="button"
         onClick={() => onChange(mayor)}
-        disabled={mayor === actual}
-        title="Aumentar el texto"
+        disabled={mayor === value}
+        title={more}
       >
         +
       </button>
@@ -346,8 +401,8 @@ function FontSizeStepper({
         type="button"
         className="inspector__stepper-reset"
         onClick={() => onChange(null)}
-        disabled={propio === undefined}
-        title="Volver al tamano de la forma"
+        disabled={!custom}
+        title="Volver al valor de por defecto"
       >
         Auto
       </button>
