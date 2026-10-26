@@ -315,3 +315,59 @@ describe("orden de pintado de los contenedores", () => {
     expect(toFlowNodes(d, NONE)[0]!.zIndex).toBeUndefined();
   });
 });
+
+describe("todo nodo llega medido", () => {
+  // React Flow considera «sin medir» a todo nodo que no traiga `measured`, y
+  // un nodo sin medir no se puede arrastrar: avisa con «trying to drag a node
+  // that is not initialized» y se queda clavado.
+  //
+  // Esto ya se rompio una vez. Al dejar de guardar en el documento lo que
+  // React Flow mide del DOM —para cortar el bucle de repintado— nadie
+  // rellenaba `measured` y el lienzo se quedo sin arrastre. Mientras estas
+  // pruebas pasen, esa combinacion no puede repetirse.
+
+  it("con su geometria, cuando la tiene", () => {
+    const [flow] = toFlowNodes(doc([node("a", 40, 80)]), NONE);
+
+    expect(flow!.measured).toEqual({ width: 160, height: 60 });
+  });
+
+  it("y con un tamano de reserva cuando todavia no la tiene", () => {
+    // Un documento recien importado llega sin geometria: la pone el reparto
+    // despues. Hasta entonces el nodo tiene que poder arrastrarse igual.
+    const sinGeometria = node("a", 0, 0, { geometry: null });
+    const [flow] = toFlowNodes(doc([sinGeometria]), NONE);
+
+    expect(typeof flow!.measured?.width).toBe("number");
+    expect(typeof flow!.measured?.height).toBe("number");
+  });
+
+  it("todos, sea cual sea su forma", () => {
+    const formas: NodeShape[] = [
+      "rectangle",
+      "roundedRect",
+      "ellipse",
+      "diamond",
+      "cylinder",
+      "actor",
+      "package",
+      "text",
+    ];
+    const d = doc(formas.map((shape, i) => node(`n${i}`, i * 200, 0, {}, shape)));
+
+    for (const flow of toFlowNodes(d, NONE)) {
+      expect(flow.measured?.width, `${flow.type} sin ancho`).toBeGreaterThan(0);
+      expect(flow.measured?.height, `${flow.type} sin alto`).toBeGreaterThan(0);
+    }
+  });
+
+  it("y lo medido coincide con lo que se dibuja", () => {
+    // Si `measured` dijera una cosa y `width`/`height` otra, las aristas
+    // acabarian apuntando a un borde que no esta donde se ve.
+    const d = doc([node("a", 0, 0), node("b", 300, 0, {}, "package")]);
+
+    for (const flow of toFlowNodes(d, NONE)) {
+      expect(flow.measured).toEqual({ width: flow.width, height: flow.height });
+    }
+  });
+});

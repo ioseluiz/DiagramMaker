@@ -126,6 +126,13 @@ export function toFlowNodes(
       position: { x: geometry.x - origin.x, y: geometry.y - origin.y },
       width: geometry.width,
       height: geometry.height,
+      // React Flow considera «sin medir» a todo nodo que no traiga
+      // `measured`, y un nodo sin medir no se puede arrastrar. Lo normal es
+      // que lo rellene el midiendo el DOM, pero aqui el tamano no sale del
+      // DOM: sale de la geometria, que es la misma con la que se pinta y con
+      // la que exporta Rust. Declararlo nosotros cierra el bucle que se
+      // explica en `GraphCanvas`, y de paso evita un reflujo por nodo.
+      measured: { width: geometry.width, height: geometry.height },
       selected: selection.has(node.id),
       data: { label: node.label, node },
     };

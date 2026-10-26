@@ -106,16 +106,30 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
           }
 
           case "dimensions": {
-            // React Flow esta en modo controlado: cuando mide un nodo emite
-            // este cambio y espera que la lista que le devolvemos lo lleve.
-            // Si no, para el los nodos se quedan sin medir y ni siquiera se
-            // pueden arrastrar. Filtrarlo fue un error.
-            if (!change.dimensions) break;
+            // Solo cuando el usuario esta redimensionando de verdad.
+            //
+            // React Flow emite `dimensions` tambien cuando mide el DOM por su
+            // cuenta, y esa medida sale de dividir pixeles de pantalla entre
+            // el zoom: con un desplazamiento fraccionario baila en los
+            // decimales. Guardarla cambiaba el documento; el documento rehacia
+            // la lista de nodos; `StoreUpdater` compara esa lista **por
+            // identidad** y, al verla nueva, llamaba a `setNodes`; eso volvia
+            // a medir. El bucle acababa en «Maximum update depth exceeded» y
+            // se llevaba la ventana por delante.
+            //
+            // Filtrarlo a secas ya se intento y rompio el arrastre: sin que
+            // nadie rellenara `measured`, para React Flow los nodos se
+            // quedaban sin medir. La pieza que faltaba esta en el adaptador,
+            // que ahora lo declara desde la geometria. Con eso, ignorar la
+            // medicion del DOM no quita nada: el tamano de un nodo lo pone el
+            // reparto, que mide el texto con el mismo calculo con el que el
+            // lienzo pinta.
+            if (!change.dimensions || change.resizing !== true) break;
             const { width, height } = change.dimensions;
             edit(
               `resize:${change.id}`,
               (draft) => resizeNode(draft, change.id, width, height),
-              change.resizing === true,
+              true,
             );
             break;
           }
