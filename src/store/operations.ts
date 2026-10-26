@@ -210,12 +210,38 @@ export function setEndpointSide(
   if (edge) edge[end].side = side;
 }
 
+/**
+ * Lo que hace falta para que una medida del lienzo cuente como un cambio.
+ *
+ * React Flow mide el DOM y divide por el zoom. Con la pantalla a un escalado
+ * que no sea del 100 %, o a un zoom cualquiera, el resultado trae ruido en
+ * los decimales: pide guardar 184.00002 donde ya hay 184.
+ *
+ * Guardarlo tiene consecuencias: cambia el documento, el documento rehace la
+ * lista de nodos, React Flow la recibe como nueva y vuelve a medir. Si la
+ * medida sigue bailando, eso no para nunca, y React corta con «Maximum
+ * update depth exceeded» llevandose la ventana por delante. Media milesima
+ * de pixel no la ve nadie; el bucle si.
+ */
+const MEDIDA_SENSIBLE = 0.5;
+
+/** `true` si las dos medidas son la misma a efectos practicos. */
+function igual(a: number, b: number): boolean {
+  return Math.abs(a - b) < MEDIDA_SENSIBLE;
+}
+
 export function moveNode(draft: Document, id: string, x: number, y: number): void {
   const node = draft.nodes.find((n) => n.id === id);
   if (!node?.geometry) return;
 
-  node.geometry.x = x;
-  node.geometry.y = y;
+  // Anclarlo si hace falta, aunque no se mueva: el usuario lo ha tocado.
+  const yaEstaba = igual(node.geometry.x, x) && igual(node.geometry.y, y);
+  if (yaEstaba && node.pinned) return;
+
+  if (!yaEstaba) {
+    node.geometry.x = Math.round(x);
+    node.geometry.y = Math.round(y);
+  }
   node.pinned = true;
 }
 
@@ -228,8 +254,12 @@ export function resizeNode(
   const node = draft.nodes.find((n) => n.id === id);
   if (!node?.geometry) return;
 
-  node.geometry.width = width;
-  node.geometry.height = height;
+  if (igual(node.geometry.width, width) && igual(node.geometry.height, height)) {
+    return;
+  }
+
+  node.geometry.width = Math.round(width);
+  node.geometry.height = Math.round(height);
 }
 
 export function setLabel(draft: Document, id: string, label: string): void {

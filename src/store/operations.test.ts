@@ -1170,3 +1170,63 @@ describe("niveles C4", () => {
     expect(new Set(fills).size).toBe(fills.length);
   });
 });
+
+describe("las medidas que llegan del lienzo", () => {
+  /** Documento con un nodo ya colocado. */
+  function colocado(): Document {
+    return produce(emptyDoc(), (d) => {
+      addNode(d, { shape: "rectangle", label: "a", x: 100, y: 50 });
+      d.nodes[0]!.geometry = { x: 100, y: 50, width: 160, height: 60 };
+    });
+  }
+
+  it("una medida que no cambia nada deja el documento intacto", () => {
+    // Es lo que evita el bucle: React Flow mide, pide guardar lo mismo, y si
+    // el documento cambiara de identidad volveria a medir sin parar.
+    const antes = colocado();
+    const despues = produce(antes, (d) => resizeNode(d, d.nodes[0]!.id, 160, 60));
+
+    expect(despues).toBe(antes);
+  });
+
+  it("tampoco la cambia el ruido de los decimales", () => {
+    const antes = colocado();
+    const despues = produce(antes, (d) =>
+      resizeNode(d, d.nodes[0]!.id, 160.00002, 59.99997),
+    );
+
+    expect(despues).toBe(antes);
+  });
+
+  it("pero un cambio de verdad se guarda, redondeado", () => {
+    const antes = colocado();
+    const despues = produce(antes, (d) => resizeNode(d, d.nodes[0]!.id, 240.4, 90.6));
+
+    expect(despues).not.toBe(antes);
+    expect(despues.nodes[0]!.geometry).toMatchObject({ width: 240, height: 91 });
+  });
+
+  it("mover al mismo sitio un nodo ya anclado no cambia nada", () => {
+    const antes = produce(colocado(), (d) => {
+      d.nodes[0]!.pinned = true;
+    });
+    const despues = produce(antes, (d) => moveNode(d, d.nodes[0]!.id, 100.0001, 50));
+
+    expect(despues).toBe(antes);
+  });
+
+  it("pero moverlo al mismo sitio si lo ancla cuando no lo estaba", () => {
+    const antes = colocado();
+    const despues = produce(antes, (d) => moveNode(d, d.nodes[0]!.id, 100, 50));
+
+    expect(despues.nodes[0]!.pinned).toBe(true);
+  });
+
+  it("y un arrastre de verdad lo mueve", () => {
+    const antes = colocado();
+    const despues = produce(antes, (d) => moveNode(d, d.nodes[0]!.id, 300.7, 80.2));
+
+    expect(despues.nodes[0]!.geometry).toMatchObject({ x: 301, y: 80 });
+    expect(despues.nodes[0]!.pinned).toBe(true);
+  });
+});
