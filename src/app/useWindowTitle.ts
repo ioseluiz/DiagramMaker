@@ -29,8 +29,18 @@ export function useWindowTitle(): void {
 
     // Si la ventana no esta disponible no hay nada que arreglar: el titulo
     // se queda con el que trae de la configuracion.
-    void getCurrentWindow()
-      .setTitle(title)
-      .catch(() => {});
+    //
+    // El `try` no es decorativo. `getCurrentWindow()` no devuelve una promesa
+    // rechazada cuando no hay Tauri debajo: revienta en el acto, y como esto
+    // corre dentro de un efecto y la aplicacion no tiene barrera de errores,
+    // se llevaba por delante el arbol entero y dejaba la pantalla en blanco.
+    // Un titulo de ventana no puede tener ese poder.
+    try {
+      void getCurrentWindow()
+        .setTitle(title)
+        .catch(() => {});
+    } catch {
+      // Sin ventana que titular.
+    }
   }, [dirty, doc?.meta.title, info, path]);
 }

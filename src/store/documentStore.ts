@@ -18,6 +18,12 @@ import {
   type History,
 } from "./history";
 
+/** Un cambio de seleccion tal y como lo emite el lienzo. */
+export interface SelectionChange {
+  id: string;
+  selected: boolean;
+}
+
 export interface DocumentState {
   history: History<Document> | null;
   /** Ruta en disco. `null` = documento nuevo sin guardar. */
@@ -71,6 +77,7 @@ export interface DocumentActions {
   undo(): void;
   redo(): void;
   select(ids: string[]): void;
+  applySelection(changes: readonly SelectionChange[]): void;
   clearError(): void;
 
   loadRecents(): Promise<void>;
@@ -224,6 +231,33 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
       return;
     }
     set({ selection: ids });
+  },
+
+  /**
+   * Aplica los cambios de seleccion que manda el lienzo.
+   *
+   * En modo controlado React Flow **no se guarda la seleccion**: la emite
+   * como cambios y da por hecho que la lista que le devolvemos la llevara.
+   * Ignorarlos dejaba el clic sin efecto, ni en nodos ni en relaciones. Con
+   * las cajas aun se podia disimular encerrando una en un rectangulo de
+   * seleccion, que va por otro camino; con una relacion no, porque el
+   * rectangulo solo coge nodos. De ahi que se notara primero en las lineas.
+   *
+   * Un mismo gesto llega en dos llamadas, una de nodos y otra de aristas, asi
+   * que esto parte de la seleccion que haya **en ese momento** y no de la del
+   * render: con la del render, la segunda llamada pisaria a la primera y un
+   * clic en una relacion acabaria sin seleccionar nada.
+   */
+  applySelection(changes) {
+    if (changes.length === 0) return;
+
+    const next = new Set(get().selection);
+    for (const { id, selected } of changes) {
+      if (selected) next.add(id);
+      else next.delete(id);
+    }
+
+    get().select([...next]);
   },
 
   clearError() {

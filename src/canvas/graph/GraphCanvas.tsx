@@ -18,7 +18,7 @@ import "@xyflow/react/dist/style.css";
 
 import type { Document } from "@/model/generated/Document";
 import { useCanvasTool } from "@/app/useCanvasTool";
-import { useDocumentStore } from "@/store/documentStore";
+import { useDocumentStore, type SelectionChange } from "@/store/documentStore";
 import {
   RELATION_LABELS,
   addColumn,
@@ -76,6 +76,7 @@ interface MenuState {
 
 function GraphCanvasImpl({ document }: GraphCanvasProps) {
   const edit = useDocumentStore((s) => s.edit);
+  const applySelection = useDocumentStore((s) => s.applySelection);
   const select = useDocumentStore((s) => s.select);
   const selection = useDocumentStore((s) => s.selection);
   const { fitView } = useReactFlow();
@@ -90,8 +91,17 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
 
   const onNodesChange = useCallback(
     (changes: NodeChange<DiagramFlowNode>[]) => {
+      const seleccion: SelectionChange[] = [];
+
       for (const change of changes) {
         switch (change.type) {
+          // React Flow no se guarda la seleccion cuando el lienzo esta
+          // controlado: la manda aqui y espera recibirla de vuelta. Ver
+          // `applySelection`.
+          case "select":
+            seleccion.push({ id: change.id, selected: change.selected });
+            break;
+
           case "position": {
             if (!change.position) break;
             const { x, y } = toAbsolute(document, change.id, change.position);
@@ -139,8 +149,10 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
             break;
         }
       }
+
+      applySelection(seleccion);
     },
-    [document, edit],
+    [applySelection, document, edit],
   );
 
   const onEdgesChange = useCallback(
@@ -149,8 +161,14 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
       if (removed.length > 0) {
         edit("borrar", (draft) => removeElements(draft, removed));
       }
+
+      applySelection(
+        changes
+          .filter((c) => c.type === "select")
+          .map((c) => ({ id: c.id, selected: c.selected })),
+      );
     },
-    [edit],
+    [applySelection, edit],
   );
 
   const onConnect = useCallback(
