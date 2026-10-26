@@ -236,3 +236,97 @@ describe("direccion del grafo", () => {
     expect(b!.geometry!.y).toBeGreaterThan(a!.geometry!.y);
   });
 });
+
+describe("el tamaño de un contenedor", () => {
+  function packageNode(id: string): Node {
+    return { id, label: id, shape: "package", pinned: false, data: { type: "plain" } };
+  }
+
+  /** `true` si el contenedor encierra a todos sus hijos. */
+  function encierra(document: Document, parent: string): boolean {
+    const caja = document.nodes.find((n) => n.id === parent)?.geometry;
+    if (!caja) return false;
+
+    return document.nodes
+      .filter((n) => n.parent === parent)
+      .every((hijo) => {
+        const g = hijo.geometry;
+        return (
+          g != null &&
+          g.x >= caja.x &&
+          g.y >= caja.y &&
+          g.x + g.width <= caja.x + caja.width &&
+          g.y + g.height <= caja.y + caja.height
+        );
+      });
+  }
+
+  /** Caja de un nodo, ya colocado. */
+  function caja(document: Document, id: string) {
+    return document.nodes.find((n) => n.id === id)!.geometry!;
+  }
+
+  /** Coloca un paquete con tantas tablas dentro como se le pidan. */
+  async function conHijos(cuantos: number): Promise<Document> {
+    const hijos = Array.from({ length: cuantos }, (_, i) =>
+      tableNode(`t${i}`, [column("id"), column("nombre"), column("fecha")], "grupo"),
+    );
+    return produceAsync(doc([packageNode("grupo"), ...hijos]), applyAutoLayout);
+  }
+
+  it("un paquete encierra lo que lleva dentro", async () => {
+    // Antes se quedaba clavado en el tamaño por defecto de su forma, asi que
+    // con varias tablas dentro el contenido salia fuera de la caja.
+    const document = await conHijos(6);
+
+    expect(encierra(document, "grupo")).toBe(true);
+  });
+
+  it("y crece con lo que le vayan metiendo", async () => {
+    const uno = caja(await conHijos(1), "grupo");
+    const seis = caja(await conHijos(6), "grupo");
+
+    expect(seis.width * seis.height).toBeGreaterThan(uno.width * uno.height);
+  });
+
+  it("un paquete con un solo hijo se ajusta a el, no al tamaño de su forma", async () => {
+    const document = await produceAsync(
+      doc([packageNode("grupo"), tableNode("a", [column("id")], "grupo")]),
+      applyAutoLayout,
+    );
+    const grupo = caja(document, "grupo");
+    const hijo = caja(document, "a");
+
+    expect(encierra(document, "grupo")).toBe(true);
+    // Pegado a su contenido: lo que sobra es el relleno del contenedor, no
+    // medio paquete vacio.
+    expect(grupo.width - hijo.width).toBeLessThan(80);
+  });
+
+  it("los paquetes anidados encierran cada uno lo suyo", async () => {
+    const document = await produceAsync(
+      doc([
+        packageNode("fuera"),
+        { ...packageNode("dentro"), parent: "fuera" },
+        tableNode("a", [column("id"), column("nombre")], "dentro"),
+        tableNode("b", [column("id"), column("nombre")], "dentro"),
+        tableNode("c", [column("id")], "fuera"),
+      ]),
+      applyAutoLayout,
+    );
+
+    expect(encierra(document, "dentro")).toBe(true);
+    expect(encierra(document, "fuera")).toBe(true);
+  });
+
+  it("un nodo suelto conserva el tamaño de su forma", async () => {
+    const document = await produceAsync(
+      doc([tableNode("a", [column("id")])]),
+      applyAutoLayout,
+    );
+
+    expect(document.nodes[0]!.geometry!.height).toBe(
+      TABLE_HEADER_HEIGHT + TABLE_ROW_HEIGHT,
+    );
+  });
+});

@@ -59,13 +59,19 @@ function toElkGraph(doc: Document): ElkNode {
   };
 
   const byParent = new Map<string | null, ElkNode[]>();
+  const contenedores = containersOf(doc);
 
   for (const node of doc.nodes) {
-    const { width, height } = sizeOf(node);
+    // A un contenedor no se le manda tamano. Si se le manda, ELK lo respeta
+    // y mete dentro lo que quepa: un paquete con seis tablas se quedaba en
+    // los 220 x 160 de su forma y el contenido salia apelotonado. Sin
+    // tamano, ELK lo calcula de lo que lleva dentro, que es lo que hace
+    // falta.
+    const medida = contenedores.has(node.id) ? undefined : sizeOf(node);
+
     const elkNode: ElkNode = {
       id: node.id,
-      width,
-      height,
+      ...(medida ?? {}),
       // Un nodo anclado conserva su sitio: ELK lo trata como fijo.
       ...(node.pinned && node.geometry
         ? { x: node.geometry.x, y: node.geometry.y }
@@ -105,17 +111,39 @@ function toElkGraph(doc: Document): ElkNode {
   };
 }
 
-/** Posiciones absolutas que devuelve ELK, aplanadas por id de nodo. */
+/** Ids de los nodos que son padre de algun otro. */
+function containersOf(doc: Document): Set<string> {
+  const out = new Set<string>();
+  for (const node of doc.nodes) {
+    if (node.parent) out.add(node.parent);
+  }
+  return out;
+}
+
+/** Lo que ELK decide de cada nodo: donde va y, si lo calculo, cuanto mide. */
+interface Placed {
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+}
+
+/**
+ * Geometria absoluta que devuelve ELK, aplanada por id de nodo.
+ *
+ * ELK da las posiciones relativas al contenedor de cada uno, y el documento
+ * las guarda absolutas; de ahi los desplazamientos acumulados.
+ */
 function flatten(
   node: ElkNode,
   offsetX = 0,
   offsetY = 0,
-  into = new Map<string, { x: number; y: number }>(),
-): Map<string, { x: number; y: number }> {
+  into = new Map<string, Placed>(),
+): Map<string, Placed> {
   for (const child of node.children ?? []) {
     const x = offsetX + (child.x ?? 0);
     const y = offsetY + (child.y ?? 0);
-    into.set(child.id, { x, y });
+    into.set(child.id, { x, y, width: child.width, height: child.height });
     flatten(child, x, y, into);
   }
   return into;
@@ -132,19 +160,26 @@ export async function applyAutoLayout(draft: Document): Promise<void> {
 
   const positions = flatten(await elk.layout(toElkGraph(draft)));
 
-  for (const node of draft.nodes) {
-    const position = positions.get(node.id);
-    if (!position) continue;
+  const contenedores = containersOf(draft);
 
-    const { width, height } = sizeOf(node);
+  for (const node of draft.nodes) {
+    const placed = positions.get(node.id);
+    if (!placed) continue;
 
     if (node.pinned && node.geometry) continue;
 
+    // El tamano de un contenedor lo pone ELK, que es quien sabe cuanto ocupa
+    // lo de dentro; el de una hoja sale de medir su texto.
+    const medida =
+      contenedores.has(node.id) && placed.width && placed.height
+        ? { width: placed.width, height: placed.height }
+        : sizeOf(node);
+
     node.geometry = {
-      x: Math.round(position.x),
-      y: Math.round(position.y),
-      width,
-      height,
+      x: Math.round(placed.x),
+      y: Math.round(placed.y),
+      width: Math.round(medida.width),
+      height: Math.round(medida.height),
     };
   }
 }
