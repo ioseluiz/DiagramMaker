@@ -17,6 +17,29 @@ use ts_rs::TS;
 
 use crate::model::{Diagnostic, Document};
 
+/// Consume una palabra suelta al principio, sin distinguir mayusculas.
+///
+/// Devuelve lo que queda detras, que puede ser vacio: `strip_word("end", "end")`
+/// da `Some("")`. Si la palabra no esta, o esta pegada a otra cosa —`endif` no
+/// empieza por `end` para estos efectos—, devuelve `None`.
+///
+/// El corte se hace con `get` y no con `[..]` a proposito. `word` siempre es
+/// ASCII, pero `text` no: un `Gestión` de siete bytes cortado en el septimo
+/// cae dentro de la `ó`, y eso en Rust no es un `None`, es un panico. Vivia
+/// copiado en cinco modulos y por eso el mismo fallo estaba cinco veces.
+pub(crate) fn strip_word<'a>(text: &'a str, word: &str) -> Option<&'a str> {
+    if !text.get(..word.len())?.eq_ignore_ascii_case(word) {
+        return None;
+    }
+
+    let rest = &text[word.len()..];
+    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+
+    Some(rest)
+}
+
 /// Resultado de importar: el documento y lo que haya que contarle al usuario.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]

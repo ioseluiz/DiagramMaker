@@ -16,7 +16,7 @@ use crate::model::{
     Span,
 };
 
-use super::super::ImportResult;
+use super::super::{ImportResult, strip_word as keyword};
 use super::strip_comment;
 
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
@@ -438,19 +438,6 @@ fn is_name(text: &str) -> bool {
         && text
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
-}
-
-fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
-    if text.len() < word.len() || !text[..word.len()].eq_ignore_ascii_case(word) {
-        return None;
-    }
-
-    let rest = &text[word.len()..];
-    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
-        return None;
-    }
-
-    Some(rest)
 }
 
 fn parse_direction(text: &str) -> Option<LayoutDirection> {

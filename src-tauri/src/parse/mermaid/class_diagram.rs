@@ -18,7 +18,7 @@ use crate::model::{
     Node, NodeData, NodeShape, Routing, Span, Visibility,
 };
 
-use super::super::ImportResult;
+use super::super::{ImportResult, strip_word as keyword};
 use super::strip_comment;
 
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
@@ -578,19 +578,6 @@ fn leading_multiplicity(text: &str) -> (&str, Option<String>) {
     }
 
     (name, Some(body[..close].trim().to_string()))
-}
-
-fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
-    if text.len() < word.len() || !text[..word.len()].eq_ignore_ascii_case(word) {
-        return None;
-    }
-
-    let rest = &text[word.len()..];
-    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
-        return None;
-    }
-
-    Some(rest)
 }
 
 fn parse_direction(text: &str) -> Option<LayoutDirection> {

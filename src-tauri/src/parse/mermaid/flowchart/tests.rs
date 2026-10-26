@@ -415,3 +415,128 @@ flowchart LR
     );
     assert!(crate::model::validate(&doc).ok);
 }
+
+/* --- Varios nodos con `&` -------------------------------------------------- */
+
+/// Las relaciones como `origen -> destino`, para comparar de un vistazo.
+fn flujo(doc: &Document) -> Vec<String> {
+    let nombre = |id: &str| {
+        doc.node(id)
+            .map(|n| n.label.clone())
+            .unwrap_or_else(|| "?".into())
+    };
+
+    let mut out: Vec<String> = doc
+        .edges
+        .iter()
+        .map(|e| format!("{} -> {}", nombre(&e.source.node), nombre(&e.target.node)))
+        .collect();
+    out.sort();
+    out
+}
+
+#[test]
+fn un_ampersand_declara_varios_nodos_a_un_lado() {
+    let doc = ok("flowchart LR\n  a & b --> c");
+
+    assert_eq!(doc.nodes.len(), 3);
+    assert_eq!(flujo(&doc), ["a -> c", "b -> c"]);
+}
+
+#[test]
+fn con_ampersand_a_los_dos_lados_salen_todas_las_combinaciones() {
+    // Es lo que significa en Mermaid: cada uno de la izquierda con cada uno
+    // de la derecha.
+    let doc = ok("flowchart LR\n  a & b --> c & d");
+
+    assert_eq!(doc.nodes.len(), 4);
+    assert_eq!(flujo(&doc), ["a -> c", "a -> d", "b -> c", "b -> d"]);
+}
+
+#[test]
+fn el_ampersand_de_una_etiqueta_no_parte_el_nodo() {
+    let doc = ok("flowchart LR\n  a[Ventas & Marketing] --> b");
+
+    assert_eq!(doc.nodes.len(), 2);
+    assert_eq!(node(&doc, "Ventas & Marketing").shape, NodeShape::Rectangle);
+}
+
+#[test]
+fn cada_uno_de_los_nodos_de_un_grupo_conserva_su_forma() {
+    let doc = ok("flowchart LR\n  a{Decide} & b([Empieza]) --> c");
+
+    assert_eq!(node(&doc, "Decide").shape, NodeShape::Diamond);
+    assert_eq!(node(&doc, "Empieza").shape, NodeShape::RoundedRect);
+}
+
+#[test]
+fn el_grupo_hereda_la_etiqueta_de_la_flecha() {
+    let doc = ok("flowchart LR\n  a & b -->|listo| c");
+
+    assert_eq!(doc.edges.len(), 2);
+    assert!(
+        doc.edges
+            .iter()
+            .all(|e| e.label.as_deref() == Some("listo"))
+    );
+}
+
+#[test]
+fn un_ampersand_sin_nodo_detras_es_un_error() {
+    let result = parse("flowchart LR\n  a & --> b");
+
+    assert!(!result.ok());
+    assert_eq!(codes(&result), ["badStatement"]);
+}
+
+/* --- Texto con tildes ------------------------------------------------------- */
+
+#[test]
+fn una_etiqueta_con_tildes_llega_entera() {
+    // El lector iba byte a byte y partia en dos cada letra acentuada: una
+    // `o` salia como `Ã³`.
+    let doc = ok("flowchart TD\n  a[Gestión de usuarios] --> b[Añadir artículo]");
+
+    assert_eq!(doc.nodes[0].label, "Gestión de usuarios");
+    assert_eq!(doc.nodes[1].label, "Añadir artículo");
+}
+
+#[test]
+fn un_nombre_con_tildes_fuera_de_corchetes_tampoco_se_rompe() {
+    // Este caso ademas reventaba: el indice quedaba a mitad de caracter y el
+    // siguiente corte de la cadena entraba en panico.
+    let doc = ok("flowchart LR\n  Gestión --> Año");
+
+    assert_eq!(doc.nodes[0].label, "Gestión");
+    assert_eq!(doc.nodes[1].label, "Año");
+}
+
+#[test]
+fn las_tildes_sobreviven_en_las_etiquetas_de_flecha() {
+    let doc = ok("flowchart LR\n  a -->|añadir sección| b");
+
+    assert_eq!(doc.edges[0].label.as_deref(), Some("añadir sección"));
+}
+
+#[test]
+fn y_en_la_otra_forma_de_escribir_la_etiqueta() {
+    let doc = ok("flowchart LR\n  a -- validación --> b");
+
+    assert_eq!(doc.edges[0].label.as_deref(), Some("validación"));
+}
+
+#[test]
+fn un_subgraph_con_tildes_conserva_su_nombre() {
+    let doc = ok("flowchart LR\n  subgraph Sección de ventas\n    a --> b\n  end");
+
+    assert_eq!(node(&doc, "Sección de ventas").shape, NodeShape::Package);
+}
+
+#[test]
+fn tambien_sobreviven_los_emojis_y_lo_que_ocupa_cuatro_bytes() {
+    // Mismo fallo, peor caso: un emoji son cuatro bytes.
+    let doc = ok("flowchart LR\n  a[Listo ✅] --> b[Pendiente 🕒]");
+
+    assert_eq!(doc.nodes[0].label, "Listo ✅");
+    assert_eq!(doc.nodes[1].label, "Pendiente 🕒");
+}

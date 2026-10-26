@@ -17,7 +17,7 @@ use crate::model::{
     NodeShape, NotePlacement, SequenceNote, SequenceScript, Span, Step,
 };
 
-use super::super::ImportResult;
+use super::super::{ImportResult, strip_word as keyword};
 use super::strip_comment;
 
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
@@ -619,20 +619,6 @@ fn split_alias(text: &str) -> Option<(String, String)> {
         text[..at].trim().to_string(),
         text[at + 4..].trim().to_string(),
     ))
-}
-
-/// Consume una palabra clave al principio, sin distinguir mayusculas.
-fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
-    if text.len() < word.len() || !text[..word.len()].eq_ignore_ascii_case(word) {
-        return None;
-    }
-
-    let rest = &text[word.len()..];
-    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
-        return None;
-    }
-
-    Some(rest)
 }
 
 /// Quita los saltos de linea de HTML, que es como Mermaid los escribe.

@@ -307,3 +307,36 @@ TableGroup ventas {
 "#,
     );
 }
+
+#[test]
+fn flowchart_entiende_varios_nodos_con_ampersand() {
+    entra(SourceLanguage::Mermaid, "flowchart LR\n  a & b --> c & d");
+}
+
+#[test]
+fn flowchart_no_parte_un_ampersand_de_una_etiqueta() {
+    entra(
+        SourceLanguage::Mermaid,
+        "flowchart LR\n  a[Ventas & Marketing] --> b",
+    );
+}
+
+/* --- El texto no es solo ASCII --------------------------------------------- */
+
+#[test]
+fn todos_los_idiomas_aceptan_tildes_y_enies() {
+    // El recorrido completo esta en `acentos.rs`; aqui queda la promesa de
+    // que ninguno de los tres se atraganta con ellas.
+    entra(
+        SourceLanguage::Dbml,
+        "Table artículos {\n  código integer [pk]\n}",
+    );
+    entra(
+        SourceLanguage::Mermaid,
+        "flowchart LR\n  Gestión --> b[Añadir artículo]",
+    );
+    entra(
+        SourceLanguage::PlantUml,
+        "@startuml\n[Gestión] --> [Añadir artículo]\n@enduml",
+    );
+}

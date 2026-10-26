@@ -31,7 +31,7 @@ use crate::model::{
     Routing, Span,
 };
 
-use super::super::ImportResult;
+use super::super::{ImportResult, strip_word};
 use super::strip_comment;
 
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
@@ -488,14 +488,12 @@ fn read_attribute(text: &str) -> Option<ErColumn> {
     Some(column)
 }
 
-/// Quita la palabra si la linea empieza por ella.
+/// Quita la palabra si la linea empieza por ella y trae algo detras.
+///
+/// `title` a secas no es un titulo, es una linea suelta, y lo mismo para
+/// `direction`: aqui las dos palabras piden argumento.
 fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
-    if text.len() <= word.len() || !text[..word.len()].eq_ignore_ascii_case(word) {
-        return None;
-    }
-
-    let rest = &text[word.len()..];
-    rest.starts_with(char::is_whitespace).then_some(rest)
+    strip_word(text, word).filter(|rest| !rest.is_empty())
 }
 
 fn direction_of(text: &str) -> Option<LayoutDirection> {

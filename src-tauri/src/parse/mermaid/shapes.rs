@@ -36,7 +36,12 @@ pub struct Link {
 /// Una linea completa: los nodos y las flechas que los unen.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Chain {
-    pub nodes: Vec<Declaration>,
+    /// Un grupo por cada hueco de la cadena.
+    ///
+    /// Casi siempre lleva un solo nodo, pero Mermaid admite varios unidos por
+    /// `&`: en `a & b --> c & d` los dos grupos tienen dos, y de ahi salen
+    /// cuatro relaciones.
+    pub nodes: Vec<Vec<Declaration>>,
     /// Siempre uno menos que `nodes`.
     pub links: Vec<Link>,
 }
@@ -160,23 +165,30 @@ fn arrow_at(text: &str, at: usize) -> Option<(&'static str, EdgeKind, bool, bool
 /// flecha se escriben de dos maneras —`A -->|texto| B` y `A -- texto --> B`—
 /// y las dos se entienden.
 pub fn split_chain(text: &str) -> Result<Chain, String> {
-    let mut nodes: Vec<Declaration> = Vec::new();
+    let mut nodes: Vec<Vec<Declaration>> = Vec::new();
     let mut links: Vec<Link> = Vec::new();
 
+    // Lo que se lleva acumulado del nodo actual, y los que ya cerro un `&`
+    // dentro de este mismo hueco de la cadena.
     let mut current = String::new();
+    let mut group: Vec<Declaration> = Vec::new();
+
     let mut depth = 0usize;
     let mut quoted = false;
+
+    // `index` cuenta **bytes**, porque es lo que piden los cortes de cadena,
+    // pero el caracter se lee entero. Leerlo byte a byte partia en dos cada
+    // letra acentuada —una `o` salia como `Ã³`— y ademas dejaba el indice a
+    // mitad de caracter, donde el siguiente corte revienta.
     let mut index = 0usize;
 
-    let bytes = text.as_bytes();
-
-    while index < text.len() {
-        let c = bytes[index] as char;
+    while let Some(c) = text[index..].chars().next() {
+        let width = c.len_utf8();
 
         if c == '"' {
             quoted = !quoted;
             current.push(c);
-            index += 1;
+            index += width;
             continue;
         }
 
@@ -187,13 +199,23 @@ pub fn split_chain(text: &str) -> Result<Chain, String> {
                 _ => {}
             }
 
+            // `a & b --> c` son dos nodos a este lado de la flecha. Dentro de
+            // una etiqueta no: `[Ventas & Marketing]` es un nombre.
+            if depth == 0 && c == '&' {
+                group.push(declaration(&current)?);
+                current.clear();
+                index += width;
+                continue;
+            }
+
             // Una flecha solo cuenta fuera de los delimitadores de etiqueta:
             // `A[a-->b]` es un nodo, no dos.
             if depth == 0
                 && let Some((pattern, kind, dashed, thick)) = arrow_at(text, index)
             {
-                nodes.push(declaration(&current)?);
+                group.push(declaration(&current)?);
                 current.clear();
+                nodes.push(std::mem::take(&mut group));
                 index += pattern.len();
 
                 let label = read_arrow_label(text, &mut index);
@@ -211,18 +233,20 @@ pub fn split_chain(text: &str) -> Result<Chain, String> {
                 && text[index..].starts_with("--")
                 && let Some(link) = read_dashed_label(text, &mut index)
             {
-                nodes.push(declaration(&current)?);
+                group.push(declaration(&current)?);
                 current.clear();
+                nodes.push(std::mem::take(&mut group));
                 links.push(link);
                 continue;
             }
         }
 
         current.push(c);
-        index += 1;
+        index += width;
     }
 
-    nodes.push(declaration(&current)?);
+    group.push(declaration(&current)?);
+    nodes.push(group);
 
     if nodes.len() != links.len() + 1 {
         return Err("La linea tiene flechas sueltas sin nodo a un lado.".into());

@@ -209,19 +209,7 @@ pub fn read_token(text: &str) -> Option<(String, &str)> {
     Some((text[1..end].trim().to_string(), &text[end + 1..]))
 }
 
-/// Consume una palabra suelta al principio, sin distinguir mayusculas.
-pub fn strip_word<'a>(text: &'a str, word: &str) -> Option<&'a str> {
-    if text.len() < word.len() || !text[..word.len()].eq_ignore_ascii_case(word) {
-        return None;
-    }
-
-    let rest = &text[word.len()..];
-    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
-        return None;
-    }
-
-    Some(rest)
-}
+pub(crate) use crate::parse::strip_word;
 
 /// Quita los signos que rodean a la referencia de un elemento dentro de una
 /// relacion: los de las tres formas cortas y las comillas.

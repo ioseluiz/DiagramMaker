@@ -279,18 +279,27 @@ impl Parser {
             return;
         }
 
-        let mut previous: Option<usize> = None;
+        let mut previous: Option<Vec<usize>> = None;
 
-        for (position, declaration) in pieces.nodes.iter().enumerate() {
-            let index = self.node_for(declaration, line, column);
+        for (position, group) in pieces.nodes.iter().enumerate() {
+            let indices: Vec<usize> = group
+                .iter()
+                .map(|declaration| self.node_for(declaration, line, column))
+                .collect();
 
-            if let Some(from) = previous {
-                // Hay tantas flechas como huecos entre nodos.
+            if let Some(from) = &previous {
+                // Hay tantas flechas como huecos entre nodos, y cada flecha
+                // une todo lo de un lado con todo lo del otro: `a & b --> c & d`
+                // son cuatro relaciones, que es lo que significa en Mermaid.
                 let link = &pieces.links[position - 1];
-                self.add_edge(from, index, link);
+                for &source in from {
+                    for &target in &indices {
+                        self.add_edge(source, target, link);
+                    }
+                }
             }
 
-            previous = Some(index);
+            previous = Some(indices);
         }
     }
 

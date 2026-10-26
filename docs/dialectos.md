@@ -55,6 +55,11 @@ escribirse en Mermaid; lo que sí se escribe es el `FK` del atributo.
 delimitadores, `subgraph` anidados, los tipos de flecha y las etiquetas, y
 `style` para el color de un nodo concreto.
 
+También varios nodos a un lado de la flecha con `&`: `a & b --> c & d` son
+cuatro relaciones, cada uno de la izquierda con cada uno de la derecha. Un `&`
+dentro de una etiqueta —`[Ventas & Marketing]`— es parte del nombre y no
+reparte nada.
+
 **No entra**: `classDef` y `class`, porque los estilos por clase no tienen
 dónde guardarse en el documento; `linkStyle` y `click`. Se avisa de los
 cuatro y la lectura sigue.
