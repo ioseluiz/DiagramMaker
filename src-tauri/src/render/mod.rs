@@ -10,6 +10,7 @@
 //! `RenderInput`. Recalcularlos aqui con otra tipografia u otro algoritmo de
 //! ruteo es justo lo que haria que el PNG no se pareciera al lienzo.
 
+pub mod color;
 pub mod lane;
 pub mod pdf;
 pub mod raster;

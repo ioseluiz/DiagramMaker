@@ -551,8 +551,11 @@ fn un_er_con_grupo_color_y_texto_se_exporta_entero() {
 
     assert!(out.contains("Ventas"), "falta el nombre del grupo");
     assert!(out.contains("Esquema provisional"), "falta el texto suelto");
+    // Traducido a la forma clasica: el documento lo guarda como lo escribe
+    // el navegador y el exportador solo entiende esta. Que el color acabe
+    // siendo el que toca —y no negro— lo mide `tests/colores.rs`.
     assert!(
-        out.contains("rgb(37 99 235 / 0.16)"),
+        out.contains("rgba(37, 99, 235, 0.16)"),
         "falta el color de la tabla"
     );
 

@@ -15,7 +15,9 @@ use crate::model::shape_geometry::{
 };
 use crate::model::{ClassBox, Document, Edge, ErTable, Node, Rect};
 
-use super::{EdgePath, HOP_RADIUS, Hop, LabelLayout, LabelPlacement, RenderInput, RenderTheme};
+use super::{
+    EdgePath, HOP_RADIUS, Hop, LabelLayout, LabelPlacement, RenderInput, RenderTheme, color,
+};
 
 /// Alto de la solapa del paquete; debe coincidir con `shape_geometry`.
 const TAB_HEIGHT: f64 = 22.0;
@@ -132,6 +134,13 @@ pub(super) fn n(value: f64) -> String {
 
 /// Genera el SVG completo.
 pub fn render(input: &RenderInput) -> String {
+    // Los colores llegan como los escribe el navegador, y `resvg` no entiende
+    // toda esa sintaxis: lo que no reconoce lo pinta negro. Traducirlos aqui,
+    // una vez y todos juntos, es lo unico que garantiza que no se cuele
+    // ninguno por un sitio de los de abajo. Ver `color`.
+    let saneado = color::sanitized(input);
+    let input = &saneado;
+
     let view = viewport(input);
     let theme = &input.theme;
 

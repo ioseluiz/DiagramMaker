@@ -22,7 +22,10 @@ export interface Swatch {
 const ALPHA = 0.16;
 
 function tint(r: number, g: number, b: number): string {
-  return `rgb(${r} ${g} ${b} / ${ALPHA})`;
+  // La forma clasica con comas, no `rgb(r g b / a)` de CSS Color 4. El
+  // navegador entiende las dos; el exportador solo esta, y lo que no
+  // entiende lo pinta negro. Ver `src-tauri/src/render/color.rs`.
+  return `rgba(${r}, ${g}, ${b}, ${ALPHA})`;
 }
 
 export const SWATCHES: readonly Swatch[] = [
