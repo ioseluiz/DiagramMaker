@@ -1,4 +1,4 @@
-import { SWATCHES, swatchPreview } from "@/model/palette";
+import { SWATCHES } from "@/model/palette";
 
 /**
  * Selector de relleno.
@@ -28,7 +28,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
             title={swatch.name}
             className="swatches__item"
             data-empty={swatch.value === null || undefined}
-            style={{ background: swatchPreview(swatch.value) }}
+            style={{ background: swatch.preview }}
             onClick={() => onChange(swatch.value)}
           />
         );

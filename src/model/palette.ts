@@ -5,10 +5,6 @@
  * con alfa se compone sobre el fondo que haya debajo, asi que el mismo valor
  * da un azul palido sobre fondo claro y un azul profundo sobre fondo oscuro.
  * El texto puede seguir siendo el del tema en ambos casos.
- *
- * Con colores solidos haria falta calcular un color de texto que contraste y
- * mantener ese calculo igual en el lienzo y en el exportador de Rust. Esto
- * evita el problema entero.
  */
 
 export interface Swatch {
@@ -16,32 +12,50 @@ export interface Swatch {
   name: string;
   /** `null` = sin color, usa el del tema. */
   value: string | null;
+  /** Color con el que se pinta el boton del selector. */
+  preview: string;
 }
 
 /** Opacidad de los tintes. Suficiente para distinguir, sin tapar el texto. */
-const ALPHA = 0.16;
+export const ALPHA = 0.16;
+/** La del boton del selector: a 0.16 la muestra seria invisible. */
+const PREVIEW_ALPHA = 0.55;
 
-function tint(r: number, g: number, b: number): string {
-  // La forma clasica con comas, no `rgb(r g b / a)` de CSS Color 4. El
-  // navegador entiende las dos; el exportador solo esta, y lo que no
-  // entiende lo pinta negro. Ver `src-tauri/src/render/color.rs`.
-  return `rgba(${r}, ${g}, ${b}, ${ALPHA})`;
+/**
+ * Un color con la opacidad dada, en la forma clasica con comas.
+ *
+ * No `rgb(r g b / a)` de CSS Color 4: el navegador entiende las dos, pero el
+ * exportador solo esta, y lo que no entiende lo pinta negro. Ver
+ * `src-tauri/src/render/color.rs`.
+ */
+export function rgba(r: number, g: number, b: number, alpha: number): string {
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export const SWATCHES: readonly Swatch[] = [
-  { name: "Sin color", value: null },
-  { name: "Azul", value: tint(37, 99, 235) },
-  { name: "Verde", value: tint(21, 128, 61) },
-  { name: "Ambar", value: tint(217, 119, 6) },
-  { name: "Rojo", value: tint(194, 52, 29) },
-  { name: "Morado", value: tint(124, 58, 237) },
-  { name: "Turquesa", value: tint(13, 148, 136) },
-  { name: "Gris", value: tint(100, 116, 139) },
+/**
+ * Los tintes, por sus componentes.
+ *
+ * El valor guardado y el del boton salen los dos de aqui. Antes el boton se
+ * sacaba buscando y sustituyendo el alfa dentro del texto del color ya
+ * montado, y eso se rompio en silencio en cuanto cambio la forma de
+ * escribirlo: las muestras se quedaron al 16 % y casi no se veian. Generar
+ * los dos de la misma fuente quita esa clase de fallo, no solo ese caso.
+ */
+const TINTS: readonly (readonly [string, number, number, number])[] = [
+  ["Azul", 37, 99, 235],
+  ["Verde", 21, 128, 61],
+  ["Ambar", 217, 119, 6],
+  ["Rojo", 194, 52, 29],
+  ["Morado", 124, 58, 237],
+  ["Turquesa", 13, 148, 136],
+  ["Gris", 100, 116, 139],
 ];
 
-/** Color con el que pintar la muestra del selector, ya opaco para que se vea. */
-export function swatchPreview(value: string | null): string {
-  if (!value) return "transparent";
-  // La misma tinta al triple de opacidad: a 0.16 la muestra seria invisible.
-  return value.replace(`/ ${ALPHA}`, "/ 0.55");
-}
+export const SWATCHES: readonly Swatch[] = [
+  { name: "Sin color", value: null, preview: "transparent" },
+  ...TINTS.map(([name, r, g, b]) => ({
+    name,
+    value: rgba(r, g, b, ALPHA),
+    preview: rgba(r, g, b, PREVIEW_ALPHA),
+  })),
+];
