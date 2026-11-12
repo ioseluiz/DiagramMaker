@@ -28,6 +28,9 @@ use crate::model::sequence::Step;
 
 pub fn check(doc: &Document, out: &mut Vec<Diagnostic>) {
     match doc.kind {
+        // Las reglas propias del conceptual llegan en su paso; de momento no
+        // hay ninguna que no comparta con los demas.
+        DiagramKind::Conceptual => {}
         DiagramKind::Er => er(doc, out),
         DiagramKind::Class => class(doc, out),
         DiagramKind::State => {

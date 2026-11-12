@@ -1441,3 +1441,67 @@ describe("trazo de una relacion", () => {
     expect(doc.edges[0]!.routing).toBe("straight");
   });
 });
+
+describe("modelo conceptual", () => {
+  /** Dos entidades sueltas, sin columnas: lo que hay en un conceptual. */
+  function dosEntidades(): Document {
+    return produce({ ...emptyDoc(), kind: "conceptual" as const }, (d) => {
+      addNode(d, { shape: "rectangle", label: "CLIENTE", x: 0, y: 0 });
+      addNode(d, { shape: "rectangle", label: "PEDIDO", x: 400, y: 0 });
+    });
+  }
+
+  it("al conectar deja la cardinalidad puesta y a la vista", () => {
+    // Dejarla vacia no es neutro: `relationKindOf` devuelve "uno a uno" por
+    // descarte, asi que la relacion se mostraria como uno a uno sin que nadie
+    // lo eligiera, y el generador de Mermaid escribe `||--||` cuando no hay
+    // etiquetas. El defecto existe igual; este al menos se ve.
+    const doc = run(dosEntidades(), (d) => {
+      connect(d, d.nodes[0]!.id, d.nodes[1]!.id);
+    });
+
+    const edge = doc.edges[0]!;
+    expect(edge.source.label).toBe("1");
+    expect(edge.target.label).toBe("*");
+    expect(relationKindOf(edge)).toBe("oneToMany");
+  });
+
+  it("y en arquitectura no la pone, que ahi no significa nada", () => {
+    const doc = run(emptyDoc(), (d) => {
+      const a = addNode(d, { shape: "rectangle", label: "A", x: 0, y: 0 });
+      const b = addNode(d, { shape: "rectangle", label: "B", x: 400, y: 0 });
+      connect(d, a, b);
+    });
+
+    expect(doc.edges[0]!.source.label ?? null).toBeNull();
+    expect(doc.edges[0]!.target.label ?? null).toBeNull();
+  });
+
+  it("cambiar la cardinalidad sin columnas solo mueve las etiquetas", () => {
+    // `setRelationKind` ademas recalcula que columna es la clave ajena. En el
+    // conceptual no hay columnas y los extremos no llevan puerto: tiene que
+    // salirse por ahi sin tocar ningun nodo.
+    const conectado = run(dosEntidades(), (d) => {
+      connect(d, d.nodes[0]!.id, d.nodes[1]!.id);
+    });
+
+    const despues = run(conectado, (d) =>
+      setRelationKind(d, d.edges[0]!.id, "manyToMany"),
+    );
+
+    expect(despues.edges[0]!.source.label).toBe("*");
+    expect(despues.edges[0]!.target.label).toBe("*");
+    expect(despues.nodes).toEqual(conectado.nodes);
+  });
+
+  it("las cuatro cardinalidades van y vuelven por su nombre", () => {
+    const conectado = run(dosEntidades(), (d) => {
+      connect(d, d.nodes[0]!.id, d.nodes[1]!.id);
+    });
+
+    for (const kind of ["manyToOne", "oneToMany", "oneToOne", "manyToMany"] as const) {
+      const doc = run(conectado, (d) => setRelationKind(d, d.edges[0]!.id, kind));
+      expect(relationKindOf(doc.edges[0]!)).toBe(kind);
+    }
+  });
+});

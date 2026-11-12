@@ -26,6 +26,9 @@ import "./CodePanel.css";
  * y no un panel vacio.
  */
 const LANGUAGES_BY_KIND: Record<DiagramKind, SourceLanguage[]> = {
+  // DBML no entra en el conceptual: es un idioma de tablas y columnas, y un
+  // modelo conceptual no las tiene. Emitirlo obligaria a inventarlas.
+  conceptual: ["mermaid"],
   er: ["dbml", "mermaid"],
   architecture: ["mermaid", "plantUml"],
   sequence: ["mermaid", "plantUml"],

@@ -328,9 +328,9 @@ function GraphCanvasImpl({ document }: GraphCanvasProps) {
 
       const items: MenuItem[] = [];
 
-      // En un entidad-relacion, cambiar la cardinalidad es lo que mas se hace
+      // En un modelo de datos, cambiar la cardinalidad es lo que mas se hace
       // sobre una relacion ya creada; tenerlo aqui ahorra ir al inspector.
-      if (document.kind === "er") {
+      if (document.kind === "er" || document.kind === "conceptual") {
         const current = relationKindOf(relation);
 
         for (const kind of Object.keys(RELATION_LABELS) as RelationKind[]) {

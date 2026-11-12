@@ -21,6 +21,9 @@ import { RecentMenu } from "./RecentMenu";
 import { useDocumentCommands } from "./useDocumentCommands";
 
 const DIAGRAM_LABEL: Record<DiagramKind, string> = {
+  // El conceptual delante del entidad-relacion: este objeto manda el orden
+  // del desplegable, y un modelo de datos se piensa en ese orden.
+  conceptual: "Modelo conceptual",
   er: "Entidad-relacion",
   architecture: "Arquitectura",
   class: "Clases",

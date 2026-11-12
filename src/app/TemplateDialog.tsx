@@ -7,6 +7,7 @@ import { openTemplate } from "./openTemplate";
 import "./TemplateDialog.css";
 
 const KIND_LABEL: Record<DiagramKind, string> = {
+  conceptual: "Modelo conceptual",
   er: "Entidad-relación",
   architecture: "Arquitectura",
   class: "Clases",

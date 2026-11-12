@@ -143,6 +143,20 @@ export function connect(
     setRelationKind(draft, id, "manyToOne");
   }
 
+  // En el conceptual no hay columnas que unir, pero dejar la cardinalidad sin
+  // poner tampoco es neutro: `relationKindOf` devuelve "uno a uno" por
+  // descarte, asi que una relacion recien hecha se **mostraria** como uno a
+  // uno en una lista cerrada sin que nadie lo eligiera, y el generador de
+  // Mermaid ya escribe `||--||` cuando no hay etiquetas. El valor por defecto
+  // existe de todos modos; mejor uno visible, que se cambia con un clic, que
+  // uno escondido en el generador que aparece al exportar.
+  //
+  // Uno a muchos porque el gesto va de la entidad fuerte a la debil: un
+  // cliente hace pedidos.
+  if (draft.kind === "conceptual") {
+    setRelationKind(draft, id, "oneToMany");
+  }
+
   return id;
 }
 

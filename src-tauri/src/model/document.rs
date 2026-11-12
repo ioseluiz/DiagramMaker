@@ -14,6 +14,10 @@ pub const SCHEMA_VERSION: u32 = 1;
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../src/model/generated/")]
 pub enum DiagramKind {
+    /// Entidades y relaciones, sin columnas ni tipos: el nivel con el que se
+    /// habla con el negocio antes de decidir claves. El `Er` de aqui al lado
+    /// es su version logica.
+    Conceptual,
     Er,
     Architecture,
     Class,
@@ -33,6 +37,7 @@ impl DiagramKind {
 
     pub fn title(self) -> &'static str {
         match self {
+            DiagramKind::Conceptual => "Modelo conceptual",
             DiagramKind::Er => "Entidad-relacion",
             DiagramKind::Architecture => "Arquitectura",
             DiagramKind::Class => "Clases",

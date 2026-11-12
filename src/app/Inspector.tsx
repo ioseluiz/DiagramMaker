@@ -215,12 +215,15 @@ export function Inspector() {
             </select>
           </Field>
           {/*
-            En un entidad-relacion la cardinalidad son cuatro casos, no texto
-            libre: dejarla abierta invita a escribir `N` o `muchos` y que
-            luego el generador de DBML no sepa que hacer con ello. En el
-            resto de diagramas la multiplicidad si es libre.
+            En los dos modelos de datos la cardinalidad son cuatro casos, no
+            texto libre: dejarla abierta invita a escribir `N` o `muchos` y
+            que luego el generador no sepa que hacer con ello. En el resto de
+            diagramas la multiplicidad si es libre.
+
+            Las columnas solo existen en el logico; en el conceptual una
+            relacion une entidades enteras.
           */}
-          {doc.kind === "er" ? (
+          {doc.kind === "er" || doc.kind === "conceptual" ? (
             <>
               <Field label="Cardinalidad">
                 <select
@@ -238,9 +241,11 @@ export function Inspector() {
                   ))}
                 </select>
               </Field>
-              <Field label="Columnas">
-                <span className="inspector__readonly">{columnsOf(doc, edge)}</span>
-              </Field>
+              {doc.kind === "er" && (
+                <Field label="Columnas">
+                  <span className="inspector__readonly">{columnsOf(doc, edge)}</span>
+                </Field>
+              )}
             </>
           ) : (
             <>

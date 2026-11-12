@@ -14,6 +14,9 @@ import { addClass, addNode, addTable } from "@/store/operations";
  * cada uno tenga el suyo.
  */
 const PALETTE_BY_KIND: Partial<Record<DiagramKind, NodeShape[]>> = {
+  // En el conceptual una entidad es un rectangulo con su nombre y nada mas:
+  // las columnas son del nivel logico. El paquete sirve para agrupar areas.
+  conceptual: ["rectangle", "package", "note", "text"],
   er: ["table", "package", "note", "text"],
   class: ["class", "package", "note", "text"],
   // En una maquina de estados lo que se dibuja son estados redondeados, sus
