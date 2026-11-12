@@ -33,7 +33,34 @@ operadores (`>`, `<`, `-`, `<>`), `Enum`, `TableGroup`, `Project` y notas.
 `UK` y comentario, nombres entrecomillados, alias (`PEDIDO["Pedido"]`),
 `title` y `direction`.
 
-**Dos pérdidas, las dos a propósito:**
+**El nivel se marca, no se adivina.** Un modelo conceptual y un
+entidad-relación sin columnas se escriben igual en `erDiagram`. Lo que los
+distingue es un comentario:
+
+```
+erDiagram
+  %% diagramMaker: conceptual
+  CLIENTE ||--o{ PEDIDO : "hace"
+```
+
+Mermaid ignora los comentarios, así que el código se sigue dibujando en
+cualquier visor. Sin la marca, el código entra como entidad-relación con las
+tablas vacías —el validador avisa— y basta cambiar el tipo en la barra para
+pasarlo a conceptual.
+
+Se marca en vez de deducirlo de que no haya atributos porque eso cambiaría el
+significado de un texto ya soportado en función de algo que puede estar en la
+última línea: un esquema a medio rellenar dejaría de ser un entidad-relación
+sin decir nada.
+
+**Tres pérdidas, las tres a propósito:**
+
+- En un **modelo conceptual** una entidad no tiene dónde guardar el alias de
+  `PEDIDO["Pedido de venta"]`, porque no lleva tabla: se dibuja el texto, se
+  pierde el identificador y se avisa con `aliasIgnored`. No es grave, porque
+  un nombre con espacios va y vuelve entrecomillado sin necesitar alias. Un
+  bloque de atributos dentro de un conceptual avisa con
+  `attributeInConceptual` por el mismo motivo.
 
 - Mermaid distingue «cero o uno» de «exactamente uno», y «cero o varios» de
   «uno o varios». El documento solo guarda `1` y `*`, porque la cardinalidad

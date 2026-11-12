@@ -84,7 +84,9 @@ impl SourceLanguage {
     pub fn label(self) -> &'static str {
         match self {
             SourceLanguage::Dbml => "DBML (dbdiagram.io)",
-            SourceLanguage::Mermaid => "Mermaid (flowchart, secuencia, clases y estados)",
+            SourceLanguage::Mermaid => {
+                "Mermaid (flowchart, erDiagram, secuencia, clases y estados)"
+            }
             SourceLanguage::PlantUml => "PlantUML (componentes, secuencia, clases y estados)",
         }
     }

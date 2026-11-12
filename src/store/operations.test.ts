@@ -31,6 +31,7 @@ import {
   setEndpointSide,
   setLabel,
   setNodeC4Level,
+  setDiagramKind,
   setNodeFill,
   setNodeFontSize,
   setNodeParent,
@@ -1503,5 +1504,103 @@ describe("modelo conceptual", () => {
       const doc = run(conectado, (d) => setRelationKind(d, d.edges[0]!.id, kind));
       expect(relationKindOf(doc.edges[0]!)).toBe(kind);
     }
+  });
+});
+
+describe("cambiar entre los dos modelos de datos", () => {
+  /** Un entidad-relacion con una tabla vacia y otra con columnas. */
+  function erMixto(): Document {
+    return produce({ ...emptyDoc(), kind: "er" as const }, (d) => {
+      addTable(d, { label: "VACIA", x: 0, y: 0 });
+      addTable(d, { label: "CON_COLUMNAS", x: 400, y: 0 });
+      // `addTable` ya crea una PK; a la primera se le quita para dejarla vacia.
+      const vacia = d.nodes[0]!;
+      if (vacia.data.type === "er") vacia.data.columns = [];
+    });
+  }
+
+  it("al pasar a conceptual, una tabla vacia se vuelve entidad", () => {
+    const doc = run(erMixto(), (d) => setDiagramKind(d, "conceptual"));
+    const vacia = doc.nodes[0]!;
+
+    expect(vacia.shape).toBe("rectangle");
+    expect(vacia.data.type).toBe("plain");
+  });
+
+  it("pero una tabla con columnas no se toca", () => {
+    // Borrarle las columnas a alguien porque cambio de desplegable seria
+    // peor que dejarlas a la vista. El validador ya avisa de que sobran.
+    const antes = erMixto();
+    const doc = run(antes, (d) => setDiagramKind(d, "conceptual"));
+    const conColumnas = doc.nodes[1]!;
+
+    expect(conColumnas.shape).toBe("table");
+    expect(conColumnas.data).toEqual(antes.nodes[1]!.data);
+  });
+
+  it("y la geometria se recalcula al cambiar de forma", () => {
+    // Sin esto la entidad conservaria el alto de la cabecera de la tabla.
+    const antes = erMixto();
+    const doc = run(antes, (d) => setDiagramKind(d, "conceptual"));
+
+    expect(doc.nodes[0]!.geometry).not.toEqual(antes.nodes[0]!.geometry);
+    expect(doc.nodes[0]!.geometry!.height).toBeGreaterThan(0);
+  });
+
+  it("ida y vuelta sin columnas devuelve la tabla tal cual estaba", () => {
+    const antes = produce({ ...emptyDoc(), kind: "er" as const }, (d) => {
+      addTable(d, { label: "CLIENTE", x: 0, y: 0 });
+      const n = d.nodes[0]!;
+      if (n.data.type === "er") n.data.columns = [];
+    });
+
+    const ida = run(antes, (d) => setDiagramKind(d, "conceptual"));
+    const vuelta = run(ida, (d) => setDiagramKind(d, "er"));
+
+    expect(vuelta.nodes[0]!.shape).toBe(antes.nodes[0]!.shape);
+    expect(vuelta.nodes[0]!.data).toEqual(antes.nodes[0]!.data);
+    expect(vuelta.nodes[0]!.geometry!.x).toBe(antes.nodes[0]!.geometry!.x);
+    expect(vuelta.nodes[0]!.geometry!.y).toBe(antes.nodes[0]!.geometry!.y);
+  });
+
+  it("y repetirla no mueve nada mas", () => {
+    // El alto no vuelve al que habia: la caja se recalcula, y una tabla sin
+    // columnas es mas baja que la que la tenia. Lo que si tiene que pasar es
+    // que a partir de la primera vuelta el documento ya no cambie, o cada
+    // paso por el desplegable iria encogiendo el diagrama.
+    const antes = produce({ ...emptyDoc(), kind: "er" as const }, (d) => {
+      addTable(d, { label: "CLIENTE", x: 0, y: 0 });
+      const n = d.nodes[0]!;
+      if (n.data.type === "er") n.data.columns = [];
+    });
+
+    const una = run(
+      run(antes, (d) => setDiagramKind(d, "conceptual")),
+      (d) => setDiagramKind(d, "er"),
+    );
+    const dos = run(
+      run(una, (d) => setDiagramKind(d, "conceptual")),
+      (d) => setDiagramKind(d, "er"),
+    );
+
+    expect(dos.nodes).toEqual(una.nodes);
+  });
+
+  it("venir de arquitectura no convierte los rectangulos en tablas", () => {
+    // La vuelta solo vale desde el conceptual: en cualquier otro tipo un
+    // rectangulo es un rectangulo, y volverlo tabla seria rehacer el dibujo.
+    const arq = run(emptyDoc(), (d) => {
+      addNode(d, { shape: "rectangle", label: "Portal", x: 0, y: 0 });
+    });
+
+    const doc = run(arq, (d) => setDiagramKind(d, "er"));
+
+    expect(doc.nodes[0]!.shape).toBe("rectangle");
+    expect(doc.nodes[0]!.data.type).toBe("plain");
+  });
+
+  it("cambiar al mismo tipo no toca nada", () => {
+    const antes = erMixto();
+    expect(run(antes, (d) => setDiagramKind(d, "er"))).toBe(antes);
   });
 });

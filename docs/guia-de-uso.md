@@ -1,6 +1,6 @@
 # Guía de uso
 
-DiagramMaker produce los seis tipos de diagrama que aparecen a diario en
+DiagramMaker produce los ocho tipos de diagrama que aparecen a diario en
 documentación técnica. Se puede llegar a un diagrama por dos caminos, y los
 dos acaban en el mismo sitio: un documento editable.
 
@@ -72,11 +72,28 @@ la última letra, no la última operación del diagrama. La excepción es
 Arrastrar la punta de una relación la reengancha a otro nodo o a otro lado sin
 perder su etiqueta ni su tipo.
 
-## Los seis tipos
+## Los ocho tipos
+
+### Modelo conceptual
+
+Entidades con nombre y nada más dentro, unidas por relaciones con un verbo y
+una cardinalidad. Es el nivel con el que se habla con el negocio: qué cosas
+hay y cómo se relacionan, antes de decidir tipos ni claves.
+
+La diferencia con el entidad-relación de aquí abajo es de nivel, no de
+dibujo: **el conceptual es el nivel lógico sin columnas**. Si el diagrama ya
+habla de `varchar(160)` o de claves ajenas, el que toca es el otro.
+
+Al unir dos entidades queda puesta una cardinalidad de uno a muchos, que se
+cambia desde el inspector o con el botón derecho sobre la relación. Se dibuja
+`*` donde otras herramientas escriben `0..*`.
+
+Entra y sale en `erDiagram` de Mermaid, marcado con un comentario. Ver
+[dialectos](dialectos.md).
 
 ### Entidad-relación
 
-Tablas con columnas, tipos, claves primarias y ajenas, unicidad y nulabilidad.
+Es el nivel **lógico** del modelo anterior. Tablas con columnas, tipos, claves primarias y ajenas, unicidad y nulabilidad.
 Cada fila de una tabla tiene su propio conector: arrastrar de una columna a
 otra declara la relación, marca la clave ajena en el lado «muchos» y deja la
 cardinalidad elegible entre las cuatro combinaciones de `1` y `*`.
@@ -151,6 +168,7 @@ y permite copiarlo o guardarlo. Qué idiomas ofrece depende del tipo:
 
 | Tipo | Idiomas |
 | --- | --- |
+| Modelo conceptual | Mermaid |
 | Entidad-relación | DBML, Mermaid |
 | Arquitectura, clases, secuencia, estado | Mermaid, PlantUML |
 | Casos de uso, actividad | PlantUML |

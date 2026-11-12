@@ -389,12 +389,85 @@ export function setTitle(draft: Document, title: string): void {
  * codigo.
  */
 export function setDiagramKind(draft: Document, kind: DiagramKind): void {
+  const antes = draft.kind;
+  if (antes === kind) return;
+
   draft.kind = kind;
 
   // Una secuencia necesita guion desde el primer momento: es donde vive todo
   // lo que la define. Al cambiar a otro tipo se conserva, porque volver a
   // secuencia tiene que devolver el diagrama que habia.
   if (kind === "sequence") draft.script ??= { steps: [] };
+
+  convertirEntidades(draft, antes, kind);
+}
+
+/**
+ * Pasa las entidades a la forma que les toca en el tipo nuevo.
+ *
+ * Entre los dos modelos de datos solo se convierte lo **reversible**. Una
+ * tabla sin columnas y una entidad conceptual son la misma cosa escrita de
+ * dos maneras: pasar de una a otra no pierde nada, y la vuelta deja el
+ * documento igual que estaba.
+ *
+ * Una tabla **con** columnas no se toca. Dejarla a la vista y avisar —de eso
+ * se encarga `columnsInConceptual`— es peor de ver y mejor de tener que
+ * borrarle las columnas a alguien porque cambio de desplegable.
+ */
+function convertirEntidades(
+  draft: Document,
+  antes: DiagramKind,
+  kind: DiagramKind,
+): void {
+  if (kind === "conceptual") {
+    for (const node of draft.nodes) {
+      if (node.shape !== "table") continue;
+      if (node.data.type === "er" && node.data.columns.length > 0) continue;
+
+      node.shape = "rectangle";
+      node.data = { type: "plain" };
+      ajustarACaja(node, "rectangle");
+    }
+    return;
+  }
+
+  // La vuelta es puramente aditiva: la tabla nace vacia. Solo desde el
+  // conceptual, porque en cualquier otro tipo un rectangulo es un rectangulo
+  // y convertirlo en tabla seria rehacerle el dibujo a quien lo puso.
+  if (antes === "conceptual" && kind === "er") {
+    for (const node of draft.nodes) {
+      if (node.shape !== "rectangle") continue;
+
+      node.shape = "table";
+      node.data = { type: "er", columns: [] };
+      ajustarACaja(node, "table");
+    }
+  }
+}
+
+/**
+ * Recalcula el tamano al cambiar de forma.
+ *
+ * Sin esto la caja se queda con las medidas de la forma anterior: una tabla
+ * convertida en entidad conservaria el alto de su cabecera. Se mide aqui, en
+ * el navegador, que es donde se mide el texto en este proyecto.
+ */
+function ajustarACaja(node: Node, shape: NodeShape): void {
+  let width: number;
+  let height: number;
+
+  if (shape === "table") {
+    ({ width, height } = tableSize(node));
+  } else {
+    [width, height] = defaultSizeFor(shape);
+  }
+
+  node.geometry = {
+    x: node.geometry?.x ?? 0,
+    y: node.geometry?.y ?? 0,
+    width,
+    height,
+  };
 }
 
 /* --- Tablas entidad-relacion -------------------------------------------- */

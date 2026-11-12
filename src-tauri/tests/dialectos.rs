@@ -340,3 +340,60 @@ fn todos_los_idiomas_aceptan_tildes_y_enies() {
         "@startuml\n[Gestión] --> [Añadir artículo]\n@enduml",
     );
 }
+
+/* --- Mermaid: modelo conceptual --------------------------------------------- */
+
+#[test]
+fn el_conceptual_se_marca_con_un_comentario() {
+    entra(
+        SourceLanguage::Mermaid,
+        "erDiagram\n\
+         \x20 %% diagramMaker: conceptual\n\
+         \x20 CLIENTE ||--o{ PEDIDO : \"hace\"",
+    );
+
+    let doc = parse::import(
+        SourceLanguage::Mermaid,
+        "erDiagram\n  %% diagramMaker: conceptual\n  CLIENTE ||--o{ PEDIDO : \"hace\"",
+        0,
+    )
+    .document;
+
+    assert_eq!(doc.kind, diagrammaker_lib::model::DiagramKind::Conceptual);
+}
+
+#[test]
+fn sin_la_marca_el_mismo_codigo_es_entidad_relacion() {
+    // El documento promete que el nivel se marca y no se deduce de que no
+    // haya atributos. Esta es esa promesa.
+    let doc = parse::import(
+        SourceLanguage::Mermaid,
+        "erDiagram\n  CLIENTE ||--o{ PEDIDO : \"hace\"",
+        0,
+    )
+    .document;
+
+    assert_eq!(doc.kind, diagrammaker_lib::model::DiagramKind::Er);
+}
+
+#[test]
+fn el_alias_en_un_conceptual_se_avisa() {
+    se_dice(
+        SourceLanguage::Mermaid,
+        "erDiagram\n\
+         \x20 %% diagramMaker: conceptual\n\
+         \x20 PEDIDO[\"Pedido de venta\"]",
+    );
+}
+
+#[test]
+fn un_bloque_de_atributos_en_un_conceptual_se_avisa() {
+    se_dice(
+        SourceLanguage::Mermaid,
+        "erDiagram\n\
+         \x20 %% diagramMaker: conceptual\n\
+         \x20 CLIENTE {\n\
+         \x20   int id PK\n\
+         \x20 }",
+    );
+}
