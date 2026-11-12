@@ -28,9 +28,7 @@ use crate::model::sequence::Step;
 
 pub fn check(doc: &Document, out: &mut Vec<Diagnostic>) {
     match doc.kind {
-        // Las reglas propias del conceptual llegan en su paso; de momento no
-        // hay ninguna que no comparta con los demas.
-        DiagramKind::Conceptual => {}
+        DiagramKind::Conceptual => conceptual(doc, out),
         DiagramKind::Er => er(doc, out),
         DiagramKind::Class => class(doc, out),
         DiagramKind::State => {
@@ -44,6 +42,98 @@ pub fn check(doc: &Document, out: &mut Vec<Diagnostic>) {
         DiagramKind::UseCase => use_case(doc, out),
         DiagramKind::Sequence => sequence(doc, out),
         DiagramKind::Architecture => {}
+    }
+}
+
+/* --- Modelo conceptual ------------------------------------------------------- */
+
+/// `true` si el nodo es una entidad del modelo conceptual.
+///
+/// La entidad es el rectangulo. Un paquete agrupa areas, y una nota o un
+/// texto suelto son anotaciones: ninguno de los tres es una cosa del dominio.
+fn es_entidad(node: &crate::model::Node) -> bool {
+    node.shape == NodeShape::Rectangle
+}
+
+fn conceptual(doc: &Document, out: &mut Vec<Diagnostic>) {
+    // Dos entidades con el mismo nombre no son dos entidades: el generador de
+    // Mermaid las nombra por su etiqueta, asi que al volver a leer el codigo
+    // se fundirian en una y las relaciones de ambas acabarian en el mismo
+    // sitio. Es incoherencia, no descuido: error.
+    let mut vistas: HashSet<String> = HashSet::new();
+    for node in &doc.nodes {
+        if !es_entidad(node) {
+            continue;
+        }
+
+        // Una entidad conceptual no lleva columnas. Si las lleva es que el
+        // documento viene de un entidad-relacion; se dice y no se borran.
+        if node.er().is_some_and(|t| !t.columns.is_empty()) {
+            out.push(
+                Diagnostic::warning(
+                    "columnsInConceptual",
+                    format!(
+                        "`{}` lleva columnas: eso es del modelo logico. Cambia el diagrama \
+                         a entidad-relacion si querias ese nivel.",
+                        node.label
+                    ),
+                )
+                .at(&node.id),
+            );
+        }
+
+        if !vistas.insert(node.label.trim().to_lowercase()) {
+            out.push(
+                Diagnostic::error(
+                    "duplicateEntity",
+                    format!("Hay dos entidades llamadas `{}`.", node.label),
+                )
+                .at(&node.id),
+            );
+        }
+    }
+
+    for edge in &doc.edges {
+        // El verbo es la mitad del significado de un modelo conceptual: sin
+        // el, el diagrama dice que dos cosas se relacionan pero no como.
+        if edge
+            .label
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty()
+        {
+            out.push(
+                Diagnostic::warning(
+                    "unnamedRelation",
+                    "La relacion no dice que une. En un modelo conceptual el verbo es la \
+                     mitad del significado."
+                        .to_string(),
+                )
+                .at(&edge.id),
+            );
+        }
+
+        // Espejo de `relationOutsideTable`: lo que el generador se salta al
+        // escribir las entidades, aqui se avisa en vez de perderse.
+        for endpoint in [&edge.source, &edge.target] {
+            let Some(node) = doc.node(&endpoint.node) else {
+                continue;
+            };
+            if !es_entidad(node) && node.shape != NodeShape::Package {
+                out.push(
+                    Diagnostic::warning(
+                        "relationOutsideEntity",
+                        format!(
+                            "La relacion toca `{}`, que no es una entidad; no saldra en el \
+                             codigo generado.",
+                            node.label
+                        ),
+                    )
+                    .at(&edge.id),
+                );
+            }
+        }
     }
 }
 

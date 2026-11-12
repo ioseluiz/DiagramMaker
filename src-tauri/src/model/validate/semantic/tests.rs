@@ -473,3 +473,102 @@ fn las_reglas_de_un_tipo_no_se_aplican_a_otro() {
 
     assert!(codes(&d).is_empty());
 }
+
+/* --- Modelo conceptual ------------------------------------------------------- */
+
+/// Un conceptual con dos entidades unidas por una relacion con verbo.
+fn conceptual_limpio() -> Document {
+    let mut d = doc(DiagramKind::Conceptual);
+    node(&mut d, "a", "CLIENTE", NodeShape::Rectangle);
+    node(&mut d, "b", "PEDIDO", NodeShape::Rectangle);
+    edge(&mut d, "e1", "a", "b", EdgeKind::Association);
+    d.edges[0].label = Some("hace".into());
+    d
+}
+
+#[test]
+fn un_conceptual_corriente_no_se_queja() {
+    assert!(codes(&conceptual_limpio()).is_empty());
+}
+
+#[test]
+fn dos_entidades_con_el_mismo_nombre_son_un_error() {
+    // El generador de Mermaid nombra las entidades por su etiqueta: al volver
+    // a leer el codigo se fundirian en una y las relaciones de las dos
+    // acabarian en el mismo sitio.
+    let mut d = conceptual_limpio();
+    node(&mut d, "c", "cliente", NodeShape::Rectangle);
+
+    assert!(codes(&d).contains(&"duplicateEntity".to_string()));
+}
+
+#[test]
+fn una_relacion_sin_verbo_avisa() {
+    let mut d = conceptual_limpio();
+    d.edges[0].label = None;
+
+    assert_eq!(codes(&d), ["unnamedRelation"]);
+    assert_eq!(target(&d, "unnamedRelation").as_deref(), Some("e1"));
+}
+
+#[test]
+fn una_relacion_con_el_verbo_en_blanco_tambien() {
+    let mut d = conceptual_limpio();
+    d.edges[0].label = Some("   ".into());
+
+    assert_eq!(codes(&d), ["unnamedRelation"]);
+}
+
+#[test]
+fn una_entidad_con_columnas_avisa_y_no_se_le_borran() {
+    // Pasa al cambiar un entidad-relacion a conceptual. Se dice que sobran,
+    // pero no se tocan: el documento es del autor.
+    let mut d = conceptual_limpio();
+    let table = ErTable {
+        columns: vec![ErColumn::new("c1", "id")],
+        ..Default::default()
+    };
+    d.nodes[0] = Node::table("a", "CLIENTE", table);
+    d.nodes[0].shape = NodeShape::Rectangle;
+
+    assert!(codes(&d).contains(&"columnsInConceptual".to_string()));
+    assert_eq!(target(&d, "columnsInConceptual").as_deref(), Some("a"));
+    assert_eq!(d.nodes[0].er().unwrap().columns.len(), 1);
+}
+
+#[test]
+fn una_relacion_que_toca_una_nota_avisa() {
+    // El generador solo escribe entidades: una relacion contra una nota se
+    // perderia al exportar el codigo.
+    let mut d = conceptual_limpio();
+    node(&mut d, "n", "Pendiente de revisar", NodeShape::Note);
+    edge(&mut d, "e2", "a", "n", EdgeKind::Association);
+    d.edges[1].label = Some("aclara".into());
+
+    assert!(codes(&d).contains(&"relationOutsideEntity".to_string()));
+}
+
+#[test]
+fn una_relacion_que_toca_un_paquete_no_avisa() {
+    // El paquete agrupa areas del modelo; unirlo no es un descuido.
+    let mut d = conceptual_limpio();
+    node(&mut d, "p", "Ventas", NodeShape::Package);
+    edge(&mut d, "e2", "a", "p", EdgeKind::Association);
+    d.edges[1].label = Some("pertenece a".into());
+
+    assert!(codes(&d).is_empty());
+}
+
+#[test]
+fn las_reglas_del_conceptual_no_se_aplican_al_entidad_relacion() {
+    // Y al reves: un entidad-relacion con dos tablas del mismo nombre no es
+    // asunto de `duplicateEntity`, y una relacion sin verbo ahi es normal.
+    let mut d = doc(DiagramKind::Er);
+    node(&mut d, "a", "CLIENTE", NodeShape::Rectangle);
+    node(&mut d, "b", "CLIENTE", NodeShape::Rectangle);
+    edge(&mut d, "e1", "a", "b", EdgeKind::Association);
+
+    let codigos = codes(&d);
+    assert!(!codigos.contains(&"duplicateEntity".to_string()));
+    assert!(!codigos.contains(&"unnamedRelation".to_string()));
+}

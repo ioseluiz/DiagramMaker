@@ -17,6 +17,7 @@ fn hay_una_por_cada_tipo_de_diagrama() {
             "Activity",
             "Architecture",
             "Class",
+            "Conceptual",
             "Er",
             "Sequence",
             "State",

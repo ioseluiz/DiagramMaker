@@ -65,6 +65,14 @@ type Definition = (
 
 const DEFINITIONS: &[Definition] = &[
     (
+        "conceptual-biblioteca",
+        "Prestamos de una biblioteca",
+        "Entidades y relaciones con su cardinalidad, sin columnas ni tipos.",
+        DiagramKind::Conceptual,
+        SourceLanguage::Mermaid,
+        BIBLIOTECA,
+    ),
+    (
         "er-tienda",
         "Tienda en linea",
         "Clientes, pedidos y lineas, con sus claves y cardinalidades.",
@@ -121,6 +129,19 @@ const DEFINITIONS: &[Definition] = &[
         RESERVAS,
     ),
 ];
+
+/// El nivel conceptual: que cosas hay y como se relacionan, sin decidir
+/// todavia ni tipos ni claves. La marca es lo que lo distingue de un
+/// entidad-relacion al volver a leerlo.
+const BIBLIOTECA: &str = r#"
+erDiagram
+  %% diagramMaker: conceptual
+  SOCIO ||--o{ PRESTAMO : "realiza"
+  EJEMPLAR ||--o{ PRESTAMO : "se presta en"
+  LIBRO ||--|{ EJEMPLAR : "tiene"
+  AUTOR }|--|{ LIBRO : "escribe"
+  EDITORIAL ||--o{ LIBRO : "publica"
+"#;
 
 const TIENDA: &str = r#"
 Table clientes {
