@@ -1035,6 +1035,217 @@ export function setNodeC4Level(
   };
 }
 
+/* --- Del modelo conceptual al logico ------------------------------------- */
+
+/**
+ * Convierte un modelo conceptual en el entidad-relacion que le corresponde.
+ *
+ * Es la traduccion de libro, hecha explicita:
+ *
+ * - Cada entidad pasa a tabla con una clave primaria sustituta `id`, que es
+ *   la misma que pone `addTable` cuando se crea una a mano.
+ * - Una relacion de uno a muchos deja la clave ajena en el lado "muchos".
+ * - Una de uno a uno la deja en el destino, y ademas unica: eso es lo que
+ *   hace que siga siendo uno a uno en la base de datos.
+ * - Una de muchos a muchos no cabe en una tabla ni en la otra, asi que sale
+ *   una tabla puente con las dos claves ajenas formando la primaria.
+ *
+ * Lo que **no** hace es adivinar. Los nombres de tabla son los de la entidad
+ * en minusculas y nada mas: pluralizar en espanol hay que inventarlo, y con
+ * las palabras acabadas en consonante o en z sale mal mas veces de las que
+ * sale bien. Los tipos de las columnas tampoco se inventan: una clave es
+ * `integer` porque apunta a una clave sustituta que lo es, y no hay mas
+ * columnas que claves. Poner los atributos es el trabajo que empieza aqui.
+ *
+ * El conceptual se pierde al derivar. Es un solo paso de deshacer, asi que
+ * volver es inmediato; guardar antes sigue siendo buena idea si se quiere
+ * conservar los dos.
+ */
+export function deriveLogicalModel(draft: Document): void {
+  if (draft.kind !== "conceptual") return;
+
+  const entidades = draft.nodes.filter((n) => n.shape === "rectangle");
+  if (entidades.length === 0) return;
+
+  // 1. Cada entidad, a tabla con su clave sustituta.
+  for (const node of entidades) {
+    node.shape = "table";
+    node.label = node.label.trim().toLowerCase();
+    node.data = { type: "er", columns: [primaryKey()] };
+    resyncTableGeometry(draft, node.id);
+  }
+
+  // 2. Cada relacion, segun su cardinalidad. Se recorre una copia porque las
+  //    de muchos a muchos anaden nodos y aristas sobre la marcha.
+  for (const edge of [...draft.edges]) {
+    const source = draft.nodes.find((n) => n.id === edge.source.node);
+    const target = draft.nodes.find((n) => n.id === edge.target.node);
+    if (source?.data.type !== "er" || target?.data.type !== "er") continue;
+
+    const kind = relationKindOf(edge);
+
+    if (kind === "manyToMany") {
+      bridgeTable(draft, edge, source, target);
+      continue;
+    }
+
+    // En uno a muchos la clave ajena va en el destino, y en muchos a uno en
+    // el origen: siempre en el lado que repite valores del otro.
+    const [uno, muchos] = kind === "manyToOne" ? [target, source] : [source, target];
+
+    const columna = foreignKeyTo(muchos, uno, kind === "oneToOne");
+
+    const esOrigenElMuchos = muchos.id === source.id;
+    edge.source.port = esOrigenElMuchos ? columna : primaryKeyIdOf(source);
+    edge.target.port = esOrigenElMuchos ? primaryKeyIdOf(target) : columna;
+
+    // La marca de clave ajena la pone `setRelationKind`, que es quien ya
+    // sabe de que lado va; repetir ese calculo aqui seria tener dos.
+    setRelationKind(draft, edge.id, kind);
+  }
+
+  draft.kind = "er";
+}
+
+/** La clave primaria sustituta, igual que la que crea `addTable`. */
+function primaryKey(): ErColumn {
+  return {
+    id: newId("c"),
+    name: "id",
+    dataType: "integer",
+    primaryKey: true,
+    foreignKey: false,
+    nullable: false,
+    unique: false,
+    increment: true,
+  };
+}
+
+/** El id de la primera clave primaria de una tabla. */
+function primaryKeyIdOf(node: Node): string | undefined {
+  const table = node.data.type === "er" ? node.data : null;
+  return table?.columns.find((c) => c.primaryKey)?.id;
+}
+
+/**
+ * Nombre de columna derivado de un nombre de tabla.
+ *
+ * Los espacios pasan a guion bajo. Es lo unico que se toca: `pedido de venta`
+ * es un nombre de tabla aceptable —DBML lo entrecomilla— pero
+ * `pedido de venta_id` como columna no lo lee nadie.
+ */
+function columnBase(label: string): string {
+  return label.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+/** Un nombre libre dentro de la tabla, con sufijo si ya existe. */
+function freeName(table: ErTable, base: string): string {
+  if (!table.columns.some((c) => c.name === base)) return base;
+
+  for (let n = 2; ; n += 1) {
+    const candidato = `${base}_${n}`;
+    if (!table.columns.some((c) => c.name === candidato)) return candidato;
+  }
+}
+
+/** Anade a `en` la clave ajena que apunta a `hacia`, y devuelve su id. */
+function foreignKeyTo(en: Node, hacia: Node, unica: boolean): string {
+  const table = en.data.type === "er" ? en.data : null;
+  if (!table) return "";
+
+  const column: ErColumn = {
+    id: newId("c"),
+    name: freeName(table, `${columnBase(hacia.label)}_id`),
+    dataType: "integer",
+    primaryKey: false,
+    // La pone `setRelationKind`; aqui se deja en falso para no tener dos
+    // sitios que decidan lo mismo.
+    foreignKey: false,
+    nullable: false,
+    unique: unica,
+    increment: false,
+  };
+
+  table.columns.push(column);
+  return column.id;
+}
+
+/**
+ * La tabla puente de una relacion de muchos a muchos.
+ *
+ * Se lleva las dos claves ajenas, y entre las dos forman la primaria: un par
+ * no puede repetirse, que es justo lo que dice la relacion. La arista
+ * original se sustituye por dos, una desde cada entidad.
+ *
+ * El verbo de la relacion no cabe en ninguna columna, asi que se guarda en la
+ * nota de la tabla en vez de perderse.
+ */
+function bridgeTable(draft: Document, edge: Edge, source: Node, target: Node): void {
+  const nombre = `${columnBase(source.label)}_${columnBase(target.label)}`;
+
+  const columnas: ErColumn[] = [source, target].map((lado) => ({
+    id: newId("c"),
+    name: `${columnBase(lado.label)}_id`,
+    dataType: "integer",
+    primaryKey: true,
+    foreignKey: false,
+    nullable: false,
+    unique: false,
+    increment: false,
+  }));
+
+  // Dos entidades distintas pueden dar el mismo par de nombres si alguien las
+  // llamo igual; el validador ya avisa de eso, pero la columna no puede
+  // repetirse dentro de la tabla.
+  if (columnas[0]!.name === columnas[1]!.name) {
+    columnas[1]!.name = `${columnas[1]!.name}_2`;
+  }
+
+  const verbo = edge.label?.trim();
+  const id = newId("t");
+  const node: Node = {
+    id,
+    label: nombre,
+    shape: "table",
+    pinned: true,
+    style: {},
+    data: {
+      type: "er",
+      columns: columnas,
+      ...(verbo ? { note: verbo } : {}),
+    },
+  };
+
+  draft.nodes.push(node);
+
+  // Entre las dos entidades, que es donde la pondria cualquiera a mano.
+  const a = source.geometry;
+  const b = target.geometry;
+  const x = a && b ? (a.x + b.x) / 2 : (a?.x ?? b?.x ?? 0);
+  const y = a && b ? (a.y + b.y) / 2 : (a?.y ?? b?.y ?? 0);
+  node.geometry = { x, y, ...tableSize(node) };
+
+  // La original se va: en el modelo logico las dos entidades no se tocan, se
+  // tocan con el puente.
+  draft.edges = draft.edges.filter((e) => e.id !== edge.id);
+
+  for (const [lado, columna] of [
+    [source, columnas[0]!],
+    [target, columnas[1]!],
+  ] as const) {
+    const nueva: Edge = {
+      id: newId("e"),
+      source: { node: lado.id, port: primaryKeyIdOf(lado) },
+      target: { node: id, port: columna.id },
+      kind: "association",
+      routing: "orthogonal",
+      style: {},
+    };
+    draft.edges.push(nueva);
+    setRelationKind(draft, nueva.id, "oneToMany");
+  }
+}
+
 /* --- Agrupar y desagrupar ------------------------------------------------ */
 
 /** Hueco entre el borde del grupo y lo que contiene. */

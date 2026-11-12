@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { SHAPE_LABEL } from "@/model/shapes";
+import { deriveLogicalModel } from "@/store/operations";
 import {
   selectCanRedo,
   selectCanUndo,
@@ -137,6 +138,7 @@ export function useCommands(): Command[] {
   const busy = useDocumentStore((s) => s.busy);
   const canUndo = useDocumentStore(selectCanUndo);
   const canRedo = useDocumentStore(selectCanRedo);
+  const edit = useDocumentStore((s) => s.edit);
   const undo = useDocumentStore((s) => s.undo);
   const redo = useDocumentStore((s) => s.redo);
 
@@ -279,6 +281,15 @@ export function useCommands(): Command[] {
         enabled: true,
         run: () => setTool("hand"),
       },
+      // Entra aqui y no en el inspector porque es una accion sobre el
+      // documento entero, no sobre lo que este seleccionado.
+      {
+        id: "tool.derive",
+        title: "Derivar el modelo lógico",
+        group: "Herramientas",
+        enabled: doc?.kind === "conceptual",
+        run: () => edit("derivar el modelo logico", deriveLogicalModel),
+      },
     ];
 
     // Las formas dependen del tipo de diagrama, asi que la lista se arma con
@@ -299,6 +310,7 @@ export function useCommands(): Command[] {
     busy,
     canRedo,
     canUndo,
+    edit,
     createNew,
     doc,
     openFile,

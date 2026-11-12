@@ -13,6 +13,7 @@ import {
   addNode,
   addTable,
   connect,
+  deriveLogicalModel,
   duplicateNode,
   groupNodes,
   moveColumn,
@@ -42,6 +43,7 @@ import {
   setTableNote,
   ungroupNode,
   updateColumn,
+  type RelationKind,
 } from "./operations";
 
 function emptyDoc(): Document {
@@ -1602,5 +1604,178 @@ describe("cambiar entre los dos modelos de datos", () => {
   it("cambiar al mismo tipo no toca nada", () => {
     const antes = erMixto();
     expect(run(antes, (d) => setDiagramKind(d, "er"))).toBe(antes);
+  });
+});
+
+describe("derivar el modelo logico", () => {
+  /** Un conceptual con dos entidades y una relacion de la cardinalidad dada. */
+  function conceptual(kind: RelationKind, verbo = "hace"): Document {
+    return produce({ ...emptyDoc(), kind: "conceptual" as const }, (d) => {
+      const a = addNode(d, { shape: "rectangle", label: "CLIENTE", x: 0, y: 0 });
+      const b = addNode(d, { shape: "rectangle", label: "PEDIDO", x: 400, y: 0 });
+      const e = connect(d, a, b)!;
+      setRelationKind(d, e, kind);
+      setLabel(d, e, verbo);
+    });
+  }
+
+  /** Las columnas de una tabla por su nombre de tabla. */
+  function columnas(doc: Document, label: string) {
+    const node = doc.nodes.find((n) => n.label === label);
+    return node?.data.type === "er" ? node.data.columns : [];
+  }
+
+  it("cada entidad pasa a tabla en minusculas y con su clave sustituta", () => {
+    const doc = run(conceptual("oneToMany"), (d) => deriveLogicalModel(d));
+
+    expect(doc.kind).toBe("er");
+    expect(doc.nodes.map((n) => n.label).sort()).toEqual(["cliente", "pedido"]);
+
+    const pk = columnas(doc, "cliente")[0]!;
+    expect(pk).toMatchObject({
+      name: "id",
+      dataType: "integer",
+      primaryKey: true,
+      increment: true,
+      nullable: false,
+    });
+  });
+
+  it("en uno a muchos la clave ajena queda en el lado muchos", () => {
+    // `CLIENTE 1 --> * PEDIDO`: es pedido el que repite clientes.
+    const doc = run(conceptual("oneToMany"), (d) => deriveLogicalModel(d));
+
+    expect(columnas(doc, "cliente").map((c) => c.name)).toEqual(["id"]);
+
+    const fk = columnas(doc, "pedido").find((c) => c.name === "cliente_id")!;
+    expect(fk).toMatchObject({
+      dataType: "integer",
+      nullable: false,
+      foreignKey: true,
+    });
+  });
+
+  it("y en muchos a uno, en el origen", () => {
+    const doc = run(conceptual("manyToOne"), (d) => deriveLogicalModel(d));
+
+    expect(columnas(doc, "cliente").map((c) => c.name)).toEqual(["id", "pedido_id"]);
+    expect(columnas(doc, "pedido").map((c) => c.name)).toEqual(["id"]);
+  });
+
+  it("una de uno a uno deja la clave ajena unica", () => {
+    // Sin `unique` la base de datos dejaria meter dos filas apuntando a la
+    // misma, y eso ya no seria uno a uno.
+    const doc = run(conceptual("oneToOne"), (d) => deriveLogicalModel(d));
+
+    const fk = columnas(doc, "pedido").find((c) => c.name === "cliente_id")!;
+    expect(fk.unique).toBe(true);
+  });
+
+  it("la relacion acaba uniendo columnas, no cajas", () => {
+    // Es lo que distingue un entidad-relacion de verdad: la relacion sabe que
+    // columna apunta a cual.
+    const doc = run(conceptual("oneToMany"), (d) => deriveLogicalModel(d));
+    const edge = doc.edges[0]!;
+
+    const pk = columnas(doc, "cliente").find((c) => c.primaryKey)!;
+    const fk = columnas(doc, "pedido").find((c) => c.name === "cliente_id")!;
+
+    expect(edge.source.port).toBe(pk.id);
+    expect(edge.target.port).toBe(fk.id);
+  });
+
+  it("muchos a muchos saca una tabla puente con las dos claves", () => {
+    const doc = run(conceptual("manyToMany", "compra"), (d) => deriveLogicalModel(d));
+
+    const puente = doc.nodes.find((n) => n.label === "cliente_pedido")!;
+    expect(puente).toBeDefined();
+
+    const cols = columnas(doc, "cliente_pedido");
+    expect(cols.map((c) => c.name)).toEqual(["cliente_id", "pedido_id"]);
+    // Las dos forman la primaria: un par no se puede repetir, que es lo que
+    // dice la relacion.
+    expect(cols.every((c) => c.primaryKey)).toBe(true);
+  });
+
+  it("y sustituye la relacion original por dos, una desde cada entidad", () => {
+    const doc = run(conceptual("manyToMany"), (d) => deriveLogicalModel(d));
+
+    expect(doc.edges).toHaveLength(2);
+    const puente = doc.nodes.find((n) => n.label === "cliente_pedido")!;
+    for (const edge of doc.edges) {
+      expect(edge.target.node).toBe(puente.id);
+    }
+  });
+
+  it("el verbo no se pierde: se guarda en la nota del puente", () => {
+    const doc = run(conceptual("manyToMany", "compra"), (d) => deriveLogicalModel(d));
+    const puente = doc.nodes.find((n) => n.label === "cliente_pedido")!;
+
+    expect(puente.data.type === "er" ? puente.data.note : null).toBe("compra");
+  });
+
+  it("dos relaciones hacia la misma tabla no chocan de nombre", () => {
+    // Un pedido con direccion de envio y de facturacion: las dos apuntan a
+    // `direccion`, y la segunda no puede llamarse igual que la primera.
+    const antes = produce({ ...emptyDoc(), kind: "conceptual" as const }, (d) => {
+      const dir = addNode(d, { shape: "rectangle", label: "DIRECCION", x: 0, y: 0 });
+      const ped = addNode(d, { shape: "rectangle", label: "PEDIDO", x: 400, y: 0 });
+      for (const verbo of ["envia a", "factura a"]) {
+        const e = connect(d, dir, ped)!;
+        setRelationKind(d, e, "oneToMany");
+        setLabel(d, e, verbo);
+      }
+    });
+
+    const doc = run(antes, (d) => deriveLogicalModel(d));
+
+    expect(columnas(doc, "pedido").map((c) => c.name)).toEqual([
+      "id",
+      "direccion_id",
+      "direccion_id_2",
+    ]);
+  });
+
+  it("un nombre con espacios da una columna con guion bajo", () => {
+    // La tabla conserva el nombre —DBML lo entrecomilla— pero
+    // `pedido de venta_id` como columna no lo lee nadie.
+    const antes = produce({ ...emptyDoc(), kind: "conceptual" as const }, (d) => {
+      const a = addNode(d, {
+        shape: "rectangle",
+        label: "Pedido de venta",
+        x: 0,
+        y: 0,
+      });
+      const b = addNode(d, { shape: "rectangle", label: "LINEA", x: 400, y: 0 });
+      const e = connect(d, a, b)!;
+      setRelationKind(d, e, "oneToMany");
+    });
+
+    const doc = run(antes, (d) => deriveLogicalModel(d));
+
+    expect(doc.nodes.some((n) => n.label === "pedido de venta")).toBe(true);
+    expect(columnas(doc, "linea").map((c) => c.name)).toContain("pedido_de_venta_id");
+  });
+
+  it("no hace nada si el diagrama no es conceptual", () => {
+    const er = produce({ ...emptyDoc(), kind: "er" as const }, (d) => {
+      addTable(d, { label: "CLIENTE", x: 0, y: 0 });
+    });
+
+    expect(run(er, (d) => deriveLogicalModel(d))).toBe(er);
+  });
+
+  it("las notas y los textos sueltos se quedan como estaban", () => {
+    // Solo las entidades se convierten; una anotacion no es una tabla.
+    const antes = produce({ ...emptyDoc(), kind: "conceptual" as const }, (d) => {
+      addNode(d, { shape: "rectangle", label: "CLIENTE", x: 0, y: 0 });
+      addNode(d, { shape: "note", label: "Pendiente de revisar", x: 400, y: 0 });
+    });
+
+    const doc = run(antes, (d) => deriveLogicalModel(d));
+    const nota = doc.nodes.find((n) => n.shape === "note")!;
+
+    expect(nota.label).toBe("Pendiente de revisar");
+    expect(nota.data.type).toBe("plain");
   });
 });

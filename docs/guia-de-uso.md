@@ -91,6 +91,27 @@ cambia desde el inspector o con el botón derecho sobre la relación. Se dibuja
 Entra y sale en `erDiagram` de Mermaid, marcado con un comentario. Ver
 [dialectos](dialectos.md).
 
+**Derivar el modelo lógico.** El comando «Derivar el modelo lógico»
+(`Ctrl+K`) convierte el conceptual en el entidad-relación que le corresponde:
+
+| En el conceptual | En el lógico |
+| --- | --- |
+| Una entidad | Una tabla, con el nombre en minúsculas y una clave primaria `id` |
+| Uno a muchos | Clave ajena en el lado «muchos» |
+| Uno a uno | Clave ajena en el destino, y además única |
+| Muchos a muchos | Una tabla puente con las dos claves ajenas formando la primaria |
+
+Los nombres de tabla son los de la entidad en minúsculas y nada más:
+pluralizar en español hay que inventarlo, y con las palabras acabadas en
+consonante o en z sale mal más veces de las que sale bien. Los tipos tampoco
+se inventan — una clave es `integer` porque apunta a una clave sustituta que
+lo es, y no hay más columnas que claves. Poner los atributos es el trabajo
+que empieza ahí.
+
+El conceptual se pierde al derivar. Es un solo paso de deshacer, así que
+volver es inmediato; guardar antes sigue siendo buena idea si se quieren
+conservar los dos.
+
 ### Entidad-relación
 
 Es el nivel **lógico** del modelo anterior. Tablas con columnas, tipos, claves primarias y ajenas, unicidad y nulabilidad.
