@@ -19,7 +19,9 @@
 
 use std::fmt::Write as _;
 
-use crate::model::{Document, ErColumn, LayoutDirection, Node};
+use crate::model::{DiagramKind, Document, ErColumn, LayoutDirection, Node, NodeShape};
+
+use crate::parse::mermaid::er_diagram::MARCA_CONCEPTUAL;
 
 /// Sangria del cuerpo.
 const INDENT: &str = "  ";
@@ -29,6 +31,15 @@ const NO_TYPE: &str = "sin_tipo";
 
 pub fn emit(doc: &Document) -> String {
     let mut out = String::from("erDiagram\n");
+
+    // Un conceptual y un entidad-relacion sin columnas se escriben igual en
+    // `erDiagram`. La marca es lo que los distingue al volver a leerlos, y va
+    // en un comentario para que Mermaid la ignore y el codigo se siga
+    // dibujando en cualquier visor. Detras de la cabecera y no delante,
+    // porque Mermaid quiere el tipo de diagrama en la primera linea.
+    if doc.kind == DiagramKind::Conceptual {
+        let _ = writeln!(out, "{INDENT}{MARCA_CONCEPTUAL}");
+    }
 
     if doc.meta.title != doc.kind.title() {
         let _ = writeln!(out, "{INDENT}title {}", doc.meta.title.replace('\n', " "));
@@ -144,13 +155,28 @@ fn right_symbol(label: Option<&str>) -> &'static str {
     }
 }
 
+/// `true` si el nodo es una entidad del diagrama que lo contiene.
+///
+/// En el nivel logico lo es todo lo que lleva tabla. En el conceptual no hay
+/// tablas, asi que la entidad es el rectangulo; un paquete, una nota o un
+/// texto suelto son anotaciones y no se declaran.
+fn es_entidad(doc: &Document, node: &Node) -> bool {
+    if doc.kind == DiagramKind::Conceptual {
+        node.shape == NodeShape::Rectangle
+    } else {
+        node.er().is_some()
+    }
+}
+
 fn emit_entities(doc: &Document, out: &mut String) {
     for node in &doc.nodes {
-        let Some(table) = node.er() else {
+        if !es_entidad(doc, node) {
             continue;
-        };
+        }
 
-        if table.columns.is_empty() {
+        let columns = node.er().map(|t| &t.columns[..]).unwrap_or(&[]);
+
+        if columns.is_empty() {
             // Sin atributos no hace falta bloque; la entidad ya existe por su
             // relacion. Solo se declara si no la nombra ninguna.
             if !touched_by_any_edge(doc, &node.id) {
@@ -160,7 +186,7 @@ fn emit_entities(doc: &Document, out: &mut String) {
         }
 
         let _ = writeln!(out, "{INDENT}{} {{", declaration(node));
-        for column in &table.columns {
+        for column in columns {
             let _ = writeln!(out, "{INDENT}{INDENT}{}", attribute(column));
         }
         let _ = writeln!(out, "{INDENT}}}");

@@ -30,7 +30,10 @@ pub fn emit(doc: &Document) -> String {
     if doc.kind == DiagramKind::State {
         return state_diagram::emit(doc);
     }
-    if doc.kind == DiagramKind::Er {
+    // Los dos modelos de datos salen por el mismo generador: en `erDiagram`
+    // se escriben igual, y lo que los distingue es la marca que pone
+    // `er_diagram::emit`.
+    if doc.kind == DiagramKind::Er || doc.kind == DiagramKind::Conceptual {
         return er_diagram::emit(doc);
     }
 

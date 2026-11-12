@@ -28,16 +28,45 @@ use std::collections::HashMap;
 
 use crate::model::{
     Diagnostic, DiagramKind, Document, Edge, EdgeKind, ErColumn, ErTable, LayoutDirection, Node,
-    Routing, Span,
+    NodeShape, Routing, Span,
 };
 
 use super::super::{ImportResult, strip_word};
 use super::strip_comment;
 
 pub fn import(source: &str, now_ms: i64) -> ImportResult {
-    let mut parser = Parser::new(now_ms);
+    let kind = if lleva_marca_conceptual(source) {
+        DiagramKind::Conceptual
+    } else {
+        DiagramKind::Er
+    };
+
+    let mut parser = Parser::new(now_ms, kind);
     parser.run(source);
     parser.finish()
+}
+
+/// Comentario con el que el generador marca un modelo conceptual.
+///
+/// Mermaid ignora los comentarios, asi que lo que sale de aqui se sigue
+/// dibujando en cualquier visor; para nosotros es la diferencia entre el
+/// nivel conceptual y el logico, que en `erDiagram` se escriben igual cuando
+/// ninguna entidad declara atributos.
+///
+/// Se marca en vez de adivinarse. Deducirlo de que no haya atributos
+/// cambiaria el significado de un texto que ya se soportaba, y encima en
+/// funcion de algo que puede aparecer en la ultima linea: un esquema a medio
+/// rellenar dejaria de ser un entidad-relacion sin decir nada.
+pub const MARCA_CONCEPTUAL: &str = "%% diagramMaker: conceptual";
+
+/// `true` si el codigo trae la marca.
+///
+/// Se mira sobre las lineas crudas, antes de analizar nada, para construir el
+/// documento con su tipo desde el principio en vez de retocarlo al final.
+fn lleva_marca_conceptual(source: &str) -> bool {
+    source
+        .lines()
+        .any(|line| line.trim().eq_ignore_ascii_case(MARCA_CONCEPTUAL))
 }
 
 /// Simbolos de cardinalidad del lado izquierdo, con lo que guarda el modelo.
@@ -68,9 +97,9 @@ struct Parser {
 }
 
 impl Parser {
-    fn new(now_ms: i64) -> Self {
+    fn new(now_ms: i64, kind: DiagramKind) -> Self {
         Parser {
-            document: Document::new(uuid::Uuid::new_v4().to_string(), DiagramKind::Er, now_ms),
+            document: Document::new(uuid::Uuid::new_v4().to_string(), kind, now_ms),
             diagnostics: Vec::new(),
             by_name: HashMap::new(),
             open: None,
@@ -97,6 +126,11 @@ impl Parser {
     fn error(&mut self, code: &str, message: impl Into<String>, line: u32, column: u32) {
         self.diagnostics
             .push(Diagnostic::error(code, message).at_span(Span::new(line, column)));
+    }
+
+    fn warning(&mut self, code: &str, message: impl Into<String>, line: u32, column: u32) {
+        self.diagnostics
+            .push(Diagnostic::warning(code, message).at_span(Span::new(line, column)));
     }
 
     fn run(&mut self, source: &str) {
@@ -210,11 +244,21 @@ impl Parser {
     }
 
     /// Indice de la entidad, creandola si es la primera vez que se nombra.
+    /// `true` si lo que se esta leyendo es un modelo conceptual.
+    fn es_conceptual(&self) -> bool {
+        self.document.kind == DiagramKind::Conceptual
+    }
+
     fn entity(&mut self, name: &str, alias: Option<String>) -> usize {
+        let conceptual = self.es_conceptual();
+
         if let Some(&index) = self.by_name.get(name) {
             // El alias puede llegar despues de la primera mencion, cuando la
             // entidad ya existia por aparecer en una relacion.
             if let Some(alias) = alias {
+                if conceptual {
+                    self.alias_ignorado(name);
+                }
                 let node = &mut self.document.nodes[index];
                 node.label = alias;
                 if let Some(table) = node.data.as_er_mut() {
@@ -230,16 +274,40 @@ impl Parser {
             None => (name.to_string(), None),
         };
 
-        let table = ErTable {
-            alias: stored,
-            ..Default::default()
-        };
+        // Una entidad conceptual es un rectangulo con su nombre y nada mas.
+        // No lleva tabla, asi que tampoco tiene donde guardar el alias: se
+        // dibuja el texto y el identificador se pierde. No es grave —un
+        // nombre con espacios va y vuelve entrecomillado, sin necesitar
+        // alias— pero se avisa en vez de callarlo.
+        if conceptual {
+            if stored.is_some() {
+                self.alias_ignorado(name);
+            }
 
-        self.document.nodes.push(Node::table(id, label, table));
+            self.document
+                .nodes
+                .push(Node::new(id, label, NodeShape::Rectangle));
+        } else {
+            let table = ErTable {
+                alias: stored,
+                ..Default::default()
+            };
+            self.document.nodes.push(Node::table(id, label, table));
+        }
+
         let index = self.document.nodes.len() - 1;
         self.by_name.insert(name.to_string(), index);
 
         index
+    }
+
+    fn alias_ignorado(&mut self, name: &str) {
+        self.diagnostics.push(Diagnostic::warning(
+            "aliasIgnored",
+            format!(
+                "El identificador `{name}` no se guarda en un modelo conceptual: una entidad solo tiene nombre."
+            ),
+        ));
     }
 
     /* --- Atributos ---------------------------------------------------------- */
@@ -258,8 +326,21 @@ impl Parser {
                     let id = self.id("c");
                     let mut parsed = column_;
                     parsed.id = id;
-                    if let Some(table) = self.document.nodes[index].data.as_er_mut() {
-                        table.columns.push(parsed);
+
+                    match self.document.nodes[index].data.as_er_mut() {
+                        Some(table) => table.columns.push(parsed),
+                        // Un nodo sin tabla es una entidad conceptual, y ahi
+                        // no hay columnas. Perderlo en silencio seria peor
+                        // que decirlo: el autor escribio algo que no va a
+                        // salir por ningun lado.
+                        None => self.warning(
+                            "attributeInConceptual",
+                            format!(
+                                "El atributo `{text}` no se guarda: un modelo conceptual no lleva columnas."
+                            ),
+                            line,
+                            column,
+                        ),
                     }
                 }
                 None => self.error(
